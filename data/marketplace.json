@@ -1,0 +1,539 @@
+{
+  "skills": [
+    {
+      "skill_id": "market.risk_heatmap",
+      "provider": "core-labs",
+      "version": "0.1.0",
+      "tags": [
+        "risk",
+        "analysis",
+        "governance"
+      ],
+      "installs": 120,
+      "uses": 133,
+      "success": 123,
+      "failures": 10,
+      "avg_rating": 4.6,
+      "rating_count": 29,
+      "version_history": [
+        {
+          "version": "0.1.0",
+          "changelog": "Initial release",
+          "date": "2025-12-01"
+        }
+      ],
+      "compatibility": [
+        "identify_risks",
+        "prioritize_items"
+      ],
+      "last_updated": "2026-01-15",
+      "trending_score": 0.6400000000000003,
+      "metadata": {
+        "name": "risk_heatmap",
+        "description": "Score risks by likelihood and impact for prioritization.",
+        "strengths": [
+          "risk scoring",
+          "prioritization",
+          "portfolio view"
+        ],
+        "weaknesses": [
+          "limited narrative quality"
+        ],
+        "category": "analysis",
+        "output_type": "structured",
+        "skill_id": "market.risk_heatmap",
+        "owner": "core-labs",
+        "version": "0.1.0",
+        "summary": "Score risks by likelihood and impact for prioritization.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "risk",
+          "impact",
+          "likelihood",
+          "prioritize"
+        ],
+        "tier": "advanced",
+        "compute_cost": 1.4,
+        "synergies": [
+          "identify_risks",
+          "prioritize_items"
+        ],
+        "conflicts": [],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    },
+    {
+      "skill_id": "market.evidence_matrix",
+      "provider": "research-hub",
+      "version": "0.2.1",
+      "tags": [
+        "research",
+        "evidence",
+        "comparison"
+      ],
+      "installs": 95,
+      "uses": 71,
+      "success": 65,
+      "failures": 6,
+      "avg_rating": 4.4,
+      "rating_count": 22,
+      "version_history": [
+        {
+          "version": "0.2.1",
+          "changelog": "Confidence calibration",
+          "date": "2026-02-03"
+        }
+      ],
+      "compatibility": [
+        "extract_facts",
+        "validate_claims"
+      ],
+      "last_updated": "2026-02-03",
+      "trending_score": 0.21,
+      "metadata": {
+        "name": "evidence_matrix",
+        "description": "Build claim-evidence-confidence matrix from source text.",
+        "strengths": [
+          "evidence synthesis",
+          "fact confidence",
+          "traceability"
+        ],
+        "weaknesses": [
+          "creative ideation"
+        ],
+        "category": "recall",
+        "output_type": "structured",
+        "skill_id": "market.evidence_matrix",
+        "owner": "research-hub",
+        "version": "0.2.1",
+        "summary": "Build claim-evidence-confidence matrix from source text.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "evidence",
+          "claim",
+          "confidence",
+          "source"
+        ],
+        "tier": "expert",
+        "compute_cost": 1.8,
+        "synergies": [
+          "extract_facts",
+          "validate_claims"
+        ],
+        "conflicts": [
+          "brainstorm_ideas"
+        ],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    },
+    {
+      "skill_id": "market.board_brief",
+      "provider": "exec-ai",
+      "version": "1.0.0",
+      "tags": [
+        "communication",
+        "executive",
+        "brief"
+      ],
+      "installs": 180,
+      "uses": 161,
+      "success": 144,
+      "failures": 17,
+      "avg_rating": 4.8,
+      "rating_count": 55,
+      "version_history": [
+        {
+          "version": "1.0.0",
+          "changelog": "Stable release",
+          "date": "2026-01-20"
+        }
+      ],
+      "compatibility": [
+        "executive_summary",
+        "generate_recommendations"
+      ],
+      "last_updated": "2026-03-11",
+      "trending_score": 0.3600000000000001,
+      "metadata": {
+        "name": "board_brief",
+        "description": "Produce board-level concise summary with recommendations.",
+        "strengths": [
+          "executive tone",
+          "clarity",
+          "decision framing"
+        ],
+        "weaknesses": [
+          "low-level extraction"
+        ],
+        "category": "communication",
+        "output_type": "text",
+        "skill_id": "market.board_brief",
+        "owner": "exec-ai",
+        "version": "1.0.0",
+        "summary": "Produce board-level concise summary with recommendations.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "summary",
+          "board",
+          "brief",
+          "recommendation"
+        ],
+        "tier": "advanced",
+        "compute_cost": 1.1,
+        "synergies": [
+          "executive_summary",
+          "prioritize_items"
+        ],
+        "conflicts": [],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    },
+    {
+      "skill_id": "market.sentiment_scanner",
+      "provider": "nlp-works",
+      "version": "1.2.0",
+      "tags": [
+        "sentiment",
+        "analysis",
+        "opinion",
+        "emotion"
+      ],
+      "installs": 95,
+      "uses": 82,
+      "success": 74,
+      "failures": 8,
+      "avg_rating": 4.3,
+      "rating_count": 31,
+      "version_history": [
+        {
+          "version": "1.2.0",
+          "changelog": "Improved tone scoring",
+          "date": "2026-02-18"
+        }
+      ],
+      "compatibility": [
+        "synthesize_perspectives",
+        "executive_summary"
+      ],
+      "last_updated": "2026-02-18",
+      "trending_score": 0.16,
+      "metadata": {
+        "name": "sentiment_scanner",
+        "description": "Analyze sentiment polarity and emotional tone across text segments.",
+        "strengths": [
+          "sentiment detection",
+          "emotion classification",
+          "tone analysis"
+        ],
+        "weaknesses": [
+          "sarcasm detection",
+          "multilingual support"
+        ],
+        "category": "analysis",
+        "output_type": "structured",
+        "skill_id": "market.sentiment_scanner",
+        "owner": "nlp-works",
+        "version": "1.2.0",
+        "summary": "Analyze sentiment polarity and emotional tone across text segments.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "sentiment",
+          "emotion",
+          "tone",
+          "feeling",
+          "positive",
+          "negative"
+        ],
+        "tier": "advanced",
+        "compute_cost": 1.3,
+        "synergies": [
+          "synthesize_perspectives"
+        ],
+        "conflicts": [],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    },
+    {
+      "skill_id": "market.dependency_mapper",
+      "provider": "arch-ai",
+      "version": "0.3.0",
+      "tags": [
+        "dependency",
+        "graph",
+        "relationship",
+        "mapping"
+      ],
+      "installs": 68,
+      "uses": 57,
+      "success": 51,
+      "failures": 6,
+      "avg_rating": 4.1,
+      "rating_count": 15,
+      "version_history": [
+        {
+          "version": "0.3.0",
+          "changelog": "Added causal mapping",
+          "date": "2026-01-30"
+        }
+      ],
+      "compatibility": [
+        "build_timeline",
+        "prioritize_items"
+      ],
+      "last_updated": "2026-01-30",
+      "trending_score": 0.22000000000000008,
+      "metadata": {
+        "name": "dependency_mapper",
+        "description": "Map dependencies, relationships, and causal chains in structured content.",
+        "strengths": [
+          "relationship extraction",
+          "causal chain detection",
+          "dependency graphing"
+        ],
+        "weaknesses": [
+          "needs structured input",
+          "less useful for narrative text"
+        ],
+        "category": "extraction",
+        "output_type": "graph",
+        "skill_id": "market.dependency_mapper",
+        "owner": "arch-ai",
+        "version": "0.3.0",
+        "summary": "Map dependencies, relationships, and causal chains in structured content.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "dependency",
+          "relationship",
+          "cause",
+          "effect",
+          "chain",
+          "graph"
+        ],
+        "tier": "expert",
+        "compute_cost": 1.7,
+        "synergies": [
+          "build_timeline",
+          "extract_facts"
+        ],
+        "conflicts": [],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    },
+    {
+      "skill_id": "market.scenario_generator",
+      "provider": "futures-lab",
+      "version": "0.1.0",
+      "tags": [
+        "scenario",
+        "future",
+        "simulation",
+        "what-if"
+      ],
+      "installs": 42,
+      "uses": 28,
+      "success": 24,
+      "failures": 4,
+      "avg_rating": 4.5,
+      "rating_count": 12,
+      "version_history": [
+        {
+          "version": "0.1.0",
+          "changelog": "Initial release",
+          "date": "2026-03-20"
+        }
+      ],
+      "compatibility": [
+        "brainstorm_ideas",
+        "generate_recommendations"
+      ],
+      "last_updated": "2026-03-20",
+      "trending_score": 0.33,
+      "metadata": {
+        "name": "scenario_generator",
+        "description": "Generate alternative scenarios and what-if analyses based on input conditions.",
+        "strengths": [
+          "scenario planning",
+          "what-if analysis",
+          "alternative futures"
+        ],
+        "weaknesses": [
+          "speculative by nature",
+          "needs clear assumptions"
+        ],
+        "category": "generation",
+        "output_type": "structured",
+        "skill_id": "market.scenario_generator",
+        "owner": "futures-lab",
+        "version": "0.1.0",
+        "summary": "Generate alternative scenarios and what-if analyses based on input conditions.",
+        "applicable_tasks": [],
+        "contraindications": [],
+        "required_inputs": [],
+        "optional_inputs": [],
+        "output_schema": {},
+        "evidence_style": "heuristic",
+        "reasoning_role": "general",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "interpretability_score": 0.7,
+        "calibration_score": 0.6,
+        "failure_modes": [],
+        "recovery_suggestions": [],
+        "compatible_with": [],
+        "complements": [],
+        "redundant_with": [],
+        "ideal_position_in_pipeline": "middle",
+        "supports_parallelism": true,
+        "success_rate_by_domain": {},
+        "success_rate_by_agent": {},
+        "pairwise_synergy_scores": {},
+        "pairwise_redundancy_scores": {},
+        "drift_flag": false,
+        "reputation_score": 0.5,
+        "confidence_keywords": [
+          "scenario",
+          "what if",
+          "future",
+          "alternative",
+          "simulate",
+          "possibility"
+        ],
+        "tier": "advanced",
+        "compute_cost": 1.4,
+        "synergies": [
+          "identify_risks",
+          "generate_recommendations"
+        ],
+        "conflicts": [],
+        "min_context_length": 10,
+        "max_context_length": 10000
+      }
+    }
+  ]
+}

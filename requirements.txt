@@ -1,0 +1,4 @@
+﻿langgraph==1.1.4
+pydantic==2.12.5
+rich==14.3.3
+typer==0.24.1

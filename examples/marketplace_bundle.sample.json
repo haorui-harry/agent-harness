@@ -1,0 +1,92 @@
+{
+  "skills": [
+    {
+      "skill_id": "market.compliance_clause_guard",
+      "provider": "reg-tech-labs",
+      "version": "0.3.0",
+      "tags": ["compliance", "legal", "risk", "verification"],
+      "installs": 15,
+      "uses": 9,
+      "success": 8,
+      "failures": 1,
+      "avg_rating": 4.7,
+      "rating_count": 5,
+      "last_updated": "2026-03-25",
+      "trending_score": 0.19,
+      "version_history": [
+        {
+          "version": "0.3.0",
+          "changelog": "Added clause inconsistency checks",
+          "date": "2026-03-25"
+        }
+      ],
+      "compatibility": ["validate_claims", "risk_heatmap", "evidence_matrix"],
+      "metadata": {
+        "name": "compliance_clause_guard",
+        "description": "Detect risky policy clauses and flag missing legal qualifiers.",
+        "summary": "Clause-level compliance risk detection.",
+        "owner": "reg-tech-labs",
+        "version": "0.3.0",
+        "strengths": ["clause scanning", "compliance risk tagging", "policy consistency checks"],
+        "weaknesses": ["creative framing", "informal brainstorming"],
+        "category": "analysis",
+        "output_type": "structured",
+        "reasoning_role": "verification",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "low",
+        "failure_modes": ["false positive on exploratory drafts"],
+        "recovery_suggestions": ["cross-check with validate_claims"],
+        "confidence_keywords": ["compliance", "clause", "policy", "risk", "legal"],
+        "tier": "expert",
+        "compute_cost": 1.6,
+        "synergies": ["validate_claims", "identify_risks"],
+        "conflicts": ["brainstorm_ideas"]
+      }
+    },
+    {
+      "skill_id": "market.strategy_signal_scanner",
+      "provider": "signal-foundry",
+      "version": "0.1.0",
+      "tags": ["strategy", "signal", "trend", "planning"],
+      "installs": 12,
+      "uses": 7,
+      "success": 6,
+      "failures": 1,
+      "avg_rating": 4.3,
+      "rating_count": 4,
+      "last_updated": "2026-03-28",
+      "trending_score": 0.22,
+      "version_history": [
+        {
+          "version": "0.1.0",
+          "changelog": "Initial partner drop",
+          "date": "2026-03-28"
+        }
+      ],
+      "compatibility": ["scenario_generator", "generate_recommendations", "board_brief"],
+      "metadata": {
+        "name": "strategy_signal_scanner",
+        "description": "Detect weak strategic signals and convert them into trackable hypotheses.",
+        "summary": "Weak-signal scanning for strategy teams.",
+        "owner": "signal-foundry",
+        "version": "0.1.0",
+        "strengths": ["early trend signals", "hypothesis framing", "strategic narrative"],
+        "weaknesses": ["strict factual verification"],
+        "category": "generation",
+        "output_type": "structured",
+        "reasoning_role": "exploration",
+        "latency_profile": "medium",
+        "cost_profile": "medium",
+        "risk_profile": "medium",
+        "failure_modes": ["speculative drift under sparse evidence"],
+        "recovery_suggestions": ["pair with evidence_matrix to validate"],
+        "confidence_keywords": ["signal", "trend", "strategy", "hypothesis", "scenario"],
+        "tier": "advanced",
+        "compute_cost": 1.3,
+        "synergies": ["scenario_generator", "generate_recommendations"],
+        "conflicts": []
+      }
+    }
+  ]
+}

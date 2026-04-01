@@ -1,0 +1,256 @@
+{
+  "skills": {
+    "risk_heatmap": {
+      "runs": 28,
+      "success": 28,
+      "avg_quality": 1.0
+    },
+    "identify_risks": {
+      "runs": 22,
+      "success": 22,
+      "avg_quality": 1.0
+    },
+    "extract_facts": {
+      "runs": 8,
+      "success": 8,
+      "avg_quality": 1.0
+    },
+    "build_timeline": {
+      "runs": 10,
+      "success": 10,
+      "avg_quality": 1.0
+    },
+    "executive_summary": {
+      "runs": 26,
+      "success": 26,
+      "avg_quality": 0.8666666666666667
+    },
+    "compare_options": {
+      "runs": 18,
+      "success": 18,
+      "avg_quality": 1.0
+    },
+    "board_brief": {
+      "runs": 11,
+      "success": 11,
+      "avg_quality": 1.0
+    },
+    "validate_claims": {
+      "runs": 3,
+      "success": 3,
+      "avg_quality": 1.0
+    },
+    "synthesize_perspectives": {
+      "runs": 10,
+      "success": 10,
+      "avg_quality": 0.8666666666666667
+    },
+    "prioritize_items": {
+      "runs": 6,
+      "success": 6,
+      "avg_quality": 1.0
+    },
+    "dependency_mapper": {
+      "runs": 12,
+      "success": 12,
+      "avg_quality": 1.0
+    },
+    "generate_recommendations": {
+      "runs": 3,
+      "success": 3,
+      "avg_quality": 1.0
+    }
+  },
+  "agents": {
+    "AnalysisAgent": {
+      "runs": 34,
+      "success": 34
+    },
+    "CreativeAgent": {
+      "runs": 11,
+      "success": 11
+    },
+    "SummaryAgent": {
+      "runs": 4,
+      "success": 4
+    },
+    "CriticAgent": {
+      "runs": 3,
+      "success": 3
+    },
+    "DebugAgent": {
+      "runs": 4,
+      "success": 4
+    }
+  },
+  "pairs": {
+    "risk_heatmap|identify_risks": {
+      "runs": 20,
+      "success": 20
+    },
+    "build_timeline|executive_summary": {
+      "runs": 10,
+      "success": 10
+    },
+    "build_timeline|extract_facts": {
+      "runs": 6,
+      "success": 6
+    },
+    "build_timeline|compare_options": {
+      "runs": 6,
+      "success": 6
+    },
+    "executive_summary|extract_facts": {
+      "runs": 8,
+      "success": 8
+    },
+    "executive_summary|compare_options": {
+      "runs": 8,
+      "success": 8
+    },
+    "extract_facts|compare_options": {
+      "runs": 8,
+      "success": 8
+    },
+    "risk_heatmap|executive_summary": {
+      "runs": 2,
+      "success": 2
+    },
+    "identify_risks|executive_summary": {
+      "runs": 4,
+      "success": 4
+    },
+    "board_brief|validate_claims": {
+      "runs": 3,
+      "success": 3
+    },
+    "risk_heatmap|synthesize_perspectives": {
+      "runs": 8,
+      "success": 8
+    },
+    "identify_risks|synthesize_perspectives": {
+      "runs": 8,
+      "success": 8
+    },
+    "board_brief|prioritize_items": {
+      "runs": 6,
+      "success": 6
+    },
+    "board_brief|dependency_mapper": {
+      "runs": 6,
+      "success": 6
+    },
+    "board_brief|executive_summary": {
+      "runs": 5,
+      "success": 5
+    },
+    "prioritize_items|dependency_mapper": {
+      "runs": 5,
+      "success": 5
+    },
+    "prioritize_items|executive_summary": {
+      "runs": 5,
+      "success": 5
+    },
+    "dependency_mapper|executive_summary": {
+      "runs": 5,
+      "success": 5
+    },
+    "compare_options|build_timeline": {
+      "runs": 4,
+      "success": 4
+    },
+    "compare_options|executive_summary": {
+      "runs": 4,
+      "success": 4
+    },
+    "executive_summary|dependency_mapper": {
+      "runs": 4,
+      "success": 4
+    },
+    "risk_heatmap|compare_options": {
+      "runs": 4,
+      "success": 4
+    },
+    "identify_risks|compare_options": {
+      "runs": 6,
+      "success": 6
+    },
+    "identify_risks|generate_recommendations": {
+      "runs": 2,
+      "success": 2
+    },
+    "identify_risks|extract_facts": {
+      "runs": 2,
+      "success": 2
+    },
+    "identify_risks|risk_heatmap": {
+      "runs": 2,
+      "success": 2
+    },
+    "executive_summary|generate_recommendations": {
+      "runs": 2,
+      "success": 2
+    },
+    "executive_summary|risk_heatmap": {
+      "runs": 2,
+      "success": 2
+    },
+    "generate_recommendations|extract_facts": {
+      "runs": 2,
+      "success": 2
+    },
+    "generate_recommendations|compare_options": {
+      "runs": 2,
+      "success": 2
+    },
+    "generate_recommendations|risk_heatmap": {
+      "runs": 2,
+      "success": 2
+    },
+    "extract_facts|risk_heatmap": {
+      "runs": 2,
+      "success": 2
+    },
+    "compare_options|risk_heatmap": {
+      "runs": 2,
+      "success": 2
+    },
+    "executive_summary|synthesize_perspectives": {
+      "runs": 2,
+      "success": 2
+    },
+    "dependency_mapper|synthesize_perspectives": {
+      "runs": 2,
+      "success": 2
+    },
+    "compare_options|dependency_mapper": {
+      "runs": 2,
+      "success": 2
+    },
+    "compare_options|board_brief": {
+      "runs": 2,
+      "success": 2
+    },
+    "dependency_mapper|board_brief": {
+      "runs": 2,
+      "success": 2
+    },
+    "board_brief|generate_recommendations": {
+      "runs": 1,
+      "success": 1
+    },
+    "generate_recommendations|dependency_mapper": {
+      "runs": 1,
+      "success": 1
+    },
+    "generate_recommendations|prioritize_items": {
+      "runs": 1,
+      "success": 1
+    },
+    "dependency_mapper|prioritize_items": {
+      "runs": 1,
+      "success": 1
+    }
+  }
+}
