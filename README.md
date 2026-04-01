@@ -1,141 +1,185 @@
-﻿# Agent Harness
+# 🤖 Agent Harness
 
-Agents think. Skills act. The harness decides.
+> **Agents think. Skills act. The harness decides.** 🎯
+>
+> A multi-agent system where each agent dynamically selects complementary skills with full routing trace.
 
-A multi-agent system where each agent dynamically selects complementary skills with full routing trace.
+---
 
-## Highlights
+## ✨ Core Features
 
-- Agent routing with complexity estimation and collaboration hints
-- 12 built-in skills + marketplace discovery (6+ external skills)
-- Complementarity Engine V2 (synergy, conflict avoidance, budget-aware selection, refinement)
-- Role-slot portfolio planning (evidence/reasoning/communication/verification)
-- Personality engine (profiles + adaptation)
-- System modes + policy center (`fast`, `balanced`, `deep`, `safety_critical`)
-- Conflict detection and consensus building
-- Structured DISSENT branch for high-risk/low-confidence runs
-- Multi-view trace visualization (sankey path, skill matrix, execution gantt, confidence waterfall)
-- SkillCard + lifecycle inspection (`skill-card`) for built-in and external skills
-- Structured response contract for user/debug/evaluation integration
+| 🎪 | Feature | Details |
+|:---:|---------|---------|
+| 🧠 | **Agent Routing** | Complexity estimation + collaboration hints |
+| 🛠️ | **Skill Arsenal** | 12 built-in + 6+ marketplace skills |
+| ⚡ | **Complementarity Engine V2** | Synergy detection • Conflict avoidance • Budget-aware |
+| 🎭 | **Personality Engine** | Adaptive profiles + role-slot portfolio planning |
+| 🎛️ | **System Modes** | `fast` ⚙️ `balanced` ⚖️ `deep` 🔍 `safety_critical` 🛡️ |
+| 🔍 | **Conflict Detection** | Cross-skill consensus building + DISSENT branch |
+| 📊 | **Multi-View Traces** | Sankey • Skill Matrix • Gantt • Waterfall |
+| 🏷️ | **SkillCard** | Inspect built-in & external skill lifecycle |
 
-## Harness Layer
+---
 
-The repository includes a dedicated harness engineering layer in `app/harness/`:
+## 🏗️ Architecture Pipeline
 
-- Tool use: API/browser/code adapters (`ToolRegistry`)
-- Task scheduling: planner loop (`HarnessPlanner` + `HarnessEngine.run`)
-- State management: persistent memory/context (`HarnessMemoryStore`)
-- Guardrails: constraints and blocking rules (`GuardrailEngine`)
-- Eval: harness metrics and evaluation suite (`HarnessEvaluator`, `harness-eval`)
-
-## Architecture
-
-```text
-[START]
-  |
-query_understanding  (mode + risk + initial constraints)
-  |
-route_agent          (AURORA-style scoring + complexity + collaboration)
-  |
-adapt_personality    (dynamic personality adaptation)
-  |
-route_skills         (complementary selection v2)
-  |
-execute              (skill execution + retry + quality)
-  |
-detect_conflicts     (cross-skill conflict detection)
-  |
-build_consensus      (shared themes + agreement strength)
-  |
-dissent              (structured disagreement branch)
-  |
-aggregate            (ensemble synthesis + metrics + contract)
-  |
-[END]
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          🎯 START                               │
+├─────────────────────────────────────────────────────────────────┤
+│ 1️⃣  query_understanding      → Mode + Risk + Constraints       │
+│ 2️⃣  route_agent              → AURORA-style scoring            │
+│ 3️⃣  adapt_personality        → Dynamic adaptation              │
+│ 4️⃣  route_skills             → Complementary selection v2      │
+│ 5️⃣  execute                  → Skill execution + retry         │
+│ 6️⃣  detect_conflicts         → Cross-skill detection           │
+│ 7️⃣  build_consensus          → Shared themes + agreement       │
+│ 8️⃣  dissent                  → Structured disagreement         │
+│ 9️⃣  aggregate                → Ensemble synthesis + metrics    │
+├─────────────────────────────────────────────────────────────────┤
+│                          🏁 END                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
+---
 
-## Quick Start
+## 🚀 Quick Start
+
+Get up and running in seconds:
 
 ```bash
 python -m app.main run "Summarize this report and highlight the main risks"
 ```
 
-## CLI Reference
+---
 
-- `run` - run end-to-end routing pipeline
-- `benchmark` - run benchmark comparison
-- `market-search` - search marketplace skills
-- `rate-skill` - submit rating for marketplace skill
-- `personality` - list/view/blend personality profiles
-- `trace` - show reasoning path for a query
-- `ecosystem` - browse/trending/providers/tags for marketplace
-- `analyze` - run routing quality analysis
-- `demo` - run feature demos
-- `policy` - inspect policy bundle for a system mode
-- `mode-compare` - compare routing decisions across system modes
-- `replay` / `traces` - replay and audit persisted trace runs
-- `import-marketplace` - import third-party marketplace bundle from JSON
-- `import-external-skills` - load runtime third-party skills from JSON
-- `skill-card` - inspect a skill's metadata + lifecycle status
-- `harness` - run planner/tools/memory/guardrails loop
-- `harness-eval` - run harness-level evaluation suite
+## 📚 Harness Engineering Layer
 
-## Project Structure
+Located in `app/harness/` — your control center for intelligent task execution:
 
-```text
-langgraph-skill-router/
-├── app/
-│   ├── agents/          # 8 agent profiles with personality and collaboration preferences
-│   ├── benchmark/       # benchmark dataset/strategies/evaluation
-│   ├── coordination/    # conflict detection, resolution, consensus
-│   ├── core/            # enums, models, graph state
-│   ├── ecosystem/       # marketplace models/search/reputation/store
-│   ├── harness/         # planner/tools/memory/guardrails/eval layer
-│   ├── memory/          # online learning counters and reliability stats
-│   ├── personality/     # profiles, strategy engine, adaptation
-│   ├── policy/          # mode-aware policy bundles
-│   ├── routing/         # agent router, skill router, complementarity, executor
-│   ├── tracing/         # tracing events, visualizer, analyzer
-│   ├── utils/           # rich display helpers
-│   ├── graph.py         # 8-node LangGraph topology
-│   ├── main.py          # CLI entrypoint
-│   └── demo.py          # demos
-├── data/                # generated marketplace and benchmark data
-├── tests/               # test suite
-├── requirements.txt
-└── README.md
+- 🔌 **Tool Integration** - API/browser/code adapters (`ToolRegistry`)
+- ⏰ **Task Scheduling** - Planner loop (`HarnessPlanner` + `HarnessEngine.run`)
+- 💾 **Memory & Context** - Persistent state (`HarnessMemoryStore`)
+- 🛡️ **Guardrails** - Constraints & blocking rules (`GuardrailEngine`)
+- 📈 **Evaluation Suite** - Harness metrics + eval (`HarnessEvaluator`, `harness-eval`)
+
+---
+
+## 🎮 CLI Commands
+
+| Command | What It Does |
+|---------|-------------|
+| `run` | 🚀 End-to-end routing pipeline |
+| `trace` | 🔍 Show full reasoning path |
+| `benchmark` | 📊 Compare routing strategies |
+| `market-search` | 🔎 Find marketplace skills |
+| `personality` | 🎭 List/blend/view profiles |
+| `ecosystem` | 🌍 Browse trending skills & providers |
+| `mode-compare` | ⚖️ Compare across system modes |
+| `skill-card` | 🏷️ Inspect skill metadata & lifecycle |
+| `policy` | 📋 View mode-specific policies |
+| `harness` | ⚙️ Run planner/tools/memory loop |
+| `harness-eval` | 📈 Run evaluation suite |
+| `replay` / `traces` | 🎬 Replay & audit past runs |
+
+---
+
+## 📁 Project Structure
+
+```
+agent-harness/
+│
+├── 🤖 app/
+│   ├── agents/          8 agent profiles with adaptive personalities
+│   ├── benchmark/       Dataset, strategies, evaluation framework
+│   ├── coordination/    Conflict detection & consensus building
+│   ├── core/            Core enums, models, graph state
+│   ├── ecosystem/       Marketplace discovery & reputation system
+│   ├── harness/         🎯 Planner, tools, memory, guardrails, eval
+│   ├── memory/          Online learning & reliability stats
+│   ├── personality/     Profiles, strategy engine, adaptation logic
+│   ├── policy/          Mode-aware policy bundles
+│   ├── routing/         Agent/skill routing & executor
+│   ├── tracing/         Events, visualizer, analyzer
+│   ├── utils/           Rich display helpers
+│   ├── graph.py         8-node LangGraph topology
+│   ├── main.py          CLI entry point
+│   └── demo.py          Feature demonstrations
+│
+├── 📊 data/             Generated marketplace & benchmark datasets
+├── 🧪 tests/            Comprehensive test suite
+├── 📦 requirements.txt   Dependencies
+└── 📖 README.md         You are here!
 ```
 
-## Example Commands
+---
+
+## 💡 Example Commands
 
 ```bash
-python -m app.main run --style cautious --max-skills 4 "Evaluate this proposal and list key risks"
-python -m app.main run --mode safety_critical --contract "Audit this recommendation and challenge weak points"
-python -m app.main trace --views "Analyze risks and compare options and recommend a plan"
-python -m app.main mode-compare "Audit this plan and propose safe mitigations"
-python -m app.main traces
+# 🛡️ Safety-first analysis
+python -m app.main run --mode safety_critical --contract "Audit this proposal"
+
+# 🎯 Targeted skill selection  
+python -m app.main run --style cautious --max-skills 4 "Evaluate proposal & list risks"
+
+# 🔍 Full reasoning trace
+python -m app.main trace --views "Analyze risks and compare options"
+
+# 🌍 Explore marketplace
 python -m app.main ecosystem trending
+
+# 🎭 Blend personalities
 python -m app.main personality --blend "scholar:0.6,explorer:0.4"
-python -m app.main import-external-skills examples/external_skills.sample.json
-python -m app.main import-marketplace examples/marketplace_bundle.sample.json
-python -m app.main skill-card risk_heatmap
-python -m app.main harness "Audit this proposal and challenge assumptions"
+
+# 📊 Run full evaluation
 python -m app.main harness-eval
+
+# 🎬 Replay past runs
+python -m app.main traces
+
+# 🎨 View all demos
 python -m app.main demo all
 ```
 
-## External Skill & Resource Extension
+---
 
-- Marketplace supports importing third-party skill bundles (`import_marketplace_from_file` in `app/ecosystem/store.py`)
-- Runtime external skill registration is available in `app/skills/registry.py`
-- Hybrid search (`cosine + BM25 + reputation`) enables integrating external skill catalogs
-- Sample external resource bundles are provided in `examples/external_skills.sample.json` and `examples/marketplace_bundle.sample.json`
+## 🔗 External Skills & Marketplace Integration
 
-## Roadmap
+Expand your capabilities with third-party skills:
 
-- Better benchmark coverage and strategy explainability
-- Real external tool backends for marketplace skills
-- Online learning for routing weights from feedback
+- 📦 Import marketplace skill bundles (`import_marketplace_from_file`)
+- 🔌 Register runtime external skills via `app/skills/registry.py`
+- 🔍 Hybrid search: Cosine similarity + BM25 + reputation scoring
+- 📝 Sample bundles in `examples/external_skills.sample.json` and `examples/marketplace_bundle.sample.json`
 
+```bash
+# 📥 Load external skills
+python -m app.main import-external-skills examples/external_skills.sample.json
 
+# 📥 Import marketplace bundle
+python -m app.main import-marketplace examples/marketplace_bundle.sample.json
+```
+
+---
+
+## 🗺️ Roadmap
+
+- 📈 Enhanced benchmark coverage & explainability
+- 🔗 Real external tool backends for marketplace skills  
+- 🧠 Online learning from user feedback
+
+---
+
+## 🎯 Why Agent Harness?
+
+✅ **Multi-Agent Intelligence** — Leverage 8 distinct agent personalities  
+✅ **Smart Skill Selection** — Complementarity engine picks the perfect combination  
+✅ **Full Transparency** — Complete routing traces & reasoning paths  
+✅ **Adaptive Behavior** — Personalities evolve based on context  
+✅ **Safety First** — Built-in guardrails & conflict detection  
+✅ **Extensible** — Bring your own skills via marketplace  
+
+---
+
+**Ready to harness the power of coordinated intelligence?** 🚀
