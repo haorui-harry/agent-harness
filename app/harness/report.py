@@ -15,6 +15,7 @@ class HarnessReportBuilder:
         discovery = run.metadata.get("discovery", [])
         recipe = run.metadata.get("recipe", {})
         value_card = run.metadata.get("value_card", {})
+        live_agent = run.metadata.get("live_agent", {})
 
         step_rows: list[dict[str, Any]] = []
         for step in run.steps:
@@ -55,6 +56,7 @@ class HarnessReportBuilder:
                 "preflight_findings": security.get("preflight_findings", []),
             },
             "recipe": recipe,
+            "live_agent": live_agent if isinstance(live_agent, dict) else {},
             "top_discovery": top_discovery,
             "steps": step_rows,
             "memory_snapshot_size": len(run.memory_snapshot),
@@ -70,6 +72,7 @@ class HarnessReportBuilder:
             f"- Completed: `{data['completed']}`",
             f"- Preflight: `{data['security']['preflight_action']}` (risk={data['security']['preflight_risk_score']})",
             f"- Value Index: `{data.get('value_card', {}).get('value_index', 0.0)}`",
+            f"- Live Agent Calls: `{data.get('live_agent', {}).get('calls_used', 0)}`",
             "",
             "## Plan",
         ]
@@ -90,12 +93,20 @@ class HarnessReportBuilder:
             lines.append("- none")
 
         recipe = data["recipe"] if isinstance(data["recipe"], dict) else {}
+        live = data["live_agent"] if isinstance(data["live_agent"], dict) else {}
         lines.extend(
             [
                 "",
                 "## Recipe",
                 f"- Name: `{recipe.get('name', '')}`",
                 f"- Executed Steps: `{recipe.get('executed_steps', 0)}` / `{recipe.get('total_steps', 0)}`",
+                "",
+                "## Live Agent",
+                f"- Enabled: `{live.get('enabled', False)}`",
+                f"- Configured: `{live.get('configured', False)}`",
+                f"- Model: `{live.get('model', '')}`",
+                f"- Calls: `{live.get('calls_used', 0)}` / `{live.get('call_budget', 0)}`",
+                f"- Success: `{live.get('success', False)}`",
                 "",
                 "## Metrics",
             ]

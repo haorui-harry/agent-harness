@@ -29,6 +29,7 @@ from app.ecosystem.reputation import submit_marketplace_rating
 from app.ecosystem.store import import_marketplace_from_file
 from app.graph import build_graph
 from app.harness import HarnessEngine, HarnessConstraints
+from app.harness.live_agent import LiveModelConfig
 from app.policy.center import SystemMode, normalize_mode, policy_for_mode
 from app.personality.profiles import blend_profiles, get_profile, list_profiles
 from app.skills.registry import (
@@ -84,6 +85,46 @@ def _extract_result_payload(result: dict | GraphState) -> dict:
     if isinstance(result, dict):
         return result
     return result.model_dump()
+
+
+def _mask_secret(secret: str) -> str:
+    value = secret.strip()
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "*" * len(value)
+    return f"{value[:4]}***{value[-4:]}"
+
+
+def _build_live_model_overrides(
+    model_base_url: str,
+    model_api_key: str,
+    model_name: str,
+    timeout_seconds: int,
+    temperature: float,
+    max_tokens: int,
+) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    if model_base_url.strip():
+        payload["base_url"] = model_base_url.strip()
+    if model_api_key.strip():
+        payload["api_key"] = model_api_key.strip()
+    if model_name.strip():
+        payload["model_name"] = model_name.strip()
+    if timeout_seconds > 0:
+        payload["timeout_seconds"] = timeout_seconds
+    payload["temperature"] = max(0.0, min(1.5, float(temperature)))
+    payload["max_tokens"] = max(128, min(8192, int(max_tokens)))
+    return payload
+
+
+def _default_live_experiment_queries() -> list[str]:
+    return [
+        "Audit this critical launch strategy and enumerate governance controls.",
+        "Compare three rollout options and produce a risk-weighted decision memo.",
+        "Design a high-velocity but safe execution plan with dependency checkpoints.",
+        "Map ecosystem opportunities and recommend complementary external skills.",
+    ]
 
 
 def _build_reasoning_path(payload: dict) -> list[dict]:
@@ -497,16 +538,40 @@ def harness_command(
     max_tool_calls: int = typer.Option(4, "--max-tool-calls", help="Harness max tool calls"),
     recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to JSON/YAML recipe file"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model call budget per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Override model base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Override model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Override model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Live model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Live model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Live model max tokens"),
     json_output: bool = typer.Option(False, "--json", help="Render harness payload as JSON"),
 ) -> None:
     """Run harness loop: planner + tools + memory + guardrails + eval."""
 
+    live_overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
-        constraints=HarnessConstraints(max_steps=max_steps, max_tool_calls=max_tool_calls),
+        constraints=HarnessConstraints(
+            max_steps=max_steps,
+            max_tool_calls=max_tool_calls,
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
+        live_model=live_overrides if live_overrides else None,
     )
     payload = HARNESS.run_to_dict(run)
     if json_output:
@@ -516,7 +581,186 @@ def harness_command(
     console.print(f"[bold]Harness Query:[/] {query}")
     console.print(f"[bold]Plan:[/] {payload.get('plan', [])}")
     console.print(f"[bold]Eval:[/] {payload.get('eval_metrics', {})}")
+    live_meta = payload.get("metadata", {}).get("live_agent", {})
+    if live_meta:
+        masked = _mask_secret(model_api_key)
+        console.print(
+            "[bold]Live Agent:[/] "
+            f"enabled={live_meta.get('enabled', False)} "
+            f"configured={live_meta.get('configured', False)} "
+            f"calls={live_meta.get('calls_used', 0)}/{live_meta.get('call_budget', 0)} "
+            f"model={live_meta.get('model', '')}"
+            + (f" api_key={masked}" if masked else "")
+        )
     console.print(f"[bold]Final Answer:[/]\n{payload.get('final_answer', '')}")
+
+
+@app.command("harness-live")
+def harness_live_command(
+    query: str = typer.Argument(..., help="Task query"),
+    mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
+    recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
+    recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
+    max_steps: int = typer.Option(6, "--max-steps", help="Harness max steps"),
+    max_tool_calls: int = typer.Option(6, "--max-tool-calls", help="Harness max tool calls"),
+    max_model_calls: int = typer.Option(10, "--max-model-calls", help="Live model call budget per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
+    json_output: bool = typer.Option(False, "--json", help="Render payload as JSON"),
+) -> None:
+    """Run harness with real-model agent enhancement enabled."""
+
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
+    constraints = HarnessConstraints(
+        max_steps=max_steps,
+        max_tool_calls=max_tool_calls,
+        enable_live_agent=True,
+        max_live_agent_calls=max(1, min(max_model_calls, 50)),
+        live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+        live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+    )
+    run = HARNESS.run(
+        query=query,
+        mode=_parse_mode(mode).value,
+        recipe=recipe or None,
+        recipe_path=recipe_path or None,
+        constraints=constraints,
+        live_model=overrides if overrides else None,
+    )
+    payload = HARNESS.run_to_dict(run)
+    if json_output:
+        console.print_json(json.dumps(payload, indent=2, default=str))
+        return
+
+    live_meta = payload.get("metadata", {}).get("live_agent", {})
+    console.print(f"[bold]Query:[/] {query}")
+    console.print(f"[bold]Mode:[/] {_parse_mode(mode).value}")
+    console.print(f"[bold]Eval:[/] {payload.get('eval_metrics', {})}")
+    console.print(
+        "[bold]Live Agent:[/] "
+        f"configured={live_meta.get('configured', False)} "
+        f"success={live_meta.get('success', False)} "
+        f"calls={live_meta.get('calls_used', 0)}/{live_meta.get('call_budget', 0)} "
+        f"model={live_meta.get('model', '')} "
+        f"api_key={_mask_secret(model_api_key)}"
+    )
+    if live_meta.get("errors"):
+        console.print(f"[yellow]Live Errors:[/] {live_meta.get('errors')}")
+    console.print(f"[bold]Final Answer:[/]\n{payload.get('final_answer', '')}")
+
+
+@app.command("harness-live-experiment")
+def harness_live_experiment_command(
+    queries_file: str = typer.Option("", "--queries-file", help="Optional text file, one query per line"),
+    mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
+    recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
+    max_total_calls: int = typer.Option(30, "--max-total-calls", help="Total live API call budget (<=50)"),
+    max_calls_per_query: int = typer.Option(8, "--max-calls-per-query", help="Live API calls per query (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
+    output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
+) -> None:
+    """Run baseline vs live-agent A/B experiment with strict call limits."""
+
+    if max_total_calls > 50:
+        raise typer.BadParameter("max-total-calls must be <= 50")
+    if max_calls_per_query > 50:
+        raise typer.BadParameter("max-calls-per-query must be <= 50")
+
+    queries: list[str]
+    if queries_file:
+        path = Path(queries_file)
+        if not path.exists():
+            raise typer.BadParameter(f"queries file not found: {queries_file}")
+        queries = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    else:
+        queries = _default_live_experiment_queries()
+
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
+    constraints = HarnessConstraints(enable_live_agent=True, max_live_agent_calls=max_calls_per_query)
+    payload = HARNESS.run_live_experiment(
+        queries=queries,
+        mode=_parse_mode(mode).value,
+        recipe=recipe,
+        live_model=overrides if overrides else None,
+        max_total_calls=max_total_calls,
+        max_calls_per_query=max_calls_per_query,
+        constraints=constraints,
+    )
+    payload.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
+    if output:
+        path = Path(output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        console.print(f"[green]Live experiment written:[/] {path}")
+        return
+
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
+@app.command("harness-live-history")
+def harness_live_history_command(
+    limit: int = typer.Option(10, "--limit", "-n", help="Max history items"),
+) -> None:
+    """Show recent live-agent experiment history."""
+
+    payload = {"history": HARNESS.list_live_experiment_history(limit=limit)}
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
+@app.command("harness-live-config")
+def harness_live_config_command(
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+) -> None:
+    """Show masked live model configuration (CLI override + env fallback)."""
+
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=45,
+        temperature=0.15,
+        max_tokens=1400,
+    )
+    config = LiveModelConfig.from_overrides(overrides)
+    if config:
+        payload = config.masked()
+    else:
+        payload = {
+            "configured": False,
+            "note": "No complete model config found in CLI args or env.",
+        }
+    console.print_json(json.dumps({"live_model": payload}, indent=2, default=str))
 
 
 @app.command("harness-tools")
@@ -609,17 +853,41 @@ def harness_report_command(
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
     max_steps: int = typer.Option(6, "--max-steps", help="Harness max steps"),
     max_tool_calls: int = typer.Option(6, "--max-tool-calls", help="Harness max tool calls"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model calls per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     report_format: str = typer.Option("markdown", "--format", "-f", help="Report format: markdown|json"),
     output: str = typer.Option("", "--output", "-o", help="Optional output path"),
 ) -> None:
     """Run harness and render a shareable report."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
-        constraints=HarnessConstraints(max_steps=max_steps, max_tool_calls=max_tool_calls),
+        constraints=HarnessConstraints(
+            max_steps=max_steps,
+            max_tool_calls=max_tool_calls,
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
+        live_model=overrides if overrides else None,
     )
     fmt = report_format.lower().strip()
     if fmt not in {"markdown", "json"}:
@@ -648,17 +916,47 @@ def harness_value_command(
     mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
     recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model calls per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     json_output: bool = typer.Option(False, "--json", help="Render payload as JSON"),
 ) -> None:
     """Run harness and emit a value card for demo storytelling."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
+        constraints=HarnessConstraints(
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
+        live_model=overrides if overrides else None,
     )
     card = HARNESS.build_value_card(run)
+    card.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
     if json_output:
         console.print_json(json.dumps(card, indent=2, default=str))
         return
@@ -675,18 +973,48 @@ def harness_visual_command(
     mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
     recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model calls per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
 ) -> None:
     """Run harness and export front-end ready visualization payload."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
+        constraints=HarnessConstraints(
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
+        live_model=overrides if overrides else None,
     )
     card = HARNESS.build_value_card(run)
     payload = HARNESS.build_visual_payload(run, value_card=card)
+    payload.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
     if output:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -710,6 +1038,14 @@ def harness_showcase_command(
     mode_override: str = typer.Option("", "--mode-override", help="Override mode for all scenarios"),
     output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
     strict: bool = typer.Option(False, "--strict", help="Use strict safety constraints"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent in showcase scenarios"),
+    max_model_calls: int = typer.Option(6, "--max-model-calls", help="Live model calls per scenario (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
 ) -> None:
     """Run a scenario pack and export comparative visual payloads."""
 
@@ -722,15 +1058,42 @@ def harness_showcase_command(
             allow_network_actions=False,
             allow_browser_actions=False,
             security_strictness="strict",
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        )
+    elif live_agent:
+        constraints = HarnessConstraints(
+            enable_live_agent=True,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
         )
 
     if mode_override:
         _ = _parse_mode(mode_override)
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     payload = HARNESS.run_showcase(
         pack_name=pack,
         mode_override=mode_override,
         constraints=constraints,
+        live_model=overrides if overrides else None,
+    )
+    payload.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
     )
     if output:
         path = Path(output)
@@ -748,19 +1111,49 @@ def harness_blueprint_command(
     mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
     recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model calls per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
 ) -> None:
     """Run harness and export first-screen dashboard blueprint."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
+        constraints=HarnessConstraints(
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
+        live_model=overrides if overrides else None,
     )
     card = HARNESS.build_value_card(run)
     visual = HARNESS.build_visual_payload(run, value_card=card)
     blueprint = HARNESS.build_first_screen_blueprint(visual)
+    blueprint.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
     if output:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -777,20 +1170,50 @@ def harness_stream_command(
     mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
     recipe: str = typer.Option("", "--recipe", "-r", help="Built-in recipe name"),
     recipe_path: str = typer.Option("", "--recipe-path", help="Path to recipe file"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent enhancement"),
+    max_model_calls: int = typer.Option(8, "--max-model-calls", help="Live model calls per run (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
 ) -> None:
     """Run harness and export replay event stream."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     run = HARNESS.run(
         query=query,
         mode=_parse_mode(mode).value,
         recipe=recipe or None,
         recipe_path=recipe_path or None,
+        constraints=HarnessConstraints(
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        ),
+        live_model=overrides if overrides else None,
     )
     card = HARNESS.build_value_card(run)
     visual = HARNESS.build_visual_payload(run, value_card=card)
     stream = visual.get("event_stream", [])
     payload = {"query": query, "count": len(stream), "events": stream}
+    payload.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
     if output:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -805,10 +1228,26 @@ def harness_stream_command(
 def harness_optimize_command(
     query: str = typer.Argument(..., help="Task query"),
     strict: bool = typer.Option(False, "--strict", help="Use stricter safety constraints"),
+    live_agent: bool = typer.Option(False, "--live-agent", help="Enable real-model agent in each candidate"),
+    max_model_calls: int = typer.Option(6, "--max-model-calls", help="Live model calls per candidate (<=50)"),
+    model_base_url: str = typer.Option("", "--model-base-url", help="Model API base URL"),
+    model_api_key: str = typer.Option("", "--model-api-key", help="Model API key"),
+    model_name: str = typer.Option("", "--model-name", help="Model name"),
+    model_timeout: int = typer.Option(45, "--model-timeout", help="Model timeout seconds"),
+    model_temperature: float = typer.Option(0.15, "--model-temperature", help="Model temperature"),
+    model_max_tokens: int = typer.Option(1400, "--model-max-tokens", help="Model max tokens"),
     output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
 ) -> None:
     """Auto-tune mode + recipe candidates and return best configuration."""
 
+    overrides = _build_live_model_overrides(
+        model_base_url=model_base_url,
+        model_api_key=model_api_key,
+        model_name=model_name,
+        timeout_seconds=model_timeout,
+        temperature=model_temperature,
+        max_tokens=model_max_tokens,
+    )
     constraints = None
     if strict:
         constraints = HarnessConstraints(
@@ -818,8 +1257,32 @@ def harness_optimize_command(
             allow_network_actions=False,
             allow_browser_actions=False,
             security_strictness="strict",
+            enable_live_agent=live_agent,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
         )
-    payload = HARNESS.optimize_query(query=query, constraints=constraints)
+    elif live_agent:
+        constraints = HarnessConstraints(
+            enable_live_agent=True,
+            max_live_agent_calls=max(1, min(max_model_calls, 50)),
+            live_agent_temperature=max(0.0, min(model_temperature, 1.5)),
+            live_agent_timeout_seconds=max(5, min(model_timeout, 300)),
+        )
+    payload = HARNESS.optimize_query(
+        query=query,
+        constraints=constraints,
+        live_model=overrides if overrides else None,
+    )
+    payload.setdefault("model", {}).update(
+        {
+            "base_url": model_base_url,
+            "model_name": model_name,
+            "api_key_masked": _mask_secret(model_api_key),
+        }
+    )
+    if live_agent:
+        payload["note"] = "Optimizer uses real-model enhancement where configured."
     if output:
         path = Path(output)
         path.parent.mkdir(parents=True, exist_ok=True)

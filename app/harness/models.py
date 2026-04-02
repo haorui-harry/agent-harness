@@ -53,6 +53,11 @@ class HarnessConstraints:
     enable_dynamic_discovery: bool = True
     auto_recipe: bool = True
     security_strictness: str = "balanced"
+    enable_live_agent: bool = False
+    max_live_agent_calls: int = 8
+    live_agent_temperature: float = 0.15
+    live_agent_timeout_seconds: int = 45
+    live_agent_fail_open: bool = True
     blocked_tools: list[str] = field(default_factory=lambda: ["unsafe_write", "delete_path"])
 
 

@@ -31,6 +31,7 @@ This one ships the data model that powers high-impact visuals from day one:
 - Event stream: replay-ready timeline for animated storytelling
 - Scenario packs: one-click multi-run comparison to prove business value
 - Auto optimizer: find best `mode + recipe` config per query
+- Real agent loop: analyze -> synthesize -> critique with strict call budgets
 
 ## First Screen Architecture
 
@@ -40,11 +41,12 @@ flowchart LR
     B --> C[Agent + Skill Routing]
     C --> D[Tool Discovery + Recipe Loop]
     D --> E[Guardrails + Tool Execution]
-    E --> F[Value Card]
-    F --> G[Visual Payload]
-    G --> H[First Screen Blueprint]
-    G --> I[Event Stream Playback]
-    G --> J[Showcase Comparison]
+    E --> F[Live Agent Loop]
+    F --> G[Value Card]
+    G --> H[Visual Payload]
+    H --> I[First Screen Blueprint]
+    H --> J[Event Stream Playback]
+    H --> K[Showcase Comparison]
 ```
 
 ## Visual Demo Power Map
@@ -58,8 +60,29 @@ flowchart LR
 | Security lane | `security_board` (preflight + step actions) | `harness-visual` |
 | Force graph | `tool_network.nodes/links` | `harness-visual` |
 | Animated replay | `event_stream[]` with timestamps | `harness-stream` |
+| Real-agent panel | `live_agent_board` | `harness-live` / `harness-visual --live-agent` |
 | Multi-scenario leaderboard | `comparison.rows` + `best` | `harness-showcase` |
 | Best strategy recommendation | `best + recommendation` | `harness-optimize` |
+
+## Real Agent Setup
+
+The live loop uses an OpenAI-compatible endpoint.
+
+```bash
+# environment variables (recommended)
+set AGENT_HARNESS_MODEL_BASE_URL=https://your-endpoint/v1
+set AGENT_HARNESS_MODEL_API_KEY=your_api_key
+set AGENT_HARNESS_MODEL_NAME=your_model
+
+# inspect masked config
+python -m app.main harness-live-config
+```
+
+Hard safety rule in this repo:
+
+- each experiment run is capped (`--max-total-calls <= 50`)
+- each query run is capped (`--max-model-calls <= 50`)
+- live experiment summaries are appended to `data/live_experiment_log.json`
 
 ## Quick Start
 
@@ -88,6 +111,21 @@ python -m app.main harness-showcase --pack impact-lens --output reports/showcase
 
 # 6) Auto-select best mode + recipe for this query
 python -m app.main harness-optimize "design a safe and innovative rollout strategy" --output reports/optimize.json
+
+# 7) Real-agent run (analyze -> synthesize -> critique)
+python -m app.main harness-live "audit governance posture and propose decision memo" --max-model-calls 10
+
+# 8) Baseline vs live A/B experiment (strict 50-call ceiling)
+python -m app.main harness-live-experiment --max-total-calls 40 --max-calls-per-query 8 --output reports/live_ab.json
+
+# 9) Real-agent visual payload in one shot
+python -m app.main harness-visual "map safe growth strategy" --live-agent --max-model-calls 8 --output reports/live_visual.json
+
+# 10) Inspect iteration history from previous live experiments
+python -m app.main harness-live-history --limit 20
+
+# 11) Explicit provider override (OpenAI-compatible endpoint)
+python -m app.main harness-live "evaluate launch risk" --model-base-url https://yunwu.ai/v1 --model-name gemini-3-flash-preview
 ```
 
 ## Real Payload Glimpse
@@ -137,6 +175,9 @@ python -m app.main harness-showcase-packs
 - `app/harness/stream.py`
 - `app/harness/showcase.py`
 - `app/harness/optimizer.py`
+- `app/harness/live_agent.py`
+- `app/harness/live_experiment.py`
+- `app/harness/iteration.py`
 - `app/harness/engine.py`
 
 Visual protocol docs:
@@ -157,4 +198,3 @@ If you are building a flashy demo page, this repo already gives you:
 3. The motion timeline (event stream)
 4. The visual skeleton (first-screen blueprint)
 5. The proof (multi-scenario comparison + optimizer recommendation)
-

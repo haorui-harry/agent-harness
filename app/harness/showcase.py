@@ -130,6 +130,7 @@ class HarnessShowcaseBuilder:
         pack_name: str = "impact-lens",
         mode_override: str = "",
         constraints: HarnessConstraints | None = None,
+        live_model: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         pack = self.registry.get(pack_name)
         if not pack:
@@ -142,6 +143,7 @@ class HarnessShowcaseBuilder:
             "reliability_sum": 0.0,
             "safety_sum": 0.0,
             "innovation_sum": 0.0,
+            "live_calls_sum": 0.0,
             "completed_count": 0.0,
         }
 
@@ -152,6 +154,7 @@ class HarnessShowcaseBuilder:
                 mode=mode,
                 recipe=scenario.recipe or None,
                 constraints=constraints,
+                live_model=live_model,
             )
             value_card = engine.build_value_card(run)
             visual_payload = engine.build_visual_payload(run, value_card=value_card)
@@ -177,6 +180,7 @@ class HarnessShowcaseBuilder:
             aggregate["reliability_sum"] += float(kpis.get("reliability", 0.0))
             aggregate["safety_sum"] += float(kpis.get("safety", 0.0))
             aggregate["innovation_sum"] += float(kpis.get("innovation", 0.0))
+            aggregate["live_calls_sum"] += float(kpis.get("live_agent_calls", 0.0))
             aggregate["completed_count"] += 1.0 if run.completed else 0.0
 
         count = max(len(pack.scenarios), 1)
@@ -189,6 +193,7 @@ class HarnessShowcaseBuilder:
             "avg_reliability": round(aggregate["reliability_sum"] / count, 3),
             "avg_safety": round(aggregate["safety_sum"] / count, 3),
             "avg_innovation": round(aggregate["innovation_sum"] / count, 3),
+            "avg_live_calls": round(aggregate["live_calls_sum"] / count, 3),
             "completion_ratio": round(aggregate["completed_count"] / count, 3),
         }
         comparison = engine.visuals.build_comparison_payload(visual_items)
@@ -213,4 +218,3 @@ class HarnessShowcaseBuilder:
             f"Strongest safety scenario: {safety_best.get('title', '-')} ({safety_best.get('score', '-')}).",
             f"Strongest innovation scenario: {innovation_best.get('title', '-')} ({innovation_best.get('score', '-')}).",
         ]
-

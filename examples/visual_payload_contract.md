@@ -11,6 +11,7 @@ Top-level fields:
 - `timeline`: step bars with `start_ms`, `end_ms`, `status`
 - `discovery_board`: candidate tools with score/risk/novelty
 - `security_board`: preflight decision + step actions
+- `live_agent_board`: real-model status, calls, analysis, critique
 - `tool_network`: `{ nodes, links }` for force graph
 - `hero_cards`: three short cards for first-screen storytelling
 - `first_screen_blueprint`: opinionated layout metadata

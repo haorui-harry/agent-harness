@@ -10,8 +10,8 @@
         "governance"
       ],
       "installs": 120,
-      "uses": 133,
-      "success": 123,
+      "uses": 174,
+      "success": 164,
       "failures": 10,
       "avg_rating": 4.6,
       "rating_count": 29,
@@ -27,7 +27,7 @@
         "prioritize_items"
       ],
       "last_updated": "2026-01-15",
-      "trending_score": 0.6400000000000003,
+      "trending_score": 1.0,
       "metadata": {
         "name": "risk_heatmap",
         "description": "Score risks by likelihood and impact for prioritization.",
@@ -186,8 +186,8 @@
         "brief"
       ],
       "installs": 180,
-      "uses": 161,
-      "success": 144,
+      "uses": 195,
+      "success": 178,
       "failures": 17,
       "avg_rating": 4.8,
       "rating_count": 55,
@@ -203,7 +203,7 @@
         "generate_recommendations"
       ],
       "last_updated": "2026-03-11",
-      "trending_score": 0.3600000000000001,
+      "trending_score": 0.7000000000000004,
       "metadata": {
         "name": "board_brief",
         "description": "Produce board-level concise summary with recommendations.",
@@ -364,8 +364,8 @@
         "mapping"
       ],
       "installs": 68,
-      "uses": 57,
-      "success": 51,
+      "uses": 107,
+      "success": 101,
       "failures": 6,
       "avg_rating": 4.1,
       "rating_count": 15,
@@ -381,7 +381,7 @@
         "prioritize_items"
       ],
       "last_updated": "2026-01-30",
-      "trending_score": 0.22000000000000008,
+      "trending_score": 0.7200000000000005,
       "metadata": {
         "name": "dependency_mapper",
         "description": "Map dependencies, relationships, and causal chains in structured content.",
@@ -455,8 +455,8 @@
         "what-if"
       ],
       "installs": 42,
-      "uses": 28,
-      "success": 24,
+      "uses": 30,
+      "success": 26,
       "failures": 4,
       "avg_rating": 4.5,
       "rating_count": 12,
@@ -472,7 +472,7 @@
         "generate_recommendations"
       ],
       "last_updated": "2026-03-20",
-      "trending_score": 0.33,
+      "trending_score": 0.35000000000000003,
       "metadata": {
         "name": "scenario_generator",
         "description": "Generate alternative scenarios and what-if analyses based on input conditions.",

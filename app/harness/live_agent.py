@@ -1,0 +1,461 @@
+"""Real-model gateway and orchestration loop for live agent enhancement."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import time
+from dataclasses import dataclass, field
+from typing import Any
+from urllib import error, request
+
+from app.harness.live_strategy import LiveStrategyProfile, LiveStrategyRegistry
+
+
+@dataclass
+class LiveModelConfig:
+    """Runtime configuration for OpenAI-compatible model endpoints."""
+
+    base_url: str
+    api_key: str
+    model_name: str
+    timeout_seconds: int = 45
+    temperature: float = 0.15
+    max_tokens: int = 1200
+
+    @staticmethod
+    def from_env() -> LiveModelConfig | None:
+        base_url = os.getenv("AGENT_HARNESS_MODEL_BASE_URL", "").strip()
+        api_key = os.getenv("AGENT_HARNESS_MODEL_API_KEY", "").strip()
+        model_name = os.getenv("AGENT_HARNESS_MODEL_NAME", "").strip()
+        if not (base_url and api_key and model_name):
+            return None
+        return LiveModelConfig(
+            base_url=base_url,
+            api_key=api_key,
+            model_name=model_name,
+            timeout_seconds=_safe_int(os.getenv("AGENT_HARNESS_MODEL_TIMEOUT", "45"), 45, minimum=5, maximum=300),
+            temperature=_safe_float(
+                os.getenv("AGENT_HARNESS_MODEL_TEMPERATURE", "0.15"),
+                0.15,
+                minimum=0.0,
+                maximum=1.5,
+            ),
+            max_tokens=_safe_int(os.getenv("AGENT_HARNESS_MODEL_MAX_TOKENS", "1200"), 1200, minimum=128, maximum=8192),
+        )
+
+    @staticmethod
+    def from_overrides(
+        overrides: dict[str, Any] | None,
+        base: LiveModelConfig | None = None,
+    ) -> LiveModelConfig | None:
+        payload = dict(overrides or {})
+        base_config = base or LiveModelConfig.from_env()
+        if base_config:
+            merged = {
+                "base_url": base_config.base_url,
+                "api_key": base_config.api_key,
+                "model_name": base_config.model_name,
+                "timeout_seconds": base_config.timeout_seconds,
+                "temperature": base_config.temperature,
+                "max_tokens": base_config.max_tokens,
+            }
+            merged.update({k: v for k, v in payload.items() if v not in ("", None)})
+            payload = merged
+
+        base_url = str(payload.get("base_url", "")).strip()
+        api_key = str(payload.get("api_key", "")).strip()
+        model_name = str(payload.get("model_name", "")).strip()
+        if not (base_url and api_key and model_name):
+            return None
+
+        return LiveModelConfig(
+            base_url=base_url,
+            api_key=api_key,
+            model_name=model_name,
+            timeout_seconds=_safe_int(payload.get("timeout_seconds", 45), 45, minimum=5, maximum=300),
+            temperature=_safe_float(payload.get("temperature", 0.15), 0.15, minimum=0.0, maximum=1.5),
+            max_tokens=_safe_int(payload.get("max_tokens", 1200), 1200, minimum=128, maximum=8192),
+        )
+
+    def masked(self) -> dict[str, Any]:
+        return {
+            "base_url": self.base_url,
+            "model_name": self.model_name,
+            "timeout_seconds": self.timeout_seconds,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "api_key_masked": _mask_secret(self.api_key),
+        }
+
+
+@dataclass
+class CallBudget:
+    """Per-run call budget guard."""
+
+    max_calls: int
+    used_calls: int = 0
+
+    def consume(self) -> None:
+        if self.used_calls >= self.max_calls:
+            raise RuntimeError(f"live_agent_call_budget_exhausted:{self.max_calls}")
+        self.used_calls += 1
+
+    @property
+    def remaining(self) -> int:
+        return max(self.max_calls - self.used_calls, 0)
+
+
+@dataclass
+class LiveAgentResult:
+    """Live-agent enhancement outcome."""
+
+    enabled: bool = False
+    configured: bool = False
+    calls_used: int = 0
+    call_budget: int = 0
+    model: str = ""
+    base_url: str = ""
+    success: bool = False
+    latency_ms: float = 0.0
+    enhanced_answer: str = ""
+    analysis: dict[str, Any] = field(default_factory=dict)
+    critique: dict[str, Any] = field(default_factory=dict)
+    strategy: dict[str, Any] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "configured": self.configured,
+            "calls_used": self.calls_used,
+            "call_budget": self.call_budget,
+            "model": self.model,
+            "base_url": self.base_url,
+            "success": self.success,
+            "latency_ms": round(self.latency_ms, 2),
+            "analysis": self.analysis,
+            "critique": self.critique,
+            "strategy": self.strategy,
+            "notes": self.notes,
+            "errors": self.errors,
+        }
+
+
+class LiveModelGateway:
+    """OpenAI-compatible chat completion gateway."""
+
+    def __init__(self, config: LiveModelConfig) -> None:
+        self.config = config
+
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        budget: CallBudget,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        require_json: bool = False,
+    ) -> tuple[str, dict[str, Any]]:
+        budget.consume()
+        endpoint = self.config.base_url.rstrip("/") + "/chat/completions"
+        payload: dict[str, Any] = {
+            "model": self.config.model_name,
+            "messages": messages,
+            "temperature": self.config.temperature if temperature is None else float(temperature),
+            "max_tokens": self.config.max_tokens if max_tokens is None else int(max_tokens),
+        }
+        if require_json:
+            payload["response_format"] = {"type": "json_object"}
+
+        raw = json.dumps(payload).encode("utf-8")
+        req = request.Request(
+            endpoint,
+            data=raw,
+            headers={
+                "Authorization": f"Bearer {self.config.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        start = time.time()
+        try:
+            with request.urlopen(req, timeout=self.config.timeout_seconds) as response:
+                body = response.read().decode("utf-8", errors="replace")
+            latency_ms = (time.time() - start) * 1000.0
+            parsed = json.loads(body)
+            content = self._extract_content(parsed)
+            meta = {
+                "latency_ms": latency_ms,
+                "model": parsed.get("model", self.config.model_name),
+                "finish_reason": self._extract_finish_reason(parsed),
+                "usage": parsed.get("usage", {}),
+            }
+            return content, meta
+        except error.HTTPError as exc:
+            text = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"http_error:{exc.code}:{text[:500]}") from exc
+        except error.URLError as exc:
+            raise RuntimeError(f"url_error:{exc.reason}") from exc
+        except Exception as exc:  # pragma: no cover - defensive
+            raise RuntimeError(f"live_gateway_error:{exc}") from exc
+
+    @staticmethod
+    def _extract_content(payload: dict[str, Any]) -> str:
+        choices = payload.get("choices", [])
+        if choices and isinstance(choices, list):
+            first = choices[0] if isinstance(choices[0], dict) else {}
+            message = first.get("message", {})
+            if isinstance(message, dict):
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    return content
+                if isinstance(content, list):
+                    out = []
+                    for item in content:
+                        if isinstance(item, dict) and isinstance(item.get("text"), str):
+                            out.append(item["text"])
+                    if out:
+                        return "\n".join(out)
+            if isinstance(first.get("text"), str):
+                return str(first["text"])
+        if isinstance(payload.get("output_text"), str):
+            return str(payload["output_text"])
+        return ""
+
+    @staticmethod
+    def _extract_finish_reason(payload: dict[str, Any]) -> str:
+        choices = payload.get("choices", [])
+        if choices and isinstance(choices, list) and isinstance(choices[0], dict):
+            return str(choices[0].get("finish_reason", ""))
+        return ""
+
+
+class LiveAgentOrchestrator:
+    """Three-stage agent loop: analyze -> synthesize -> critique."""
+
+    def __init__(self) -> None:
+        self.strategies = LiveStrategyRegistry()
+
+    def enhance(
+        self,
+        query: str,
+        mode: str,
+        base_answer: str,
+        plan: list[str],
+        steps: list[dict[str, Any]],
+        discovery: list[dict[str, Any]],
+        max_calls: int = 8,
+        temperature: float = 0.15,
+        live_model_overrides: dict[str, Any] | None = None,
+        strategy: str = "",
+        champion: dict[str, Any] | None = None,
+    ) -> LiveAgentResult:
+        config = LiveModelConfig.from_overrides(live_model_overrides)
+        profile, source, reason = self.strategies.resolve(
+            query=query,
+            mode=mode,
+            preferred=strategy,
+            champion=champion,
+        )
+        result = LiveAgentResult(
+            enabled=True,
+            configured=config is not None,
+            call_budget=max(1, min(int(max_calls), 50)),
+            model=config.model_name if config else "",
+            base_url=config.base_url if config else "",
+            strategy={
+                **profile.to_dict(),
+                "source": source,
+                "reason": reason,
+            },
+        )
+        if not config:
+            result.errors.append("live_model_not_configured")
+            result.notes.append(
+                "Set AGENT_HARNESS_MODEL_BASE_URL / AGENT_HARNESS_MODEL_API_KEY / AGENT_HARNESS_MODEL_NAME."
+            )
+            return result
+
+        budget = CallBudget(max_calls=result.call_budget)
+        gateway = LiveModelGateway(config)
+        start = time.time()
+        try:
+            analysis_text, analysis_meta = gateway.chat(
+                messages=self._analysis_messages(query, mode, plan, steps, discovery, profile=profile),
+                budget=budget,
+                temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
+                max_tokens=max(256, 800 + profile.max_tokens_bias),
+                require_json=True,
+            )
+            result.analysis = _coerce_json(analysis_text)
+            if analysis_meta.get("finish_reason"):
+                result.notes.append(f"analysis_finish:{analysis_meta['finish_reason']}")
+
+            synth_text = base_answer
+            if budget.remaining >= 1:
+                synth_text, synth_meta = gateway.chat(
+                    messages=self._synthesis_messages(
+                        query,
+                        mode,
+                        base_answer,
+                        plan,
+                        steps,
+                        result.analysis,
+                        profile=profile,
+                    ),
+                    budget=budget,
+                    temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
+                    max_tokens=max(512, 1400 + profile.max_tokens_bias),
+                    require_json=False,
+                )
+                if synth_meta.get("finish_reason"):
+                    result.notes.append(f"synthesis_finish:{synth_meta['finish_reason']}")
+            else:
+                result.notes.append("synthesis_skipped_budget")
+
+            critique_payload: dict[str, Any] = {}
+            if budget.remaining >= 1:
+                critique_text, critique_meta = gateway.chat(
+                    messages=self._critique_messages(query, synth_text, profile=profile),
+                    budget=budget,
+                    temperature=max(0.0, min(1.5, temperature + profile.temperature_bias - 0.05)),
+                    max_tokens=max(256, 500 + int(profile.max_tokens_bias * 0.5)),
+                    require_json=True,
+                )
+                critique_payload = _coerce_json(critique_text)
+                if critique_meta.get("finish_reason"):
+                    result.notes.append(f"critique_finish:{critique_meta['finish_reason']}")
+
+            result.critique = critique_payload
+            result.enhanced_answer = synth_text.strip() or base_answer
+            result.success = bool(result.enhanced_answer)
+        except Exception as exc:
+            result.errors.append(str(exc))
+            result.enhanced_answer = base_answer
+            result.success = False
+
+        result.calls_used = budget.used_calls
+        result.latency_ms = (time.time() - start) * 1000.0
+        return result
+
+    @staticmethod
+    def _analysis_messages(
+        query: str,
+        mode: str,
+        plan: list[str],
+        steps: list[dict[str, Any]],
+        discovery: list[dict[str, Any]],
+        profile: LiveStrategyProfile,
+    ) -> list[dict[str, str]]:
+        step_digest = []
+        for item in steps[:8]:
+            step_digest.append(
+                {
+                    "step": item.get("step", 0),
+                    "tool": item.get("tool_call", {}).get("name", ""),
+                    "success": item.get("tool_result", {}).get("success", False),
+                }
+            )
+        prompt = {
+            "query": query,
+            "mode": mode,
+            "plan": plan,
+            "step_digest": step_digest,
+            "top_discovery": discovery[:6],
+        }
+        return [
+            {
+                "role": "system",
+                "content": profile.analysis_system,
+            },
+            {"role": "user", "content": json.dumps(prompt, ensure_ascii=True)},
+        ]
+
+    @staticmethod
+    def _synthesis_messages(
+        query: str,
+        mode: str,
+        base_answer: str,
+        plan: list[str],
+        steps: list[dict[str, Any]],
+        analysis: dict[str, Any],
+        profile: LiveStrategyProfile,
+    ) -> list[dict[str, str]]:
+        payload = {
+            "query": query,
+            "mode": mode,
+            "plan": plan,
+            "analysis": analysis,
+            "tool_steps": steps[:8],
+            "base_answer": base_answer[:6000],
+        }
+        return [
+            {
+                "role": "system",
+                "content": profile.synthesis_system,
+            },
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+        ]
+
+    @staticmethod
+    def _critique_messages(query: str, synthesized: str, profile: LiveStrategyProfile) -> list[dict[str, str]]:
+        payload = {
+            "query": query,
+            "candidate_answer": synthesized[:5000],
+        }
+        return [
+            {
+                "role": "system",
+                "content": profile.critique_system,
+            },
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+        ]
+
+
+def _coerce_json(text: str) -> dict[str, Any]:
+    if not text:
+        return {}
+    stripped = text.strip()
+    try:
+        parsed = json.loads(stripped)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", stripped)
+    if match:
+        block = match.group(0)
+        try:
+            parsed = json.loads(block)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            return {"raw": stripped}
+    return {"raw": stripped}
+
+
+def _mask_secret(secret: str) -> str:
+    if not secret:
+        return ""
+    if len(secret) <= 8:
+        return "*" * len(secret)
+    return f"{secret[:4]}***{secret[-4:]}"
+
+
+def _safe_int(value: Any, fallback: int, minimum: int, maximum: int) -> int:
+    try:
+        num = int(value)
+    except Exception:
+        num = fallback
+    return max(minimum, min(maximum, num))
+
+
+def _safe_float(value: Any, fallback: float, minimum: float, maximum: float) -> float:
+    try:
+        num = float(value)
+    except Exception:
+        num = fallback
+    return max(minimum, min(maximum, num))

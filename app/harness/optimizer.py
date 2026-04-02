@@ -28,6 +28,7 @@ class HarnessOptimizer:
         query: str,
         candidates: list[OptimizationCandidate] | None = None,
         constraints: HarnessConstraints | None = None,
+        live_model: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         active = candidates or self._default_candidates()
         rows: list[dict[str, Any]] = []
@@ -39,6 +40,7 @@ class HarnessOptimizer:
                 mode=item.mode,
                 recipe=item.recipe or None,
                 constraints=constraints,
+                live_model=live_model,
             )
             card = engine.build_value_card(run)
             value_index = float(card.get("value_index", 0.0))
@@ -94,4 +96,3 @@ class HarnessOptimizer:
             OptimizationCandidate(mode="safety_critical", recipe="risk-radar"),
             OptimizationCandidate(mode="fast", recipe="router-forge"),
         ]
-

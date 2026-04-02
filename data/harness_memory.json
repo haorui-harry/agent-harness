@@ -24,6 +24,66 @@
         "tool": "code_skill_search",
         "success": true,
         "latency_ms": 0.59
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "success": true,
+        "latency_ms": 1.16
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "success": true,
+        "latency_ms": 0.9
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.2
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.92
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.01
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.04
       }
     ],
     "a0eb41902abd": [
@@ -50,6 +110,114 @@
         "tool": "code_skill_search",
         "success": true,
         "latency_ms": 1.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "success": true,
+        "latency_ms": 1.14
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "success": true,
+        "latency_ms": 1.23
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.85
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 4,
+        "tool": "memory_context_digest",
+        "source": "dynamic_discovery",
+        "score": 0.757,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "memory_context_digest",
+        "source": "dynamic_discovery",
+        "score": 0.757,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.97
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "memory_context_digest",
+        "source": "dynamic_discovery",
+        "score": 0.757,
+        "success": true,
+        "latency_ms": 0.03
       }
     ],
     "132cbf35f9c5": [
@@ -88,6 +256,120 @@
         "tool": "browser_trending_scan",
         "success": true,
         "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "success": true,
+        "latency_ms": 10.23
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "success": true,
+        "latency_ms": 0.96
+      },
+      {
+        "step": 3,
+        "tool": "browser_trending_scan",
+        "success": true,
+        "latency_ms": 1.23
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.19
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.92
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.42
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.74
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.66
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
       }
     ],
     "e6b55f389e66": [
@@ -108,6 +390,2498 @@
         "tool": "browser_trending_scan",
         "success": true,
         "latency_ms": 1.29
+      }
+    ],
+    "a7fc930f6d2f": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:test-recipe",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.22
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:test-recipe",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:test-recipe",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.76
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:test-recipe",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:test-recipe",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.87
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:test-recipe",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "943ba523f580": [
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      },
+      {
+        "step": 0,
+        "tool": "preflight",
+        "source": "security",
+        "score": 4.5,
+        "success": false,
+        "latency_ms": 0.0,
+        "blocked": true
+      }
+    ],
+    "07a9145210c9": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.29
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.81
+      },
+      {
+        "step": 3,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.35
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.74
+      },
+      {
+        "step": 3,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.49
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.98
+      },
+      {
+        "step": 3,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.84
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.96
+      },
+      {
+        "step": 3,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.75
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.56
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.81
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.62
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 9.6
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.04
+      }
+    ],
+    "e1c281732c77": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.93
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.83
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.09
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.83
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.93
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.08
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.86
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.01
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.83
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.98
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.97
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.74
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.01
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.07
+      }
+    ],
+    "58d4f74c37fc": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.25
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.06
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.95
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.12
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.11
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.57
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.83
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.02
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.98
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.19
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.92
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.84
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.98
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.83
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.76
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.12
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.96
+      }
+    ],
+    "a99004e7825a": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 7.37
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.77
+      }
+    ],
+    "7bdb33a6d2db": [
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 7.97
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.9555,
+        "success": true,
+        "latency_ms": 4.96
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 6.33
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.9555,
+        "success": true,
+        "latency_ms": 5.31
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 7.91
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.9555,
+        "success": true,
+        "latency_ms": 5.35
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 0.86
+      },
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 9.27
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.9555,
+        "success": true,
+        "latency_ms": 4.64
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 1.06
+      }
+    ],
+    "920219d6132c": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.89
+      }
+    ],
+    "fd1661a898d2": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 8.23
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.98
+      }
+    ],
+    "ace96628461c": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.0
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.85
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "b34113b39f9c": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 6.49
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 1.205,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 7.06
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 1.205,
+        "success": true,
+        "latency_ms": 0.06
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.84
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "ce4e7ffe63e7": [
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.7755,
+        "success": true,
+        "latency_ms": 5.18
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 0.77
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.7755,
+        "success": true,
+        "latency_ms": 5.19
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.6335,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "60d3fe7d6e1f": [
+      {
+        "step": 1,
+        "tool": "memory_context_digest",
+        "source": "recipe:router-forge",
+        "score": 0.577,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "recipe:router-forge",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 7.22
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:router-forge",
+        "score": 0.5965,
+        "success": true,
+        "latency_ms": 0.9
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "recipe:router-forge",
+        "score": 0.8475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "memory_context_digest",
+        "source": "recipe:router-forge",
+        "score": 0.577,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "recipe:router-forge",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 6.68
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:router-forge",
+        "score": 0.5965,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "recipe:router-forge",
+        "score": 0.8475,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "aa69c5aa4c50": [
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 0.75
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.7755,
+        "success": true,
+        "latency_ms": 4.3
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.06
+      }
+    ],
+    "1c4b31660a9a": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.12
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.8
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.974,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 1.11
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.7755,
+        "success": true,
+        "latency_ms": 4.65
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.79
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.974,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "memory_context_digest",
+        "source": "recipe:router-forge",
+        "score": 0.577,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "recipe:router-forge",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:router-forge",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 0.81
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "recipe:router-forge",
+        "score": 0.7875,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.96
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.845,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 1.21
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.974,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 1,
+        "tool": "memory_context_digest",
+        "source": "recipe:router-forge",
+        "score": 0.697,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "recipe:router-forge",
+        "score": 0.6935,
+        "success": true,
+        "latency_ms": 0.88
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:router-forge",
+        "score": 0.0,
+        "success": true,
+        "latency_ms": 1.0
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "recipe:router-forge",
+        "score": 0.9075,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "f881ebc05d7f": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.85
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "0a5728c001ab": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.46
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 1.08
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.26
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 1.19
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.2
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.26
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.75
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "514aa40f24df": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.97
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.78
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.78
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.9
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      }
+    ],
+    "8332d9bad589": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 7.32
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.07
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "27d9d19028b4": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.92
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "dynamic_discovery",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 6.62
+      },
+      {
+        "step": 2,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "191909d422c4": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 6.47
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.08
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.8
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 6.6
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.77
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      }
+    ],
+    "4cfa10efb18b": [
+      {
+        "step": 1,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 7.77
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.78
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.7875,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "66ac7ea6d080": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 7.13
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 1.145,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "13f4f202fa14": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.9
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.08
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.94
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.75
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "11d55f598cc7": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.96
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.925,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.925,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.37
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.03
+      }
+    ],
+    "1b81bffe4608": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.87
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.75
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.97
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.805,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.79
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "1bfabfc580f8": [
+      {
+        "step": 1,
+        "tool": "browser_trending_scan",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.735,
+        "success": true,
+        "latency_ms": 0.74
+      },
+      {
+        "step": 2,
+        "tool": "ecosystem_provider_radar",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.7755,
+        "success": true,
+        "latency_ms": 4.28
+      },
+      {
+        "step": 3,
+        "tool": "code_skill_search",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.91
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:ecosystem-hunter",
+        "score": 0.794,
+        "success": true,
+        "latency_ms": 0.04
+      }
+    ],
+    "9a879c2dde7a": [
+      {
+        "step": 1,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.71
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.72
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      },
+      {
+        "step": 1,
+        "tool": "code_skill_search",
+        "source": "dynamic_discovery",
+        "score": 0.5735,
+        "success": true,
+        "latency_ms": 0.73
+      },
+      {
+        "step": 2,
+        "tool": "api_skill_dependency_graph",
+        "source": "dynamic_discovery",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.8
+      },
+      {
+        "step": 3,
+        "tool": "external_resource_hub",
+        "source": "dynamic_discovery",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 4,
+        "tool": "code_router_blueprint",
+        "source": "dynamic_discovery",
+        "score": 0.5475,
+        "success": true,
+        "latency_ms": 0.0
+      }
+    ],
+    "530b7998848e": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.95
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.8
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.9
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.06
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.76
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "2b258dd29f95": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 0.89
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.74
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 1.17
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.8
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.01
+      }
+    ],
+    "e6676a2c1237": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 7.78
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.745,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.78
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "c8ed1258404c": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 0.96
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 1.145,
+        "success": true,
+        "latency_ms": 0.05
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.7165,
+        "success": true,
+        "latency_ms": 0.95
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.05
+      }
+    ],
+    "f7f1bfe80e59": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 8.14
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.28
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.736,
+        "success": true,
+        "latency_ms": 8.64
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.565,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 0.82
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
+      }
+    ],
+    "bd1a6ed0d1d0": [
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 2.07
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.46
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.03
+      },
+      {
+        "step": 1,
+        "tool": "api_market_discover",
+        "source": "recipe:risk-radar",
+        "score": 0.556,
+        "success": true,
+        "latency_ms": 1.61
+      },
+      {
+        "step": 2,
+        "tool": "policy_risk_matrix",
+        "source": "recipe:risk-radar",
+        "score": 0.865,
+        "success": true,
+        "latency_ms": 0.04
+      },
+      {
+        "step": 3,
+        "tool": "api_skill_dependency_graph",
+        "source": "recipe:risk-radar",
+        "score": 0.5365,
+        "success": true,
+        "latency_ms": 1.08
+      },
+      {
+        "step": 4,
+        "tool": "external_resource_hub",
+        "source": "recipe:risk-radar",
+        "score": 0.614,
+        "success": true,
+        "latency_ms": 0.02
       }
     ]
   }

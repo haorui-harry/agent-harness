@@ -73,13 +73,15 @@ class HarnessValueScorer:
         context_reuse = float(metrics.get("context_reuse_score", 0.0))
         tool_calls = float(metrics.get("tool_calls", 0.0))
         block_count = float(metrics.get("guardrail_block_count", 0.0))
+        live_success = float(metrics.get("live_agent_success", 0.0))
 
         block_penalty = min(0.35, block_count / max(tool_calls, 1.0) * 0.25)
         score = (
             0.55 * tool_success
             + 0.25 * completion
             + 0.15 * context_reuse
-            + 0.05 * max(0.0, 1.0 - block_penalty)
+            + 0.04 * max(0.0, 1.0 - block_penalty)
+            + 0.01 * live_success
         )
         score = max(0.0, min(1.0, score))
 
@@ -91,6 +93,7 @@ class HarnessValueScorer:
                 f"tool_success_rate={tool_success:.2f}",
                 f"completion_score={completion:.2f}",
                 f"context_reuse_score={context_reuse:.2f}",
+                f"live_agent_success={live_success:.2f}",
             ],
             visual_hint="kpi_card",
         )
@@ -194,6 +197,8 @@ class HarnessValueScorer:
         used_tools = [step.tool_call.name for step in run.steps if step.tool_call]
         unique_tools = sorted(set(used_tools))
         tool_variety = min(1.0, len(unique_tools) / 4.0)
+        live_calls = float(run.eval_metrics.get("live_agent_calls", 0.0))
+        live_bonus = min(1.0, live_calls / 3.0) if live_calls > 0 else 0.0
 
         novelty_scores: list[float] = []
         if manifests:
@@ -212,7 +217,13 @@ class HarnessValueScorer:
         }
         cross_type = min(1.0, len(tool_types) / 3.0)
 
-        score = 0.45 * avg_novelty + 0.25 * tool_variety + 0.20 * cross_type + 0.10 * external_tool_bonus
+        score = (
+            0.40 * avg_novelty
+            + 0.22 * tool_variety
+            + 0.18 * cross_type
+            + 0.10 * external_tool_bonus
+            + 0.10 * live_bonus
+        )
         score = max(0.0, min(1.0, score))
 
         return ValueDimension(
@@ -223,6 +234,7 @@ class HarnessValueScorer:
                 f"avg_novelty={avg_novelty:.2f}",
                 f"unique_tools={len(unique_tools)}",
                 f"cross_type_coverage={len(tool_types)}",
+                f"live_agent_calls={live_calls:.1f}",
             ],
             visual_hint="novelty_radar",
         )
@@ -264,4 +276,3 @@ class HarnessValueScorer:
             f"Completed={run.completed}, steps={len(run.steps)}, "
             f"tool_calls={int(run.eval_metrics.get('tool_calls', 0.0))}."
         )
-

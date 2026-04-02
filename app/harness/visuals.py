@@ -22,6 +22,7 @@ class HarnessVisualProtocol:
         timeline = self._build_timeline(run)
         discovery_board = self._build_discovery_board(run, manifests)
         security_board = self._build_security_board(run)
+        live_agent_board = self._build_live_agent_board(run)
         network = self._build_tool_network(run, manifests)
         hero_cards = self._build_hero_cards(run, value_card)
         radar = self._build_value_radar(value_card)
@@ -36,6 +37,7 @@ class HarnessVisualProtocol:
             "timeline": timeline,
             "discovery_board": discovery_board,
             "security_board": security_board,
+            "live_agent_board": live_agent_board,
             "tool_network": network,
             "hero_cards": hero_cards,
             "narrative": value_card.get("narrative", ""),
@@ -63,6 +65,8 @@ class HarnessVisualProtocol:
                 "safety": float(kpis.get("safety", 0.0)),
                 "innovation": float(kpis.get("innovation", 0.0)),
                 "tool_calls": float(kpis.get("tool_calls", 0.0)),
+                "live_agent_calls": float(kpis.get("live_agent_calls", 0.0)),
+                "live_agent_success": float(kpis.get("live_agent_success", 0.0)),
                 "completion": float(kpis.get("completion_score", 0.0)),
             }
             rows.append(row)
@@ -92,6 +96,8 @@ class HarnessVisualProtocol:
             "tool_calls": float(metrics.get("tool_calls", 0.0)),
             "tool_success_rate": float(metrics.get("tool_success_rate", 0.0)),
             "completion_score": float(metrics.get("completion_score", 0.0)),
+            "live_agent_calls": float(metrics.get("live_agent_calls", 0.0)),
+            "live_agent_success": float(metrics.get("live_agent_success", 0.0)),
             "reliability": dims.get("reliability", 0.0),
             "observability": dims.get("observability", 0.0),
             "adaptability": dims.get("adaptability", 0.0),
@@ -195,6 +201,38 @@ class HarnessVisualProtocol:
         }
 
     @staticmethod
+    def _build_live_agent_board(run: HarnessRun) -> dict[str, Any]:
+        live = run.metadata.get("live_agent", {})
+        if not isinstance(live, dict):
+            return {
+                "enabled": False,
+                "configured": False,
+                "model": "",
+                "calls_used": 0,
+                "call_budget": 0,
+                "success": False,
+                "notes": [],
+                "errors": [],
+            }
+
+        analysis = live.get("analysis", {})
+        critique = live.get("critique", {})
+        return {
+            "enabled": bool(live.get("enabled", False)),
+            "configured": bool(live.get("configured", False)),
+            "model": str(live.get("model", "")),
+            "base_url": str(live.get("base_url", "")),
+            "calls_used": int(live.get("calls_used", 0)),
+            "call_budget": int(live.get("call_budget", 0)),
+            "success": bool(live.get("success", False)),
+            "latency_ms": round(float(live.get("latency_ms", 0.0)), 2),
+            "analysis": analysis if isinstance(analysis, dict) else {},
+            "critique": critique if isinstance(critique, dict) else {},
+            "notes": live.get("notes", []),
+            "errors": live.get("errors", []),
+        }
+
+    @staticmethod
     def _build_tool_network(run: HarnessRun, manifests: ToolManifestRegistry | None) -> dict[str, Any]:
         nodes: list[dict[str, Any]] = []
         links: list[dict[str, Any]] = []
@@ -267,5 +305,12 @@ class HarnessVisualProtocol:
                 f"utilization={metrics.get('discovery_utilization', 0.0):.2f}",
             },
         ]
+        if float(metrics.get("live_agent_calls", 0.0)) > 0.0:
+            cards.append(
+                {
+                    "title": "Live Agent Signal",
+                    "headline": f"{metrics.get('live_agent_calls', 0.0):.0f} real-model calls used",
+                    "evidence": f"live_success={metrics.get('live_agent_success', 0.0):.2f}",
+                }
+            )
         return cards
-

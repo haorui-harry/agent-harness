@@ -95,6 +95,25 @@ class HarnessEventStreamBuilder:
             )
             t += 35.0
 
+        live = run.metadata.get("live_agent", {})
+        if isinstance(live, dict) and live.get("enabled"):
+            events.append(
+                {
+                    "ts_ms": t,
+                    "event": "live_agent_cycle",
+                    "data": {
+                        "configured": bool(live.get("configured", False)),
+                        "success": bool(live.get("success", False)),
+                        "calls_used": int(live.get("calls_used", 0)),
+                        "call_budget": int(live.get("call_budget", 0)),
+                        "model": str(live.get("model", "")),
+                        "notes": live.get("notes", []),
+                        "errors": live.get("errors", []),
+                    },
+                }
+            )
+            t += 30.0
+
         events.append(
             {
                 "ts_ms": t,
@@ -106,4 +125,3 @@ class HarnessEventStreamBuilder:
             }
         )
         return events
-

@@ -12,6 +12,9 @@ from app.graph import build_graph
 from app.harness.discovery import DiscoveredTool, ToolDiscoveryEngine
 from app.harness.evaluator import HarnessEvaluator
 from app.harness.guardrails import GuardrailEngine
+from app.harness.iteration import LiveIterationTracker
+from app.harness.live_agent import LiveAgentOrchestrator
+from app.harness.live_experiment import HarnessLiveExperiment, LiveExperimentConfig
 from app.harness.manifest import ToolManifestRegistry
 from app.harness.models import HarnessConstraints, HarnessRun, HarnessStep, ToolCall
 from app.harness.optimizer import HarnessOptimizer
@@ -39,6 +42,9 @@ class HarnessEngine:
         self.memory = HarnessMemoryStore()
         self.guardrails = GuardrailEngine()
         self.evaluator = HarnessEvaluator()
+        self.live_agent = LiveAgentOrchestrator()
+        self.live_experiment = HarnessLiveExperiment()
+        self.iteration = LiveIterationTracker()
 
         self.manifests = ToolManifestRegistry()
         self.discovery = ToolDiscoveryEngine(self.manifests)
@@ -95,6 +101,7 @@ class HarnessEngine:
         recipe_path: str | None = None,
         constraints: HarnessConstraints | None = None,
         mode: str = "balanced",
+        live_model: dict[str, Any] | None = None,
     ) -> HarnessRun:
         """Run harness in recipe-driven mode."""
 
@@ -104,6 +111,7 @@ class HarnessEngine:
             mode=mode,
             recipe=recipe,
             recipe_path=recipe_path,
+            live_model=live_model,
         )
 
     def run_redteam(
@@ -158,6 +166,7 @@ class HarnessEngine:
         pack_name: str = "impact-lens",
         mode_override: str = "",
         constraints: HarnessConstraints | None = None,
+        live_model: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run scenario pack and return comparative showcase payload."""
 
@@ -166,12 +175,14 @@ class HarnessEngine:
             pack_name=pack_name,
             mode_override=mode_override,
             constraints=constraints,
+            live_model=live_model,
         )
 
     def optimize_query(
         self,
         query: str,
         constraints: HarnessConstraints | None = None,
+        live_model: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Auto-tune mode/recipe combinations for this query."""
 
@@ -179,7 +190,47 @@ class HarnessEngine:
             engine=self,
             query=query,
             constraints=constraints,
+            live_model=live_model,
         )
+
+    def run_live_experiment(
+        self,
+        queries: list[str],
+        mode: str = "balanced",
+        recipe: str = "",
+        live_model: dict[str, Any] | None = None,
+        max_total_calls: int = 30,
+        max_calls_per_query: int = 8,
+        constraints: HarnessConstraints | None = None,
+    ) -> dict[str, Any]:
+        """Run baseline vs live-agent A/B experiment with strict call limits."""
+
+        config = LiveExperimentConfig(
+            mode=mode,
+            recipe=recipe,
+            max_total_calls=max_total_calls,
+            max_calls_per_query=max_calls_per_query,
+            limit_queries=len(queries) if queries else 0,
+        )
+        payload = self.live_experiment.run(
+            engine=self,
+            queries=queries,
+            live_model=live_model,
+            config=config,
+            constraints=constraints,
+        )
+        model_info = {
+            "base_url": str((live_model or {}).get("base_url", "")),
+            "model_name": str((live_model or {}).get("model_name", "")),
+        }
+        self.iteration.record(payload, model_info=model_info)
+        payload["history"] = {"latest": self.iteration.latest(limit=6)}
+        return payload
+
+    def list_live_experiment_history(self, limit: int = 10) -> list[dict[str, Any]]:
+        """List recent live experiment records."""
+
+        return self.iteration.latest(limit=limit)
 
     def build_report(self, run: HarnessRun, fmt: str = "markdown") -> str | dict[str, Any]:
         """Build markdown/json report from one run."""
@@ -195,6 +246,7 @@ class HarnessEngine:
         mode: str = "balanced",
         recipe: str | None = None,
         recipe_path: str | None = None,
+        live_model: dict[str, Any] | None = None,
     ) -> HarnessRun:
         """Run harness loop around the core agent graph."""
 
@@ -366,13 +418,40 @@ class HarnessEngine:
             discovery=discovery_trace,
             active_recipe=active_recipe,
         )
+        live_overrides = dict(live_model or {})
+        live_overrides.setdefault("timeout_seconds", constraints.live_agent_timeout_seconds)
+        live_overrides.setdefault("temperature", constraints.live_agent_temperature)
+        live_result = self.live_agent.enhance(
+            query=safe_query,
+            mode=mode,
+            base_answer=final_answer,
+            plan=plan,
+            steps=[self._step_to_dict(item) for item in steps],
+            discovery=discovery_trace,
+            max_calls=max(1, min(constraints.max_live_agent_calls, 50)),
+            temperature=constraints.live_agent_temperature,
+            live_model_overrides=live_overrides,
+        ) if constraints.enable_live_agent else None
+
+        if live_result and live_result.success and live_result.enhanced_answer:
+            final_answer = live_result.enhanced_answer
+        elif live_result and not live_result.success and not constraints.live_agent_fail_open:
+            final_answer = (
+                "Live agent enhancement failed and fail-open is disabled.\n"
+                "Please retry with a valid model config or enable fail-open."
+            )
 
         run = HarnessRun(
             query=query,
             plan=plan,
             steps=steps,
             final_answer=final_answer,
-            completed=True,
+            completed=not (
+                live_result
+                and constraints.enable_live_agent
+                and not live_result.success
+                and not constraints.live_agent_fail_open
+            ),
             eval_metrics={},
             memory_snapshot=previous_context,
             metadata={
@@ -393,6 +472,15 @@ class HarnessEngine:
                     "version": active_recipe.version if active_recipe else "",
                     "total_steps": len(active_recipe.steps) if active_recipe else 0,
                     "executed_steps": recipe_executed_steps,
+                },
+                "live_agent": live_result.to_dict() if live_result else {
+                    "enabled": False,
+                    "configured": False,
+                    "calls_used": 0,
+                    "call_budget": 0,
+                    "success": False,
+                    "notes": [],
+                    "errors": [],
                 },
             },
         )
@@ -525,6 +613,28 @@ class HarnessEngine:
         }
 
     @staticmethod
+    def _step_to_dict(step: HarnessStep) -> dict[str, Any]:
+        return {
+            "step": step.step,
+            "thought": step.thought,
+            "decision": step.decision,
+            "tool_call": {
+                "name": step.tool_call.name if step.tool_call else "",
+                "source": step.tool_call.source if step.tool_call else "",
+                "score": round(float(step.tool_call.score), 4) if step.tool_call else 0.0,
+            },
+            "tool_result": {
+                "success": bool(step.tool_result.success),
+                "latency_ms": round(float(step.tool_result.latency_ms), 2),
+            }
+            if step.tool_result
+            else {},
+            "guardrail_notes": list(step.guardrail_notes),
+            "discovery_notes": list(step.discovery_notes),
+            "security": dict(step.security),
+        }
+
+    @staticmethod
     def _compose_final_answer(
         payload: dict[str, Any],
         steps: list[HarnessStep],
@@ -606,6 +716,15 @@ class HarnessEngine:
                     "version": active_recipe.version if active_recipe else "",
                     "total_steps": len(active_recipe.steps) if active_recipe else 0,
                     "executed_steps": 0,
+                },
+                "live_agent": {
+                    "enabled": False,
+                    "configured": False,
+                    "calls_used": 0,
+                    "call_budget": 0,
+                    "success": False,
+                    "notes": [],
+                    "errors": [],
                 },
             },
         )

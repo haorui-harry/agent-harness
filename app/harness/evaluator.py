@@ -51,6 +51,12 @@ class HarnessEvaluator:
         recipe_executed_steps = int(recipe_meta.get("executed_steps", 0)) if isinstance(recipe_meta, dict) else 0
         recipe_completion = recipe_executed_steps / max(recipe_total_steps, 1) if recipe_total_steps else 0.0
 
+        live_meta = run.metadata.get("live_agent", {})
+        live_enabled = 1.0 if isinstance(live_meta, dict) and live_meta.get("enabled") else 0.0
+        live_configured = 1.0 if isinstance(live_meta, dict) and live_meta.get("configured") else 0.0
+        live_success = 1.0 if isinstance(live_meta, dict) and live_meta.get("success") else 0.0
+        live_calls = float(live_meta.get("calls_used", 0.0)) if isinstance(live_meta, dict) else 0.0
+
         return {
             "tool_calls": float(len(tool_steps)),
             "tool_success_rate": round(tool_success_rate, 4),
@@ -62,4 +68,8 @@ class HarnessEvaluator:
             "discovery_count": discovery_count,
             "discovery_utilization": round(discovery_utilization, 4),
             "recipe_completion": round(recipe_completion, 4),
+            "live_agent_enabled": live_enabled,
+            "live_agent_configured": live_configured,
+            "live_agent_success": live_success,
+            "live_agent_calls": live_calls,
         }

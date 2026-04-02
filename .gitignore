@@ -9,3 +9,5 @@ __pycache__/
 .env
 dist/
 build/
+reports/
+data/live_experiment_log.json
