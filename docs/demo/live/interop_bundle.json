@@ -1,0 +1,850 @@
+{
+  "schema": "agent-skills-interop/v1",
+  "generated_at": "2026-04-02T14:55:09.393536+00:00",
+  "frameworks": {
+    "anthropic": {
+      "schema": "agent-skills-interop/v1",
+      "framework": "anthropic",
+      "generated_at": "2026-04-02T14:55:09.386407+00:00",
+      "skill_count": 18,
+      "skills": [
+        {
+          "name": "identify-risks",
+          "original_name": "identify_risks",
+          "source": "builtin",
+          "description": "Extract and categorize risks from text. Use when task keywords include: risk, threat, danger, concern.",
+          "metadata": {
+            "original_name": "identify_risks",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "extraction",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "policy_risk_matrix",
+            "external_resource_hub",
+            "code_experiment_design"
+          ],
+          "skill_md": "---\nname: identify-risks\ndescription: \"Extract and categorize risks from text. Use when task keywords include: risk, threat, danger, concern.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"identify_risks\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: policy_risk_matrix external_resource_hub code_experiment_design\n---\n\n# identify_risks\n\n## When To Use\n- Use this skill when the request needs: risk detection, threat analysis, negative outcome patterns.\n- Trigger hints: risk, threat, danger, concern.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may over-flag benign items, less useful for purely positive content.\n\n## Synergies\n- Works well with: prioritize_items, generate_recommendations, detect_anomalies.\n\n## Suggested Harness Tools\n- policy_risk_matrix\n- external_resource_hub\n- code_experiment_design\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "executive-summary",
+          "original_name": "executive_summary",
+          "source": "builtin",
+          "description": "Produce a concise executive summary of the content. Use when task keywords include: summarize, summary, overview, brief.",
+          "metadata": {
+            "original_name": "executive_summary",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "communication",
+            "tier": "basic",
+            "output_type": "text",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: executive-summary\ndescription: \"Produce a concise executive summary of the content. Use when task keywords include: summarize, summary, overview, brief.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"communication\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"executive_summary\"\n  output_type: \"text\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# executive_summary\n\n## When To Use\n- Use this skill when the request needs: brevity, clarity, distilling key points.\n- Trigger hints: summarize, summary, overview, brief.\n\n## Output Contract\n- Output type: text.\n- Tier: basic; category: communication.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: loses nuance, not suitable for deep analysis.\n\n## Synergies\n- Works well with: extract_facts, identify_risks.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "compare-options",
+          "original_name": "compare_options",
+          "source": "builtin",
+          "description": "Compare alternatives or options mentioned in the content. Use when task keywords include: compare, versus, vs, alternative.",
+          "metadata": {
+            "original_name": "compare_options",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: compare-options\ndescription: \"Compare alternatives or options mentioned in the content. Use when task keywords include: compare, versus, vs, alternative.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"compare_options\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# compare_options\n\n## When To Use\n- Use this skill when the request needs: structured comparison, trade-off analysis.\n- Trigger hints: compare, versus, vs, alternative.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs clearly defined options, less useful for single-topic content.\n\n## Synergies\n- Works well with: generate_recommendations, extract_facts.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "extract-facts",
+          "original_name": "extract_facts",
+          "source": "builtin",
+          "description": "Pull out factual statements and data points. Use when task keywords include: fact, data, number, statistic.",
+          "metadata": {
+            "original_name": "extract_facts",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "recall",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: extract-facts\ndescription: \"Pull out factual statements and data points. Use when task keywords include: fact, data, number, statistic.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"recall\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"extract_facts\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# extract_facts\n\n## When To Use\n- Use this skill when the request needs: precision, fact isolation, data extraction.\n- Trigger hints: fact, data, number, statistic.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: recall.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: ignores opinions and context, can be overly literal.\n\n## Synergies\n- Works well with: validate_claims, build_timeline, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "generate-recommendations",
+          "original_name": "generate_recommendations",
+          "source": "builtin",
+          "description": "Generate actionable recommendations. Use when task keywords include: recommend, suggest, advise, action.",
+          "metadata": {
+            "original_name": "generate_recommendations",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: generate-recommendations\ndescription: \"Generate actionable recommendations. Use when task keywords include: recommend, suggest, advise, action.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"generate_recommendations\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# generate_recommendations\n\n## When To Use\n- Use this skill when the request needs: actionability, decision support, prioritization.\n- Trigger hints: recommend, suggest, advise, action.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may assume context not present, can be generic.\n\n## Synergies\n- Works well with: identify_risks, prioritize_items, compare_options.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "brainstorm-ideas",
+          "original_name": "brainstorm_ideas",
+          "source": "builtin",
+          "description": "Generate creative ideas and unconventional angles. Use when task keywords include: idea, creative, brainstorm, innovate.",
+          "metadata": {
+            "original_name": "brainstorm_ideas",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: brainstorm-ideas\ndescription: \"Generate creative ideas and unconventional angles. Use when task keywords include: idea, creative, brainstorm, innovate.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"brainstorm_ideas\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# brainstorm_ideas\n\n## When To Use\n- Use this skill when the request needs: creativity, lateral thinking, diverse perspectives.\n- Trigger hints: idea, creative, brainstorm, innovate.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may lack focus, not all ideas are practical.\n\n## Synergies\n- Works well with: generate_analogies, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "detect-anomalies",
+          "original_name": "detect_anomalies",
+          "source": "builtin",
+          "description": "Detect anomalies, contradictions, and inconsistencies in text. Use when task keywords include: anomaly, inconsistent, contradiction, unusual.",
+          "metadata": {
+            "original_name": "detect_anomalies",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: detect-anomalies\ndescription: \"Detect anomalies, contradictions, and inconsistencies in text. Use when task keywords include: anomaly, inconsistent, contradiction, unusual.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"detect_anomalies\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# detect_anomalies\n\n## When To Use\n- Use this skill when the request needs: contradiction detection, pattern deviation, outlier identification.\n- Trigger hints: anomaly, inconsistent, contradiction, unusual.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may flag intentional contrasts, less useful for subjective content.\n\n## Synergies\n- Works well with: identify_risks, validate_claims.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "build-timeline",
+          "original_name": "build_timeline",
+          "source": "builtin",
+          "description": "Extract events and build a chronological timeline with dependencies. Use when task keywords include: timeline, sequence, when, before.",
+          "metadata": {
+            "original_name": "build_timeline",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "extraction",
+            "tier": "advanced",
+            "output_type": "timeline",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: build-timeline\ndescription: \"Extract events and build a chronological timeline with dependencies. Use when task keywords include: timeline, sequence, when, before.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"build_timeline\"\n  output_type: \"timeline\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# build_timeline\n\n## When To Use\n- Use this skill when the request needs: temporal ordering, dependency mapping, sequence reconstruction.\n- Trigger hints: timeline, sequence, when, before.\n\n## Output Contract\n- Output type: timeline.\n- Tier: advanced; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: requires temporal markers, less useful for non-sequential content.\n\n## Synergies\n- Works well with: extract_facts, prioritize_items.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "synthesize-perspectives",
+          "original_name": "synthesize_perspectives",
+          "source": "builtin",
+          "description": "Identify, compare, and synthesize multiple viewpoints into an integrated analysis. Use when task keywords include: perspective, viewpoint, opinion, stakeholder.",
+          "metadata": {
+            "original_name": "synthesize_perspectives",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: synthesize-perspectives\ndescription: \"Identify, compare, and synthesize multiple viewpoints into an integrated analysis. Use when task keywords include: perspective, viewpoint, opinion, stakeholder.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"synthesize_perspectives\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"expert\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# synthesize_perspectives\n\n## When To Use\n- Use this skill when the request needs: multi-perspective integration, consensus detection, nuance preservation.\n- Trigger hints: perspective, viewpoint, opinion, stakeholder.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may create false balance, requires diverse sources.\n\n## Synergies\n- Works well with: extract_facts, validate_claims.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "validate-claims",
+          "original_name": "validate_claims",
+          "source": "builtin",
+          "description": "Evaluate claims against available evidence and assign confidence levels. Use when task keywords include: claim, verify, evidence, true.",
+          "metadata": {
+            "original_name": "validate_claims",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: validate-claims\ndescription: \"Evaluate claims against available evidence and assign confidence levels. Use when task keywords include: claim, verify, evidence, true.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"validate_claims\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"expert\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# validate_claims\n\n## When To Use\n- Use this skill when the request needs: evidence evaluation, claim verification, confidence assessment.\n- Trigger hints: claim, verify, evidence, true.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs factual content, cannot verify against external sources.\n\n## Synergies\n- Works well with: extract_facts, detect_anomalies.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "generate-analogies",
+          "original_name": "generate_analogies",
+          "source": "builtin",
+          "description": "Create illuminating analogies to explain complex concepts. Use when task keywords include: analogy, like, similar to, metaphor.",
+          "metadata": {
+            "original_name": "generate_analogies",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "text",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: generate-analogies\ndescription: \"Create illuminating analogies to explain complex concepts. Use when task keywords include: analogy, like, similar to, metaphor.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"generate_analogies\"\n  output_type: \"text\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# generate_analogies\n\n## When To Use\n- Use this skill when the request needs: concept mapping, simplification, cross-domain transfer.\n- Trigger hints: analogy, like, similar to, metaphor.\n\n## Output Contract\n- Output type: text.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: analogies can mislead if taken literally, not suitable for strict specs.\n\n## Synergies\n- Works well with: brainstorm_ideas, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "prioritize-items",
+          "original_name": "prioritize_items",
+          "source": "builtin",
+          "description": "Rank and prioritize items by impact, urgency, and dependencies. Use when task keywords include: priority, rank, important, urgent.",
+          "metadata": {
+            "original_name": "prioritize_items",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "analysis",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: prioritize-items\ndescription: \"Rank and prioritize items by impact, urgency, and dependencies. Use when task keywords include: priority, rank, important, urgent.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"prioritize_items\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# prioritize_items\n\n## When To Use\n- Use this skill when the request needs: impact assessment, urgency classification, dependency-aware ordering.\n- Trigger hints: priority, rank, important, urgent.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: subjective without clear criteria, hard on equal-priority cases.\n\n## Synergies\n- Works well with: identify_risks, generate_recommendations.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "risk-heatmap",
+          "original_name": "risk_heatmap",
+          "source": "marketplace",
+          "description": "Score risks by likelihood and impact for prioritization.. Use when task keywords include: risk, impact, likelihood, prioritize.",
+          "metadata": {
+            "original_name": "risk_heatmap",
+            "owner": "core-labs",
+            "source": "marketplace",
+            "version": "0.1.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "policy_risk_matrix"
+          ],
+          "skill_md": "---\nname: risk-heatmap\ndescription: \"Score risks by likelihood and impact for prioritization.. Use when task keywords include: risk, impact, likelihood, prioritize.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"risk_heatmap\"\n  output_type: \"structured\"\n  owner: \"core-labs\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"0.1.0\"\nallowed-tools: code_experiment_design code_skill_search policy_risk_matrix\n---\n\n# risk_heatmap\n\n## When To Use\n- Use this skill when the request needs: risk scoring, prioritization, portfolio view.\n- Trigger hints: risk, impact, likelihood, prioritize.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: limited narrative quality.\n\n## Synergies\n- Works well with: identify_risks, prioritize_items.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- policy_risk_matrix\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "evidence-matrix",
+          "original_name": "evidence_matrix",
+          "source": "marketplace",
+          "description": "Build claim-evidence-confidence matrix from source text.. Use when task keywords include: evidence, claim, confidence, source.",
+          "metadata": {
+            "original_name": "evidence_matrix",
+            "owner": "research-hub",
+            "source": "marketplace",
+            "version": "0.2.1",
+            "category": "recall",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: evidence-matrix\ndescription: \"Build claim-evidence-confidence matrix from source text.. Use when task keywords include: evidence, claim, confidence, source.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"recall\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"evidence_matrix\"\n  output_type: \"structured\"\n  owner: \"research-hub\"\n  source: \"marketplace\"\n  tier: \"expert\"\n  version: \"0.2.1\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# evidence_matrix\n\n## When To Use\n- Use this skill when the request needs: evidence synthesis, fact confidence, traceability.\n- Trigger hints: evidence, claim, confidence, source.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: recall.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: creative ideation.\n\n## Synergies\n- Works well with: extract_facts, validate_claims.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "board-brief",
+          "original_name": "board_brief",
+          "source": "marketplace",
+          "description": "Produce board-level concise summary with recommendations.. Use when task keywords include: summary, board, brief, recommendation.",
+          "metadata": {
+            "original_name": "board_brief",
+            "owner": "exec-ai",
+            "source": "marketplace",
+            "version": "1.0.0",
+            "category": "communication",
+            "tier": "advanced",
+            "output_type": "text",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: board-brief\ndescription: \"Produce board-level concise summary with recommendations.. Use when task keywords include: summary, board, brief, recommendation.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"communication\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"board_brief\"\n  output_type: \"text\"\n  owner: \"exec-ai\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# board_brief\n\n## When To Use\n- Use this skill when the request needs: executive tone, clarity, decision framing.\n- Trigger hints: summary, board, brief, recommendation.\n\n## Output Contract\n- Output type: text.\n- Tier: advanced; category: communication.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: low-level extraction.\n\n## Synergies\n- Works well with: executive_summary, prioritize_items.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "sentiment-scanner",
+          "original_name": "sentiment_scanner",
+          "source": "marketplace",
+          "description": "Analyze sentiment polarity and emotional tone across text segments.. Use when task keywords include: sentiment, emotion, tone, feeling.",
+          "metadata": {
+            "original_name": "sentiment_scanner",
+            "owner": "nlp-works",
+            "source": "marketplace",
+            "version": "1.2.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: sentiment-scanner\ndescription: \"Analyze sentiment polarity and emotional tone across text segments.. Use when task keywords include: sentiment, emotion, tone, feeling.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"sentiment_scanner\"\n  output_type: \"structured\"\n  owner: \"nlp-works\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"1.2.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# sentiment_scanner\n\n## When To Use\n- Use this skill when the request needs: sentiment detection, emotion classification, tone analysis.\n- Trigger hints: sentiment, emotion, tone, feeling.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: sarcasm detection, multilingual support.\n\n## Synergies\n- Works well with: synthesize_perspectives.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "dependency-mapper",
+          "original_name": "dependency_mapper",
+          "source": "marketplace",
+          "description": "Map dependencies, relationships, and causal chains in structured content.. Use when task keywords include: dependency, relationship, cause, effect.",
+          "metadata": {
+            "original_name": "dependency_mapper",
+            "owner": "arch-ai",
+            "source": "marketplace",
+            "version": "0.3.0",
+            "category": "extraction",
+            "tier": "expert",
+            "output_type": "graph",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "api_skill_dependency_graph",
+            "external_resource_hub",
+            "code_experiment_design"
+          ],
+          "skill_md": "---\nname: dependency-mapper\ndescription: \"Map dependencies, relationships, and causal chains in structured content.. Use when task keywords include: dependency, relationship, cause, effect.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"dependency_mapper\"\n  output_type: \"graph\"\n  owner: \"arch-ai\"\n  source: \"marketplace\"\n  tier: \"expert\"\n  version: \"0.3.0\"\nallowed-tools: api_skill_dependency_graph external_resource_hub code_experiment_design\n---\n\n# dependency_mapper\n\n## When To Use\n- Use this skill when the request needs: relationship extraction, causal chain detection, dependency graphing.\n- Trigger hints: dependency, relationship, cause, effect.\n\n## Output Contract\n- Output type: graph.\n- Tier: expert; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs structured input, less useful for narrative text.\n\n## Synergies\n- Works well with: build_timeline, extract_facts.\n\n## Suggested Harness Tools\n- api_skill_dependency_graph\n- external_resource_hub\n- code_experiment_design\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "scenario-generator",
+          "original_name": "scenario_generator",
+          "source": "marketplace",
+          "description": "Generate alternative scenarios and what-if analyses based on input conditions.. Use when task keywords include: scenario, what if, future, alternative.",
+          "metadata": {
+            "original_name": "scenario_generator",
+            "owner": "futures-lab",
+            "source": "marketplace",
+            "version": "0.1.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "anthropic",
+            "ecosystem": "claude-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: scenario-generator\ndescription: \"Generate alternative scenarios and what-if analyses based on input conditions.. Use when task keywords include: scenario, what if, future, alternative.\"\ncompatibility: \"Designed for Anthropic Claude clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"claude-skills\"\n  framework_target: \"anthropic\"\n  original_name: \"scenario_generator\"\n  output_type: \"structured\"\n  owner: \"futures-lab\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"0.1.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# scenario_generator\n\n## When To Use\n- Use this skill when the request needs: scenario planning, what-if analysis, alternative futures.\n- Trigger hints: scenario, what if, future, alternative.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: speculative by nature, needs clear assumptions.\n\n## Synergies\n- Works well with: identify_risks, generate_recommendations.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        }
+      ]
+    },
+    "openai": {
+      "schema": "agent-skills-interop/v1",
+      "framework": "openai",
+      "generated_at": "2026-04-02T14:55:09.393503+00:00",
+      "skill_count": 18,
+      "skills": [
+        {
+          "name": "identify-risks",
+          "original_name": "identify_risks",
+          "source": "builtin",
+          "description": "Extract and categorize risks from text. Use when task keywords include: risk, threat, danger, concern.",
+          "metadata": {
+            "original_name": "identify_risks",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "extraction",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "policy_risk_matrix",
+            "external_resource_hub",
+            "code_experiment_design"
+          ],
+          "skill_md": "---\nname: identify-risks\ndescription: \"Extract and categorize risks from text. Use when task keywords include: risk, threat, danger, concern.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"identify_risks\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: policy_risk_matrix external_resource_hub code_experiment_design\n---\n\n# identify_risks\n\n## When To Use\n- Use this skill when the request needs: risk detection, threat analysis, negative outcome patterns.\n- Trigger hints: risk, threat, danger, concern.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may over-flag benign items, less useful for purely positive content.\n\n## Synergies\n- Works well with: prioritize_items, generate_recommendations, detect_anomalies.\n\n## Suggested Harness Tools\n- policy_risk_matrix\n- external_resource_hub\n- code_experiment_design\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "executive-summary",
+          "original_name": "executive_summary",
+          "source": "builtin",
+          "description": "Produce a concise executive summary of the content. Use when task keywords include: summarize, summary, overview, brief.",
+          "metadata": {
+            "original_name": "executive_summary",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "communication",
+            "tier": "basic",
+            "output_type": "text",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: executive-summary\ndescription: \"Produce a concise executive summary of the content. Use when task keywords include: summarize, summary, overview, brief.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"communication\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"executive_summary\"\n  output_type: \"text\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# executive_summary\n\n## When To Use\n- Use this skill when the request needs: brevity, clarity, distilling key points.\n- Trigger hints: summarize, summary, overview, brief.\n\n## Output Contract\n- Output type: text.\n- Tier: basic; category: communication.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: loses nuance, not suitable for deep analysis.\n\n## Synergies\n- Works well with: extract_facts, identify_risks.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "compare-options",
+          "original_name": "compare_options",
+          "source": "builtin",
+          "description": "Compare alternatives or options mentioned in the content. Use when task keywords include: compare, versus, vs, alternative.",
+          "metadata": {
+            "original_name": "compare_options",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: compare-options\ndescription: \"Compare alternatives or options mentioned in the content. Use when task keywords include: compare, versus, vs, alternative.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"compare_options\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# compare_options\n\n## When To Use\n- Use this skill when the request needs: structured comparison, trade-off analysis.\n- Trigger hints: compare, versus, vs, alternative.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs clearly defined options, less useful for single-topic content.\n\n## Synergies\n- Works well with: generate_recommendations, extract_facts.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "extract-facts",
+          "original_name": "extract_facts",
+          "source": "builtin",
+          "description": "Pull out factual statements and data points. Use when task keywords include: fact, data, number, statistic.",
+          "metadata": {
+            "original_name": "extract_facts",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "recall",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: extract-facts\ndescription: \"Pull out factual statements and data points. Use when task keywords include: fact, data, number, statistic.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"recall\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"extract_facts\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# extract_facts\n\n## When To Use\n- Use this skill when the request needs: precision, fact isolation, data extraction.\n- Trigger hints: fact, data, number, statistic.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: recall.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: ignores opinions and context, can be overly literal.\n\n## Synergies\n- Works well with: validate_claims, build_timeline, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "generate-recommendations",
+          "original_name": "generate_recommendations",
+          "source": "builtin",
+          "description": "Generate actionable recommendations. Use when task keywords include: recommend, suggest, advise, action.",
+          "metadata": {
+            "original_name": "generate_recommendations",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: generate-recommendations\ndescription: \"Generate actionable recommendations. Use when task keywords include: recommend, suggest, advise, action.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"generate_recommendations\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# generate_recommendations\n\n## When To Use\n- Use this skill when the request needs: actionability, decision support, prioritization.\n- Trigger hints: recommend, suggest, advise, action.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may assume context not present, can be generic.\n\n## Synergies\n- Works well with: identify_risks, prioritize_items, compare_options.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "brainstorm-ideas",
+          "original_name": "brainstorm_ideas",
+          "source": "builtin",
+          "description": "Generate creative ideas and unconventional angles. Use when task keywords include: idea, creative, brainstorm, innovate.",
+          "metadata": {
+            "original_name": "brainstorm_ideas",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: brainstorm-ideas\ndescription: \"Generate creative ideas and unconventional angles. Use when task keywords include: idea, creative, brainstorm, innovate.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"brainstorm_ideas\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# brainstorm_ideas\n\n## When To Use\n- Use this skill when the request needs: creativity, lateral thinking, diverse perspectives.\n- Trigger hints: idea, creative, brainstorm, innovate.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may lack focus, not all ideas are practical.\n\n## Synergies\n- Works well with: generate_analogies, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "detect-anomalies",
+          "original_name": "detect_anomalies",
+          "source": "builtin",
+          "description": "Detect anomalies, contradictions, and inconsistencies in text. Use when task keywords include: anomaly, inconsistent, contradiction, unusual.",
+          "metadata": {
+            "original_name": "detect_anomalies",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: detect-anomalies\ndescription: \"Detect anomalies, contradictions, and inconsistencies in text. Use when task keywords include: anomaly, inconsistent, contradiction, unusual.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"detect_anomalies\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# detect_anomalies\n\n## When To Use\n- Use this skill when the request needs: contradiction detection, pattern deviation, outlier identification.\n- Trigger hints: anomaly, inconsistent, contradiction, unusual.\n\n## Output Contract\n- Output type: list.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may flag intentional contrasts, less useful for subjective content.\n\n## Synergies\n- Works well with: identify_risks, validate_claims.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "build-timeline",
+          "original_name": "build_timeline",
+          "source": "builtin",
+          "description": "Extract events and build a chronological timeline with dependencies. Use when task keywords include: timeline, sequence, when, before.",
+          "metadata": {
+            "original_name": "build_timeline",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "extraction",
+            "tier": "advanced",
+            "output_type": "timeline",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: build-timeline\ndescription: \"Extract events and build a chronological timeline with dependencies. Use when task keywords include: timeline, sequence, when, before.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"build_timeline\"\n  output_type: \"timeline\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# build_timeline\n\n## When To Use\n- Use this skill when the request needs: temporal ordering, dependency mapping, sequence reconstruction.\n- Trigger hints: timeline, sequence, when, before.\n\n## Output Contract\n- Output type: timeline.\n- Tier: advanced; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: requires temporal markers, less useful for non-sequential content.\n\n## Synergies\n- Works well with: extract_facts, prioritize_items.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "synthesize-perspectives",
+          "original_name": "synthesize_perspectives",
+          "source": "builtin",
+          "description": "Identify, compare, and synthesize multiple viewpoints into an integrated analysis. Use when task keywords include: perspective, viewpoint, opinion, stakeholder.",
+          "metadata": {
+            "original_name": "synthesize_perspectives",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: synthesize-perspectives\ndescription: \"Identify, compare, and synthesize multiple viewpoints into an integrated analysis. Use when task keywords include: perspective, viewpoint, opinion, stakeholder.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"synthesize_perspectives\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"expert\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# synthesize_perspectives\n\n## When To Use\n- Use this skill when the request needs: multi-perspective integration, consensus detection, nuance preservation.\n- Trigger hints: perspective, viewpoint, opinion, stakeholder.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: may create false balance, requires diverse sources.\n\n## Synergies\n- Works well with: extract_facts, validate_claims.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "validate-claims",
+          "original_name": "validate_claims",
+          "source": "builtin",
+          "description": "Evaluate claims against available evidence and assign confidence levels. Use when task keywords include: claim, verify, evidence, true.",
+          "metadata": {
+            "original_name": "validate_claims",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "reasoning",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: validate-claims\ndescription: \"Evaluate claims against available evidence and assign confidence levels. Use when task keywords include: claim, verify, evidence, true.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"reasoning\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"validate_claims\"\n  output_type: \"structured\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"expert\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# validate_claims\n\n## When To Use\n- Use this skill when the request needs: evidence evaluation, claim verification, confidence assessment.\n- Trigger hints: claim, verify, evidence, true.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: reasoning.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs factual content, cannot verify against external sources.\n\n## Synergies\n- Works well with: extract_facts, detect_anomalies.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "generate-analogies",
+          "original_name": "generate_analogies",
+          "source": "builtin",
+          "description": "Create illuminating analogies to explain complex concepts. Use when task keywords include: analogy, like, similar to, metaphor.",
+          "metadata": {
+            "original_name": "generate_analogies",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "text",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: generate-analogies\ndescription: \"Create illuminating analogies to explain complex concepts. Use when task keywords include: analogy, like, similar to, metaphor.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"generate_analogies\"\n  output_type: \"text\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# generate_analogies\n\n## When To Use\n- Use this skill when the request needs: concept mapping, simplification, cross-domain transfer.\n- Trigger hints: analogy, like, similar to, metaphor.\n\n## Output Contract\n- Output type: text.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: analogies can mislead if taken literally, not suitable for strict specs.\n\n## Synergies\n- Works well with: brainstorm_ideas, synthesize_perspectives.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "prioritize-items",
+          "original_name": "prioritize_items",
+          "source": "builtin",
+          "description": "Rank and prioritize items by impact, urgency, and dependencies. Use when task keywords include: priority, rank, important, urgent.",
+          "metadata": {
+            "original_name": "prioritize_items",
+            "owner": "core",
+            "source": "builtin",
+            "version": "1.0.0",
+            "category": "analysis",
+            "tier": "basic",
+            "output_type": "list",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: prioritize-items\ndescription: \"Rank and prioritize items by impact, urgency, and dependencies. Use when task keywords include: priority, rank, important, urgent.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"prioritize_items\"\n  output_type: \"list\"\n  owner: \"core\"\n  source: \"builtin\"\n  tier: \"basic\"\n  version: \"1.0.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# prioritize_items\n\n## When To Use\n- Use this skill when the request needs: impact assessment, urgency classification, dependency-aware ordering.\n- Trigger hints: priority, rank, important, urgent.\n\n## Output Contract\n- Output type: list.\n- Tier: basic; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: subjective without clear criteria, hard on equal-priority cases.\n\n## Synergies\n- Works well with: identify_risks, generate_recommendations.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "risk-heatmap",
+          "original_name": "risk_heatmap",
+          "source": "marketplace",
+          "description": "Score risks by likelihood and impact for prioritization.. Use when task keywords include: risk, impact, likelihood, prioritize.",
+          "metadata": {
+            "original_name": "risk_heatmap",
+            "owner": "core-labs",
+            "source": "marketplace",
+            "version": "0.1.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "policy_risk_matrix"
+          ],
+          "skill_md": "---\nname: risk-heatmap\ndescription: \"Score risks by likelihood and impact for prioritization.. Use when task keywords include: risk, impact, likelihood, prioritize.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"risk_heatmap\"\n  output_type: \"structured\"\n  owner: \"core-labs\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"0.1.0\"\nallowed-tools: code_experiment_design code_skill_search policy_risk_matrix\n---\n\n# risk_heatmap\n\n## When To Use\n- Use this skill when the request needs: risk scoring, prioritization, portfolio view.\n- Trigger hints: risk, impact, likelihood, prioritize.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: limited narrative quality.\n\n## Synergies\n- Works well with: identify_risks, prioritize_items.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- policy_risk_matrix\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "evidence-matrix",
+          "original_name": "evidence_matrix",
+          "source": "marketplace",
+          "description": "Build claim-evidence-confidence matrix from source text.. Use when task keywords include: evidence, claim, confidence, source.",
+          "metadata": {
+            "original_name": "evidence_matrix",
+            "owner": "research-hub",
+            "source": "marketplace",
+            "version": "0.2.1",
+            "category": "recall",
+            "tier": "expert",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: evidence-matrix\ndescription: \"Build claim-evidence-confidence matrix from source text.. Use when task keywords include: evidence, claim, confidence, source.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"recall\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"evidence_matrix\"\n  output_type: \"structured\"\n  owner: \"research-hub\"\n  source: \"marketplace\"\n  tier: \"expert\"\n  version: \"0.2.1\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# evidence_matrix\n\n## When To Use\n- Use this skill when the request needs: evidence synthesis, fact confidence, traceability.\n- Trigger hints: evidence, claim, confidence, source.\n\n## Output Contract\n- Output type: structured.\n- Tier: expert; category: recall.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: creative ideation.\n\n## Synergies\n- Works well with: extract_facts, validate_claims.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "board-brief",
+          "original_name": "board_brief",
+          "source": "marketplace",
+          "description": "Produce board-level concise summary with recommendations.. Use when task keywords include: summary, board, brief, recommendation.",
+          "metadata": {
+            "original_name": "board_brief",
+            "owner": "exec-ai",
+            "source": "marketplace",
+            "version": "1.0.0",
+            "category": "communication",
+            "tier": "advanced",
+            "output_type": "text",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: board-brief\ndescription: \"Produce board-level concise summary with recommendations.. Use when task keywords include: summary, board, brief, recommendation.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"communication\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"board_brief\"\n  output_type: \"text\"\n  owner: \"exec-ai\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"1.0.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# board_brief\n\n## When To Use\n- Use this skill when the request needs: executive tone, clarity, decision framing.\n- Trigger hints: summary, board, brief, recommendation.\n\n## Output Contract\n- Output type: text.\n- Tier: advanced; category: communication.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: low-level extraction.\n\n## Synergies\n- Works well with: executive_summary, prioritize_items.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "sentiment-scanner",
+          "original_name": "sentiment_scanner",
+          "source": "marketplace",
+          "description": "Analyze sentiment polarity and emotional tone across text segments.. Use when task keywords include: sentiment, emotion, tone, feeling.",
+          "metadata": {
+            "original_name": "sentiment_scanner",
+            "owner": "nlp-works",
+            "source": "marketplace",
+            "version": "1.2.0",
+            "category": "analysis",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "code_experiment_design",
+            "code_skill_search",
+            "api_skill_dependency_graph"
+          ],
+          "skill_md": "---\nname: sentiment-scanner\ndescription: \"Analyze sentiment polarity and emotional tone across text segments.. Use when task keywords include: sentiment, emotion, tone, feeling.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"analysis\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"sentiment_scanner\"\n  output_type: \"structured\"\n  owner: \"nlp-works\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"1.2.0\"\nallowed-tools: code_experiment_design code_skill_search api_skill_dependency_graph\n---\n\n# sentiment_scanner\n\n## When To Use\n- Use this skill when the request needs: sentiment detection, emotion classification, tone analysis.\n- Trigger hints: sentiment, emotion, tone, feeling.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: analysis.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: sarcasm detection, multilingual support.\n\n## Synergies\n- Works well with: synthesize_perspectives.\n\n## Suggested Harness Tools\n- code_experiment_design\n- code_skill_search\n- api_skill_dependency_graph\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "dependency-mapper",
+          "original_name": "dependency_mapper",
+          "source": "marketplace",
+          "description": "Map dependencies, relationships, and causal chains in structured content.. Use when task keywords include: dependency, relationship, cause, effect.",
+          "metadata": {
+            "original_name": "dependency_mapper",
+            "owner": "arch-ai",
+            "source": "marketplace",
+            "version": "0.3.0",
+            "category": "extraction",
+            "tier": "expert",
+            "output_type": "graph",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "api_skill_dependency_graph",
+            "external_resource_hub",
+            "code_experiment_design"
+          ],
+          "skill_md": "---\nname: dependency-mapper\ndescription: \"Map dependencies, relationships, and causal chains in structured content.. Use when task keywords include: dependency, relationship, cause, effect.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"extraction\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"dependency_mapper\"\n  output_type: \"graph\"\n  owner: \"arch-ai\"\n  source: \"marketplace\"\n  tier: \"expert\"\n  version: \"0.3.0\"\nallowed-tools: api_skill_dependency_graph external_resource_hub code_experiment_design\n---\n\n# dependency_mapper\n\n## When To Use\n- Use this skill when the request needs: relationship extraction, causal chain detection, dependency graphing.\n- Trigger hints: dependency, relationship, cause, effect.\n\n## Output Contract\n- Output type: graph.\n- Tier: expert; category: extraction.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: needs structured input, less useful for narrative text.\n\n## Synergies\n- Works well with: build_timeline, extract_facts.\n\n## Suggested Harness Tools\n- api_skill_dependency_graph\n- external_resource_hub\n- code_experiment_design\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        },
+        {
+          "name": "scenario-generator",
+          "original_name": "scenario_generator",
+          "source": "marketplace",
+          "description": "Generate alternative scenarios and what-if analyses based on input conditions.. Use when task keywords include: scenario, what if, future, alternative.",
+          "metadata": {
+            "original_name": "scenario_generator",
+            "owner": "futures-lab",
+            "source": "marketplace",
+            "version": "0.1.0",
+            "category": "generation",
+            "tier": "advanced",
+            "output_type": "structured",
+            "framework_target": "openai",
+            "ecosystem": "codex-skills"
+          },
+          "allowed_tools": [
+            "external_resource_hub",
+            "code_experiment_design",
+            "code_skill_search"
+          ],
+          "skill_md": "---\nname: scenario-generator\ndescription: \"Generate alternative scenarios and what-if analyses based on input conditions.. Use when task keywords include: scenario, what if, future, alternative.\"\ncompatibility: \"Designed for OpenAI agent clients that support the Agent Skills specification.\"\nmetadata:\n  category: \"generation\"\n  ecosystem: \"codex-skills\"\n  framework_target: \"openai\"\n  original_name: \"scenario_generator\"\n  output_type: \"structured\"\n  owner: \"futures-lab\"\n  source: \"marketplace\"\n  tier: \"advanced\"\n  version: \"0.1.0\"\nallowed-tools: external_resource_hub code_experiment_design code_skill_search\n---\n\n# scenario_generator\n\n## When To Use\n- Use this skill when the request needs: scenario planning, what-if analysis, alternative futures.\n- Trigger hints: scenario, what if, future, alternative.\n\n## Output Contract\n- Output type: structured.\n- Tier: advanced; category: generation.\n\n## Guardrails\n- Validate critical claims before finalizing responses.\n- Known limitations: speculative by nature, needs clear assumptions.\n\n## Synergies\n- Works well with: identify_risks, generate_recommendations.\n\n## Suggested Harness Tools\n- external_resource_hub\n- code_experiment_design\n- code_skill_search\n\n## Execution Notes\n- Keep responses concise, structured, and auditable.\n"
+        }
+      ]
+    }
+  }
+}

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
+import ssl
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -23,6 +25,8 @@ class LiveModelConfig:
     timeout_seconds: int = 45
     temperature: float = 0.15
     max_tokens: int = 1200
+    retry_attempts: int = 3
+    retry_backoff_seconds: float = 0.75
 
     @staticmethod
     def from_env() -> LiveModelConfig | None:
@@ -43,6 +47,13 @@ class LiveModelConfig:
                 maximum=1.5,
             ),
             max_tokens=_safe_int(os.getenv("AGENT_HARNESS_MODEL_MAX_TOKENS", "1200"), 1200, minimum=128, maximum=8192),
+            retry_attempts=_safe_int(os.getenv("AGENT_HARNESS_MODEL_RETRY_ATTEMPTS", "3"), 3, minimum=1, maximum=8),
+            retry_backoff_seconds=_safe_float(
+                os.getenv("AGENT_HARNESS_MODEL_RETRY_BACKOFF", "0.75"),
+                0.75,
+                minimum=0.1,
+                maximum=10.0,
+            ),
         )
 
     @staticmethod
@@ -60,6 +71,8 @@ class LiveModelConfig:
                 "timeout_seconds": base_config.timeout_seconds,
                 "temperature": base_config.temperature,
                 "max_tokens": base_config.max_tokens,
+                "retry_attempts": base_config.retry_attempts,
+                "retry_backoff_seconds": base_config.retry_backoff_seconds,
             }
             merged.update({k: v for k, v in payload.items() if v not in ("", None)})
             payload = merged
@@ -77,6 +90,13 @@ class LiveModelConfig:
             timeout_seconds=_safe_int(payload.get("timeout_seconds", 45), 45, minimum=5, maximum=300),
             temperature=_safe_float(payload.get("temperature", 0.15), 0.15, minimum=0.0, maximum=1.5),
             max_tokens=_safe_int(payload.get("max_tokens", 1200), 1200, minimum=128, maximum=8192),
+            retry_attempts=_safe_int(payload.get("retry_attempts", 3), 3, minimum=1, maximum=8),
+            retry_backoff_seconds=_safe_float(
+                payload.get("retry_backoff_seconds", 0.75),
+                0.75,
+                minimum=0.1,
+                maximum=10.0,
+            ),
         )
 
     def masked(self) -> dict[str, Any]:
@@ -86,6 +106,8 @@ class LiveModelConfig:
             "timeout_seconds": self.timeout_seconds,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
+            "retry_attempts": self.retry_attempts,
+            "retry_backoff_seconds": self.retry_backoff_seconds,
             "api_key_masked": _mask_secret(self.api_key),
         }
 
@@ -180,26 +202,107 @@ class LiveModelGateway:
             method="POST",
         )
         start = time.time()
-        try:
-            with request.urlopen(req, timeout=self.config.timeout_seconds) as response:
-                body = response.read().decode("utf-8", errors="replace")
-            latency_ms = (time.time() - start) * 1000.0
-            parsed = json.loads(body)
-            content = self._extract_content(parsed)
-            meta = {
-                "latency_ms": latency_ms,
-                "model": parsed.get("model", self.config.model_name),
-                "finish_reason": self._extract_finish_reason(parsed),
-                "usage": parsed.get("usage", {}),
-            }
-            return content, meta
-        except error.HTTPError as exc:
-            text = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"http_error:{exc.code}:{text[:500]}") from exc
-        except error.URLError as exc:
-            raise RuntimeError(f"url_error:{exc.reason}") from exc
-        except Exception as exc:  # pragma: no cover - defensive
-            raise RuntimeError(f"live_gateway_error:{exc}") from exc
+        attempts = max(1, int(self.config.retry_attempts))
+        retry_errors: list[str] = []
+        for attempt in range(1, attempts + 1):
+            try:
+                with request.urlopen(req, timeout=self.config.timeout_seconds) as response:
+                    body = response.read().decode("utf-8", errors="replace")
+                latency_ms = (time.time() - start) * 1000.0
+                parsed = json.loads(body)
+                content = self._extract_content(parsed)
+                meta = {
+                    "latency_ms": latency_ms,
+                    "model": parsed.get("model", self.config.model_name),
+                    "finish_reason": self._extract_finish_reason(parsed),
+                    "usage": parsed.get("usage", {}),
+                    "attempts": attempt,
+                    "retries": max(0, attempt - 1),
+                }
+                if retry_errors:
+                    meta["retry_errors"] = list(retry_errors)
+                return content, meta
+            except error.HTTPError as exc:
+                text = exc.read().decode("utf-8", errors="replace")
+                descriptor = f"http_error:{exc.code}:{text[:500]}"
+                if attempt < attempts and self._is_retryable_http_error(exc.code, text):
+                    retry_errors.append(descriptor)
+                    time.sleep(self._retry_delay(attempt))
+                    continue
+                raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+            except (error.URLError, TimeoutError, socket.timeout, ssl.SSLError, OSError) as exc:
+                descriptor = self._format_network_error(exc)
+                if attempt < attempts and self._is_retryable_network_error(exc):
+                    retry_errors.append(descriptor)
+                    time.sleep(self._retry_delay(attempt))
+                    continue
+                raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+            except Exception as exc:  # pragma: no cover - defensive
+                raise RuntimeError(f"live_gateway_error:{exc}") from exc
+
+    def _retry_delay(self, attempt: int) -> float:
+        base = max(0.1, float(self.config.retry_backoff_seconds))
+        return min(base * (2 ** max(attempt - 1, 0)), 8.0)
+
+    @staticmethod
+    def _finalize_error(descriptor: str, retry_errors: list[str], attempt: int) -> str:
+        if not retry_errors:
+            return descriptor
+        prior = " | ".join(retry_errors[-3:])
+        return f"{descriptor} after_attempt={attempt} retries={len(retry_errors)} prior={prior}"
+
+    @staticmethod
+    def _is_retryable_http_error(status_code: int, body: str) -> bool:
+        if int(status_code) in {408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524}:
+            return True
+        lowered = body.lower()
+        transient_markers = (
+            "rate limit",
+            "temporarily unavailable",
+            "temporary",
+            "timeout",
+            "timed out",
+            "overloaded",
+            "try again",
+            "upstream",
+            "unavailable",
+        )
+        return any(marker in lowered for marker in transient_markers)
+
+    @staticmethod
+    def _is_retryable_network_error(exc: BaseException) -> bool:
+        lowered = LiveModelGateway._network_reason_text(exc)
+        transient_markers = (
+            "timed out",
+            "timeout",
+            "tempor",
+            "temporary",
+            "reset",
+            "closed",
+            "eof",
+            "handshake",
+            "ssl",
+            "refused",
+            "unreachable",
+            "connection aborted",
+            "connection reset",
+            "remote end closed",
+            "remote disconnected",
+        )
+        return any(marker in lowered for marker in transient_markers)
+
+    @staticmethod
+    def _format_network_error(exc: BaseException) -> str:
+        reason = LiveModelGateway._network_reason_text(exc)
+        label = "url_error" if isinstance(exc, error.URLError) else "network_error"
+        return f"{label}:{reason}"
+
+    @staticmethod
+    def _network_reason_text(exc: BaseException) -> str:
+        if isinstance(exc, error.URLError):
+            reason = exc.reason
+            return str(reason)
+        return str(exc)
 
     @staticmethod
     def _extract_content(payload: dict[str, Any]) -> str:

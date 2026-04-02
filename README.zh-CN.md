@@ -67,24 +67,31 @@ Agent Harness 的目标就是把这三者统一起来：
 
 ### Demo Gallery
 
+已发布的 demo 快照放在 `docs/demo/` 下。运行时生成的 `reports/` 结果保留为本地产物，并且被刻意加入了 gitignore。
+
+查看完整快照入口：[docs/demo/README.zh-CN.md](./docs/demo/README.zh-CN.md)
+
 <table>
   <tr>
     <td width="33%" valign="top">
       <h3>Live 方案展示页</h3>
+      <p><img src="./docs/demo/live/showcase.png" alt="Live showcase screenshot"></p>
       <p>发布会风格 HTML，优先展示方案摘要、rollout phases、evidence、framework comparison 和 agent comparison。</p>
-      <p><a href="./reports/live_launch_demo/studio_showcase_deepseek-live.html">打开 HTML</a></p>
-      <p><a href="./reports/live_launch_demo/studio_press_brief_deepseek-live.md">打开 Press Brief</a></p>
+      <p><a href="./docs/demo/live/showcase.html">打开 HTML 快照</a></p>
+      <p><a href="./docs/demo/live/press-brief.md">打开 Press Brief</a></p>
     </td>
     <td width="33%" valign="top">
       <h3>Baseline Launch Bundle</h3>
+      <p><img src="./docs/demo/press/showcase.png" alt="Baseline showcase screenshot"></p>
       <p>可复现的 baseline 展示产物，适合稳定 demo 和 CI 场景。</p>
-      <p><a href="./reports/launch_demo/studio_showcase_press.html">打开 HTML</a></p>
-      <p><a href="./reports/launch_demo/studio_showcase_press.json">打开 JSON</a></p>
+      <p><a href="./docs/demo/press/showcase.html">打开 HTML 快照</a></p>
+      <p><a href="./docs/demo/press/showcase.json">打开 JSON</a></p>
     </td>
     <td width="33%" valign="top">
       <h3>生态互操作导出</h3>
+      <p><img src="./docs/demo/live/showcase.png" alt="Interop-backed launch artifact"></p>
       <p>同一套能力可导出到 OpenAI / Anthropic skill 生态。</p>
-      <p><a href="./reports/live_launch_demo/studio_interop_deepseek-live/interop_bundle.json">打开 Interop Bundle</a></p>
+      <p><a href="./docs/demo/live/interop_bundle.json">打开 Interop Bundle</a></p>
     </td>
   </tr>
 </table>
@@ -378,8 +385,8 @@ python -m app.main studio-showcase "Design a flagship AI operating plan" --mode 
 
 然后打开：
 
-- `reports/launch_demo/studio_showcase_press.html`
-- `reports/live_launch_demo/studio_showcase_deepseek-live.html`
-- `reports/live_launch_demo/studio_press_brief_deepseek-live.md`
+- `docs/demo/press/showcase.html`
+- `docs/demo/live/showcase.html`
+- `docs/demo/live/press-brief.md`
 
 这些文件比一段 CLI trace 更能体现项目的产品形态。

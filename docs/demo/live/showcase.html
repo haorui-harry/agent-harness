@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Agent Harness Studio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap');
+:root{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.92);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}
+*{box-sizing:border-box}body{margin:0;font-family:'IBM Plex Sans','Segoe UI',sans-serif;color:var(--ink);background:
+radial-gradient(circle at 10% 10%, rgba(14,165,166,.30), transparent 28%),
+radial-gradient(circle at 90% 8%, rgba(245,158,11,.20), transparent 24%),
+radial-gradient(circle at 78% 78%, rgba(56,189,248,.18), transparent 28%),
+linear-gradient(135deg,var(--bg),var(--bg2));padding:24px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:14px}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(7,17,29,.85),rgba(15,53,76,.78));color:#edf7ff;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:28px;box-shadow:var(--shadow)}
+.hero:before{content:'';position:absolute;inset:auto -60px -80px auto;width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,.26),transparent 68%)} 
+.hero-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:18px}@media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
+.hero h1{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;font-size:44px;line-height:1.05;margin:0 0 10px}
+.hero p{color:rgba(237,247,255,.82);margin:6px 0}
+.hero-panel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px}
+.card{background:var(--card);border:1px solid rgba(255,255,255,.55);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+.glass{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(245,249,252,.84))}
+h2,h3{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0 0 10px}p{margin:5px 0;color:var(--muted)}ul{margin:8px 0 0;padding-left:18px}li{margin:6px 0}
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:980px){.grid3{grid-template-columns:1fr}}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}@media(max-width:980px){.grid4{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.grid4{grid-template-columns:1fr}}
+.badge{display:inline-block;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);font-size:12px;margin:0 8px 8px 0;color:#edf7ff}
+.signal{padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.55));border:1px solid var(--line)}
+.signal .label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.signal .value{font-size:28px;font-family:'Space Grotesk';margin-top:6px}
+.metric{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.72)}
+.row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);margin-bottom:6px}.bar{height:8px;background:rgba(13,36,56,.10);border-radius:999px;overflow:hidden}
+.fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3),var(--accent2))}
+.phase{position:relative;padding:16px 16px 16px 18px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.90),rgba(246,250,252,.84));border:1px solid var(--line)}
+.phase:before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:999px;background:linear-gradient(180deg,var(--accent),var(--accent2))}
+.kicker{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+pre{margin:0;font-size:12px;white-space:pre-wrap;background:rgba(6,24,38,.96);color:#e7f7ff;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;max-height:320px;overflow:auto}
+details{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.7);padding:14px}summary{cursor:pointer;font-weight:600}
+.muted{color:var(--muted)}
+</style></head><body><div class="wrap">
+<section class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="kicker">Launch Strategy Demo</div>
+      <h1>Flagship AI Platform Launch Plan</h1>
+      <p><strong>Launching a flagship AI platform with growth, governance, and research credibility in balance.</strong></p>
+      <p>A launch team needs a concrete operating plan that can expand the product, control governance risk, and prove the system is credible enough to release.</p>
+      <div style="margin-top:14px">
+        <span class="badge">Release GO</span>
+        <span class="badge">Generation LIVE_FALLBACK</span>
+        <span class="badge">Model deepseek-chat</span>
+        <span class="badge">Frontier 0.791</span>
+      </div>
+      <div style="margin-top:14px" class="hero-panel">
+        <div class="kicker">Executive Thesis</div>
+        <p>This is not just a prompt response. It is a release-ready strategy package with routing evidence, evaluation results, and ecosystem-portable artifacts.</p>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="kicker">Board Decision</div>
+      <div class="signal"><div class="label">Recommendation</div><div class="value">GO</div><p>all_quality_gates_passed</p></div>
+      <div class="grid4" style="margin-top:12px">
+        <div class="signal"><div class="label">Value Index</div><div class="value">85.2</div></div>
+        <div class="signal"><div class="label">Expected</div><div class="value">0.90</div></div>
+        <div class="signal"><div class="label">Worst Case</div><div class="value">0.56</div></div>
+        <div class="signal"><div class="label">Uncertainty</div><div class="value">0.21</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="card glass">
+  <div class="kicker">Plan Summary</div>
+  <div class="grid">
+    <article>
+      <h2>What Is Being Launched</h2>
+      <p>This is not just a prompt response. It is a release-ready strategy package with routing evidence, evaluation results, and ecosystem-portable artifacts.</p>
+      <ul><li>Build one operating model that aligns growth, governance, and research instead of optimizing them separately.</li><li>Release in phased checkpoints so the team can prove value before expanding scope.</li><li>Use explicit release gates so launch quality is evidence-backed rather than intuition-backed.</li></ul>
+    </article>
+    <article>
+      <h2>Release Criteria</h2>
+      <ul><li>Release decision: go (all_quality_gates_passed)</li><li>Frontier score: 0.791; bottleneck axis: orchestration_quality</li><li>Routing confidence: 0.984</li><li>Value index: 85.20 (platinum)</li><li>Safety score: 0.72; reliability score: 0.99</li><li>Interop export: 2 frameworks / 36 skill entries</li></ul>
+    </article>
+  </div>
+</section>
+<section class="grid3">
+  <article class='card glass'><div class='kicker'>Growth Engine</div><h2>Growth Engine</h2><p>Business capability bundle</p><p><strong>Integration:</strong> Integrated into the release stack</p></article><article class='card glass'><div class='kicker'>Governance Core</div><h2>Governance Core</h2><p>Business capability bundle</p><p><strong>Integration:</strong> Integrated into the release stack</p></article><article class='card glass'><div class='kicker'>Research Credibility</div><h2>Research Credibility</h2><p>Business capability bundle</p><p><strong>Integration:</strong> Integrated into the release stack</p></article>
+</section>
+<section class="card glass">
+  <div class="kicker">Three-Phase Rollout</div>
+  <div class="grid3"></div>
+</section>
+<section class="grid">
+  <article class="card glass">
+    <div class="kicker">Expected Impact</div>
+    <p>No expected impact recorded.</p>
+  </article>
+  <article class="card glass">
+    <div class="kicker">Critical Risks To Watch</div>
+    <ul></ul>
+  </article>
+</section>
+<section class="card glass">
+  <div class="kicker">Evidence And Scores</div>
+  <div class="grid">
+    <article>
+      <h2>Evidence Bundle</h2>
+      <ul><li>Release decision: go (all_quality_gates_passed)</li><li>Frontier score: 0.791; bottleneck axis: orchestration_quality</li><li>Routing confidence: 0.984</li><li>Value index: 85.20 (platinum)</li><li>Safety score: 0.72; reliability score: 0.99</li><li>Interop export: 2 frameworks / 36 skill entries</li></ul>
+      <h3 style="margin-top:14px">Execution Plan</h3>
+      <ul><li>understand intent</li><li>collect supporting signals</li><li>synthesize and evaluate</li><li>recipe:enterprise-ops</li></ul>
+    </article>
+    <article>
+      <h2>Capability Vector</h2>
+      <div class='metric'><div class='row'><span>Orchestration Quality</span><strong>65.2%</strong></div><div class='bar'><div class='fill' style='width:65.2%'></div></div></div><div class='metric'><div class='row'><span>Research Rigor</span><strong>90.0%</strong></div><div class='bar'><div class='fill' style='width:90.0%'></div></div></div><div class='metric'><div class='row'><span>Ecosystem Leverage</span><strong>100.0%</strong></div><div class='bar'><div class='fill' style='width:100.0%'></div></div></div><div class='metric'><div class='row'><span>Governance Safety</span><strong>81.8%</strong></div><div class='bar'><div class='fill' style='width:81.8%'></div></div></div><div class='metric'><div class='row'><span>Product Readiness</span><strong>95.7%</strong></div><div class='bar'><div class='fill' style='width:95.7%'></div></div></div><div class='metric'><div class='row'><span>Interoperability</span><strong>100.0%</strong></div><div class='bar'><div class='fill' style='width:100.0%'></div></div></div>
+    </article>
+  </div>
+</section>
+<section class="grid">
+  <article class="card glass">
+    <div class="kicker">Framework Comparison</div>
+    <h2>Ahead of deep-research by +0.267 frontier score.</h2>
+    <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody><tr><td>deep-research</td><td>+0.2671</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>data-flow</td><td>+0.2231</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>skill-hub</td><td>+0.2114</td><td>1.00</td><td>orchestration_quality, research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr></tbody></table>
+  </article>
+  <article class="card glass">
+    <div class="kicker">Agent Comparison</div>
+    <h2>PlannerAgent won the route</h2>
+    <p class="muted">Runner-up: ResearchAgent | score gap 0.0019</p>
+    <table><thead><tr><th>Agent</th><th>Score</th><th>Reason</th></tr></thead><tbody><tr><td>PlannerAgent</td><td>0.2448</td><td>selected (score=0.245, complexity=moderate): best domain+intent match</td></tr><tr><td>ResearchAgent</td><td>0.2429</td><td>rejected (score=0.243): lower relevance</td></tr><tr><td>AdvisorAgent</td><td>0.2288</td><td>rejected (score=0.229): lower relevance</td></tr><tr><td>DebugAgent</td><td>0.2277</td><td>rejected (score=0.228): lower relevance</td></tr><tr><td>CreativeAgent</td><td>0.2223</td><td>rejected (score=0.222): lower relevance</td></tr><tr><td>AnalysisAgent</td><td>0.2200</td><td>rejected (score=0.220): lower relevance</td></tr></tbody></table>
+  </article>
+</section>
+<section class="card glass">
+  <div class="kicker">Research Lab Leaderboard</div>
+  <table><thead><tr><th>Candidate</th><th>Composite</th><th>Value</th><th>Pass</th><th>Safety</th><th>Pareto</th></tr></thead><tbody>
+  <tr><td>balanced-auto</td><td>0.8338</td><td>72.50</td><td>0.800</td><td>1.000</td><td>no</td></tr><tr><td>daily-operator</td><td>0.7849</td><td>71.39</td><td>0.800</td><td>1.000</td><td>no</td></tr><tr><td>creative-studio</td><td>0.7727</td><td>73.64</td><td>0.800</td><td>1.000</td><td>no</td></tr><tr><td>enterprise-ops</td><td>0.7695</td><td>71.30</td><td>0.800</td><td>1.000</td><td>no</td></tr><tr><td>research-rig</td><td>0.7629</td><td>73.69</td><td>0.800</td><td>1.000</td><td>yes</td></tr></tbody></table>
+</section>
+<section class="card glass">
+  <div class="kicker">Why This System Wins</div>
+  <ul><li>Concentrated value axis: ecosystem_leverage=1.00, interoperability=1.00, product_readiness=0.96.</li><li>Frontier score=0.791 with bottleneck `orchestration_quality`.</li><li>Ahead of deep-research by +0.267 frontier score.</li><li>Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.</li><li>Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.</li></ul>
+</section>
+<section class="card glass">
+  <div class="kicker">Appendix</div>
+  <details>
+    <summary>Generated Result</summary>
+    <pre>[identify_risks]
+Key Risks Identified:
+1. [Operational risk extracted from input text]
+2. [Financial or delivery risk extracted from input text]
+3. [Mitigation gap that requires follow-up]
+--- (skill: identify_risks)
+
+[executive_summary]
+Executive Summary:
+- Context: [what this text is about]
+- Core finding: [most important conclusion]
+- Decision implication: [what to do next]
+--- (skill: executive_summary)
+
+[risk_heatmap]
+Marketplace Skill `risk_heatmap` Output:
+- Query interpreted: Design a flagship AI operating plan that balances growth, governance, and research credibility.
+- Evidence: synthetic local execution (replace with real tool backend)
+- Confidence: medium
+
+[synthesize_perspectives]
+Perspective Synthesis:
+  Viewpoint A: [perspective summary]
+  Viewpoint B: [perspective summary]
+  Common Ground: [shared conclusions]
+  Key Disagreements: [where perspectives diverge]
+  Synthesis: [integrated view acknowledging trade-offs]
+--- (skill: synthesize_perspectives)
+
+Ensemble Synthesis:
+- Query: Design a flagship AI operating plan that balances growth, governance, and research credibility.
+- Contributing skills: identify_risks, executive_summary, risk_heatmap, synthesize_perspectives
+- Cross-skill agreement signals: 2
+- Conflicts: no conflicts
+- Consensus strength: strong
+- DISSENT triggered: True
+- Average output quality: 0.93
+- Total execution time: 1.2ms
+- Ensemble confidence: medium
+
+DISSENT Findings:
+- Reasons: weak_output_quality, fragile_downside_case
+- Human review required: False
+
+Harness Execution Notes:
+- security preflight: allow (score=0.00)
+- discovered tools</pre>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Internal Skills And Tools</summary>
+    <table><thead><tr><th>Type</th><th>Name</th><th>Purpose</th></tr></thead><tbody><tr><td>Skill</td><td>executive_summary</td><td>executive summary</td></tr><tr><td>Skill</td><td>identify_risks</td><td>risk identification</td></tr><tr><td>Skill</td><td>risk_heatmap</td><td>risk heatmap</td></tr><tr><td>Skill</td><td>synthesize_perspectives</td><td>perspective synthesis</td></tr><tr><td>Discovery</td><td>api_skill_portfolio_optimizer</td><td>intent_match:research,planning, mode_boost:deep_analysis</td></tr><tr><td>Discovery</td><td>code_experiment_design</td><td>intent_match:research,design, token_overlap:design,research</td></tr><tr><td>Discovery</td><td>external_resource_hub</td><td>intent_match:research,design</td></tr><tr><td>Discovery</td><td>policy_risk_matrix</td><td>intent_match:risk, token_overlap:governance</td></tr><tr><td>Discovery</td><td>code_router_blueprint</td><td>intent_match:design, token_overlap:design</td></tr><tr><td>Executed Tool</td><td>memory_context_digest</td><td>memory context layer</td></tr><tr><td>Executed Tool</td><td>policy_risk_matrix</td><td>policy risk matrix</td></tr><tr><td>Executed Tool</td><td>api_skill_portfolio_optimizer</td><td>portfolio optimizer</td></tr><tr><td>Executed Tool</td><td>api_skill_dependency_graph</td><td>dependency graph</td></tr></tbody></table>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Trace Snapshot</summary>
+    <pre>Routing Sankey
+========================================
+Query
+  -&gt; Agent Candidates: PlannerAgent, ResearchAgent, AdvisorAgent, DebugAgent, CreativeAgent, AnalysisAgent
+  -&gt; Selected Agent: PlannerAgent
+  -&gt; Skill Candidates: build_timeline, prioritize_items, generate_recommendations, compare_options, extract_facts, validate_claims, synthesize_perspectives, identify_risks
+  -&gt; Selected Skills: executive_summary, identify_risks, risk_heatmap, synthesize_perspectives
+
+Skill Matrix
+========================================
+build_timeline &lt;-&gt; prioritize_items: 0.810
+build_timeline &lt;-&gt; extract_facts: 0.810
+prioritize_items &lt;-&gt; board_brief: 0.810
+generate_recommendations &lt;-&gt; compare_options: 0.810
+compare_options &lt;-&gt; extract_facts: 0.810
+extract_facts &lt;-&gt; validate_claims: 0.810
+extract_facts &lt;-&gt; synthesize_perspectives: 0.810
+extract_facts &lt;-&gt; executive_summary: 0.810
+extract_facts &lt;-&gt; dependency_mapper: 0.810
+validate_claims &lt;-&gt; detect_anomalies: 0.810
+synthesize_perspectives &lt;-&gt; brainstorm_ideas: 0.810
+synthesize_perspectives &lt;-&gt; generate_analogies: 0.810
+
+Execution Gantt
+========================================
+identify_risks         |#-------------------|     0.0ms
+executive_summary      |#-------------------|     0.0ms
+risk_heatmap           |####################|     1.1ms
+synthesize_perspectives |#-------------------|     0.0ms
+
+Confidence Breakdown
+========================================
+routing_confidence              0.98  |####################|
+portfolio_confidence            0.50  |##########----------|
+evidence_confidence             1.00  |####################|
+consistency_confidence          1.00  |####################|
+verification_confidence         0.84  |#################---|
+calibration_adjusted_confidence  0.93  |###################-|
+robustness_confidence           0.44  |#########-----------|
+
+Robustness Profile
+========================================
+enabled: True
+risk_aversion: 0.650
+reliability_floor: 0.620
+uncertainty_tolerance: 0.450
+robust_expected_utility: 0.904
+robust_worst_case_utility: 0.559
+avg_uncertainty: 0.210</pre>
+  </details>
+</section>
+<section class="card"><small>Generated at 2026-04-02T14:55:09.393819+00:00 | schema agent-harness-studio/v1 | query Design a flagship AI operating plan that balances growth, governance, and research credibility.</small></section>
+</div></body></html>

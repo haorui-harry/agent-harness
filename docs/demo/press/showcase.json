@@ -1,0 +1,2619 @@
+{
+  "schema": "agent-harness-studio/v1",
+  "generated_at": "2026-04-02T14:39:03.301702+00:00",
+  "identity": {
+    "name": "Agent Harness Studio",
+    "one_liner": "Agent Harness Studio turns one user request into an auditable, benchmarked, and ecosystem-portable agent product.",
+    "differentiator": "Single pipeline with runtime routing evidence, research-grade release gating, and OpenAI/Anthropic skill export compatibility."
+  },
+  "query": {
+    "text": "Design a flagship AI operating plan that balances growth, governance, and research credibility.",
+    "mode": "deep",
+    "selected_agent": "PlannerAgent",
+    "selected_skills": [
+      "identify_risks",
+      "risk_heatmap",
+      "synthesize_perspectives"
+    ],
+    "complexity": "moderate",
+    "risk_level": "low"
+  },
+  "router": {
+    "analysis": {
+      "efficiency": {
+        "total_time_ms": 12.0,
+        "event_count": 9,
+        "decision_count": 2,
+        "avg_time_per_decision_ms": 6.0,
+        "rating": "fast"
+      },
+      "quality": {
+        "coverage": 0.5,
+        "redundancy": 0.07483164983164983,
+        "diversity": 1.0986122886681096,
+        "coherence": 0.5949587542087542,
+        "output_quality": 0.9555555555555556,
+        "robust_expected_utility": 0.9023047061370002,
+        "robust_worst_case_utility": 0.5579642878922546,
+        "avg_uncertainty": 0.20999999999999996,
+        "overall_score": 0.656,
+        "grade": "C"
+      },
+      "recommendations": [
+        "Routing quality looks good - no immediate improvements suggested"
+      ]
+    },
+    "trace_views": "Routing Sankey\n========================================\nQuery\n  -> Agent Candidates: PlannerAgent, ResearchAgent, AdvisorAgent, DebugAgent, CreativeAgent, AnalysisAgent\n  -> Selected Agent: PlannerAgent\n  -> Skill Candidates: build_timeline, prioritize_items, generate_recommendations, compare_options, extract_facts, validate_claims, synthesize_perspectives, identify_risks\n  -> Selected Skills: identify_risks, risk_heatmap, synthesize_perspectives\n\nSkill Matrix\n========================================\nbuild_timeline <-> prioritize_items: 0.810\nbuild_timeline <-> extract_facts: 0.810\nprioritize_items <-> board_brief: 0.810\ngenerate_recommendations <-> compare_options: 0.810\ncompare_options <-> extract_facts: 0.810\nextract_facts <-> validate_claims: 0.810\nextract_facts <-> synthesize_perspectives: 0.810\nextract_facts <-> executive_summary: 0.810\nextract_facts <-> dependency_mapper: 0.810\nvalidate_claims <-> detect_anomalies: 0.810\nsynthesize_perspectives <-> brainstorm_ideas: 0.810\nsynthesize_perspectives <-> generate_analogies: 0.810\n\nExecution Gantt\n========================================\nidentify_risks         |#-------------------|     0.0ms\nrisk_heatmap           |####################|     1.2ms\nsynthesize_perspectives |#-------------------|     0.0ms\n\nConfidence Breakdown\n========================================\nrouting_confidence              0.93  |###################-|\nportfolio_confidence            0.50  |##########----------|\nevidence_confidence             1.00  |####################|\nconsistency_confidence          1.00  |####################|\nverification_confidence         0.76  |###############-----|\ncalibration_adjusted_confidence  0.96  |###################-|\nrobustness_confidence           0.44  |#########-----------|\n\nRobustness Profile\n========================================\nenabled: True\nrisk_aversion: 0.650\nreliability_floor: 0.620\nuncertainty_tolerance: 0.450\nrobust_expected_utility: 0.902\nrobust_worst_case_utility: 0.558\navg_uncertainty: 0.210",
+    "trace": {
+      "state_snapshots": [
+        {
+          "phase": "query_understanding",
+          "mode": "deep",
+          "risk_level": "low",
+          "max_skills": 3
+        },
+        {
+          "phase": "agent_router",
+          "agent": "PlannerAgent",
+          "mode": "deep",
+          "risk_level": "low",
+          "complexity": "moderate",
+          "intents": [
+            "advice"
+          ]
+        },
+        {
+          "phase": "skill_router",
+          "selected": [
+            "identify_risks",
+            "risk_heatmap",
+            "synthesize_perspectives"
+          ],
+          "rejected": [
+            "build_timeline",
+            "prioritize_items",
+            "generate_recommendations",
+            "compare_options",
+            "extract_facts",
+            "validate_claims",
+            "executive_summary",
+            "brainstorm_ideas",
+            "detect_anomalies",
+            "generate_analogies",
+            "evidence_matrix",
+            "board_brief",
+            "sentiment_scanner",
+            "dependency_mapper",
+            "scenario_generator"
+          ],
+          "required_role_slots": [
+            "evidence",
+            "reasoning",
+            "verification"
+          ],
+          "effective_max_skills": 3,
+          "budget_used": 4.6,
+          "robust_expected_utility": 0.9023,
+          "robust_worst_case_utility": 0.558,
+          "avg_uncertainty": 0.21
+        },
+        {
+          "phase": "executor",
+          "executed_skills": [
+            "identify_risks",
+            "risk_heatmap",
+            "synthesize_perspectives"
+          ],
+          "timeline_points": 3
+        },
+        {
+          "phase": "aggregate",
+          "conflicts": 0,
+          "consensus": "strong",
+          "approval_required": false
+        }
+      ],
+      "agent_decision": {
+        "selected": [
+          "PlannerAgent"
+        ],
+        "rejected": [
+          "ResearchAgent",
+          "AdvisorAgent",
+          "DebugAgent",
+          "CreativeAgent",
+          "AnalysisAgent",
+          "CriticAgent",
+          "SummaryAgent"
+        ],
+        "reasons": {
+          "PlannerAgent": "selected (score=0.245, complexity=moderate): best domain+intent match",
+          "ResearchAgent": "rejected (score=0.243): lower relevance",
+          "AdvisorAgent": "rejected (score=0.229): lower relevance",
+          "DebugAgent": "rejected (score=0.228): lower relevance",
+          "CreativeAgent": "rejected (score=0.222): lower relevance",
+          "AnalysisAgent": "rejected (score=0.220): lower relevance",
+          "CriticAgent": "rejected (score=0.206): lower relevance",
+          "SummaryAgent": "rejected (score=0.200): lower relevance"
+        },
+        "scores": {
+          "PlannerAgent": 0.2448,
+          "ResearchAgent": 0.2429,
+          "AdvisorAgent": 0.2288,
+          "DebugAgent": 0.2277,
+          "CreativeAgent": 0.2223,
+          "AnalysisAgent": 0.22,
+          "CriticAgent": 0.2063,
+          "SummaryAgent": 0.1996
+        },
+        "score_breakdown": {
+          "PlannerAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.125,
+            "output_style_fit": 0.0769,
+            "skill_access_fit": 0.6667,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.1,
+            "latency_penalty": 0.08,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "ResearchAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.125,
+            "output_style_fit": 0.1538,
+            "skill_access_fit": 0.6667,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.25,
+            "latency_penalty": 0.2,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "AdvisorAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.125,
+            "output_style_fit": 0.0769,
+            "skill_access_fit": 0.6667,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.55,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.1,
+            "latency_penalty": 0.08,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "DebugAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.0,
+            "output_style_fit": 0.0769,
+            "skill_access_fit": 0.8333,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.25,
+            "latency_penalty": 0.2,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "CreativeAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.0,
+            "output_style_fit": 0.0769,
+            "skill_access_fit": 0.6667,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.1,
+            "latency_penalty": 0.08,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "AnalysisAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.0,
+            "output_style_fit": 0.0,
+            "skill_access_fit": 0.8333,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.25,
+            "latency_penalty": 0.2,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "CriticAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.0,
+            "output_style_fit": 0.0769,
+            "skill_access_fit": 0.6667,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.55,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.1,
+            "latency_penalty": 0.08,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          },
+          "SummaryAgent": {
+            "intent_fit": 0.0,
+            "domain_affinity": 0.0,
+            "output_style_fit": 0.0,
+            "skill_access_fit": 0.5,
+            "memory_affinity": 0.5,
+            "risk_alignment": 0.65,
+            "context_compression_gain": 0.45,
+            "cost_penalty": 0.1,
+            "latency_penalty": 0.08,
+            "overconfidence_risk": 0.08,
+            "anti_pattern_penalty": 0.0
+          }
+        },
+        "intent_signals": {
+          "advice": 0.14285714285714285
+        },
+        "query_complexity": "moderate",
+        "system_mode": "deep",
+        "risk_level": "low",
+        "collaboration": {
+          "agents": [
+            "ResearchAgent"
+          ],
+          "reason": "close score gap (0.002)"
+        },
+        "agent_council": [
+          {
+            "agent": "PlannerAgent",
+            "role": "primary",
+            "skills": [
+              "build_timeline",
+              "prioritize_items",
+              "generate_recommendations",
+              "compare_options"
+            ],
+            "style": "balanced"
+          },
+          {
+            "agent": "ResearchAgent",
+            "role": "collaborator",
+            "skills": [
+              "extract_facts",
+              "validate_claims",
+              "synthesize_perspectives",
+              "build_timeline"
+            ],
+            "style": "cautious"
+          }
+        ],
+        "personality": {
+          "risk_tolerance": 0.4,
+          "creativity_bias": 0.3,
+          "diversity_preference": 0.6,
+          "confidence_threshold": 0.3,
+          "collaboration_tendency": 0.6,
+          "depth_vs_breadth": 0.5
+        },
+        "policy": {
+          "allow_secondary_agent": true,
+          "require_verifier": true,
+          "force_dissent_branch": true
+        }
+      },
+      "agent_candidates": [
+        "PlannerAgent",
+        "ResearchAgent",
+        "AdvisorAgent",
+        "DebugAgent",
+        "CreativeAgent",
+        "AnalysisAgent",
+        "CriticAgent",
+        "SummaryAgent"
+      ],
+      "agent_scores": {
+        "PlannerAgent": 0.2448,
+        "ResearchAgent": 0.2429,
+        "AdvisorAgent": 0.2288,
+        "DebugAgent": 0.2277,
+        "CreativeAgent": 0.2223,
+        "AnalysisAgent": 0.22,
+        "CriticAgent": 0.2063,
+        "SummaryAgent": 0.1996
+      },
+      "agent_selection_reason": "selected (score=0.245, complexity=moderate): best domain+intent match",
+      "rejection_reasons": {
+        "ResearchAgent": "rejected (score=0.243): lower relevance",
+        "AdvisorAgent": "rejected (score=0.229): lower relevance",
+        "DebugAgent": "rejected (score=0.228): lower relevance",
+        "CreativeAgent": "rejected (score=0.222): lower relevance",
+        "AnalysisAgent": "rejected (score=0.220): lower relevance",
+        "CriticAgent": "rejected (score=0.206): lower relevance",
+        "SummaryAgent": "rejected (score=0.200): lower relevance",
+        "build_timeline": "rejected (relevance=0.031, redundancy=0.375, cost=1.30)",
+        "prioritize_items": "rejected (relevance=0.015, redundancy=0.500, cost=0.80)",
+        "generate_recommendations": "rejected (relevance=0.000, redundancy=0.500, cost=1.10)",
+        "compare_options": "rejected (relevance=0.000, redundancy=0.500, cost=1.20)",
+        "extract_facts": "rejected (relevance=0.015, redundancy=0.408, cost=0.90)",
+        "validate_claims": "rejected (relevance=0.015, redundancy=0.523, cost=2.00)",
+        "executive_summary": "rejected (relevance=0.015, redundancy=0.590, cost=0.80)",
+        "brainstorm_ideas": "rejected (relevance=0.015, redundancy=0.500, cost=0.90)",
+        "detect_anomalies": "rejected (relevance=0.015, redundancy=0.500, cost=1.50)",
+        "generate_analogies": "rejected (relevance=0.000, redundancy=0.350, cost=1.20)",
+        "evidence_matrix": "rejected (relevance=0.000, redundancy=0.408, cost=1.80)",
+        "board_brief": "rejected (relevance=0.000, redundancy=0.590, cost=1.10)",
+        "sentiment_scanner": "rejected (relevance=0.015, redundancy=0.500, cost=1.30)",
+        "dependency_mapper": "rejected (relevance=0.015, redundancy=0.375, cost=1.70)",
+        "scenario_generator": "rejected (relevance=0.015, redundancy=0.368, cost=1.40)"
+      },
+      "skill_decision": {
+        "skill_candidates": [
+          "build_timeline",
+          "prioritize_items",
+          "generate_recommendations",
+          "compare_options",
+          "extract_facts",
+          "validate_claims",
+          "synthesize_perspectives",
+          "identify_risks",
+          "executive_summary",
+          "brainstorm_ideas",
+          "detect_anomalies",
+          "generate_analogies",
+          "risk_heatmap",
+          "evidence_matrix",
+          "board_brief",
+          "sentiment_scanner",
+          "dependency_mapper",
+          "scenario_generator"
+        ],
+        "selected": [
+          "identify_risks",
+          "risk_heatmap",
+          "synthesize_perspectives"
+        ],
+        "rejected": [
+          "build_timeline",
+          "prioritize_items",
+          "generate_recommendations",
+          "compare_options",
+          "extract_facts",
+          "validate_claims",
+          "executive_summary",
+          "brainstorm_ideas",
+          "detect_anomalies",
+          "generate_analogies",
+          "evidence_matrix",
+          "board_brief",
+          "sentiment_scanner",
+          "dependency_mapper",
+          "scenario_generator"
+        ],
+        "skill_scores": {
+          "identify_risks": 0.3925,
+          "risk_heatmap": 0.3683,
+          "synthesize_perspectives": 0.3814,
+          "build_timeline": 0.384,
+          "prioritize_items": 0.3429,
+          "generate_recommendations": 0.3414,
+          "compare_options": 0.3735,
+          "extract_facts": 0.3745,
+          "validate_claims": 0.3578,
+          "executive_summary": 0.3605,
+          "brainstorm_ideas": 0.3433,
+          "detect_anomalies": 0.3468,
+          "generate_analogies": 0.3607,
+          "evidence_matrix": 0.3606,
+          "board_brief": 0.3584,
+          "sentiment_scanner": 0.3518,
+          "dependency_mapper": 0.3816,
+          "scenario_generator": 0.3586
+        },
+        "reasons": {
+          "identify_risks": "selected (relevance=0.015, diversity=0.900, synergy=0.810, cost=1.20, reliability=0.790, uncertainty=0.210, composite=0.392)",
+          "risk_heatmap": "selected (relevance=0.015, diversity=0.880, synergy=0.810, cost=1.40, reliability=0.790, uncertainty=0.210, composite=0.368)",
+          "synthesize_perspectives": "selected (relevance=0.015, diversity=0.899, synergy=0.810, cost=2.00, reliability=0.790, uncertainty=0.210, composite=0.381)",
+          "build_timeline": "rejected (relevance=0.031, redundancy=0.375, cost=1.30)",
+          "prioritize_items": "rejected (relevance=0.015, redundancy=0.500, cost=0.80)",
+          "generate_recommendations": "rejected (relevance=0.000, redundancy=0.500, cost=1.10)",
+          "compare_options": "rejected (relevance=0.000, redundancy=0.500, cost=1.20)",
+          "extract_facts": "rejected (relevance=0.015, redundancy=0.408, cost=0.90)",
+          "validate_claims": "rejected (relevance=0.015, redundancy=0.523, cost=2.00)",
+          "executive_summary": "rejected (relevance=0.015, redundancy=0.590, cost=0.80)",
+          "brainstorm_ideas": "rejected (relevance=0.015, redundancy=0.500, cost=0.90)",
+          "detect_anomalies": "rejected (relevance=0.015, redundancy=0.500, cost=1.50)",
+          "generate_analogies": "rejected (relevance=0.000, redundancy=0.350, cost=1.20)",
+          "evidence_matrix": "rejected (relevance=0.000, redundancy=0.408, cost=1.80)",
+          "board_brief": "rejected (relevance=0.000, redundancy=0.590, cost=1.10)",
+          "sentiment_scanner": "rejected (relevance=0.015, redundancy=0.500, cost=1.30)",
+          "dependency_mapper": "rejected (relevance=0.015, redundancy=0.375, cost=1.70)",
+          "scenario_generator": "rejected (relevance=0.015, redundancy=0.368, cost=1.40)"
+        },
+        "complementarity_metrics": {
+          "coverage": 0.5,
+          "redundancy": 0.07483164983164983,
+          "diversity_shannon": 1.0986122886681096,
+          "diversity_simpson": 0.6666666666666667,
+          "ensemble_coherence": 0.5949587542087542,
+          "total_synergy": 1.3299999999999998,
+          "total_budget_used": 4.6,
+          "selection_rounds": 1,
+          "robust_expected_utility": 0.9023047061370002,
+          "robust_worst_case_utility": 0.5579642878922546,
+          "avg_uncertainty": 0.20999999999999996,
+          "risk_aversion": 0.65,
+          "reliability_floor": 0.6199999999999999,
+          "uncertainty_tolerance": 0.45
+        },
+        "pairwise_scores": {
+          "build_timeline <-> prioritize_items": 0.02727272727272727,
+          "build_timeline <-> generate_recommendations": 0.0,
+          "build_timeline <-> compare_options": 0.0,
+          "build_timeline <-> extract_facts": 0.0,
+          "build_timeline <-> validate_claims": 0.0,
+          "build_timeline <-> synthesize_perspectives": 0.0,
+          "build_timeline <-> identify_risks": 0.35,
+          "build_timeline <-> executive_summary": 0.0,
+          "build_timeline <-> brainstorm_ideas": 0.0,
+          "build_timeline <-> detect_anomalies": 0.0,
+          "build_timeline <-> generate_analogies": 0.024999999999999998,
+          "build_timeline <-> risk_heatmap": 0.0,
+          "build_timeline <-> evidence_matrix": 0.0,
+          "build_timeline <-> board_brief": 0.0,
+          "build_timeline <-> sentiment_scanner": 0.0,
+          "build_timeline <-> dependency_mapper": 0.375,
+          "build_timeline <-> scenario_generator": 0.0,
+          "prioritize_items <-> generate_recommendations": 0.15,
+          "prioritize_items <-> compare_options": 0.0,
+          "prioritize_items <-> extract_facts": 0.15,
+          "prioritize_items <-> validate_claims": 0.023076923076923078,
+          "prioritize_items <-> synthesize_perspectives": 0.0,
+          "prioritize_items <-> identify_risks": 0.15,
+          "prioritize_items <-> executive_summary": 0.0,
+          "prioritize_items <-> brainstorm_ideas": 0.15,
+          "prioritize_items <-> detect_anomalies": 0.5,
+          "prioritize_items <-> generate_analogies": 0.0,
+          "prioritize_items <-> risk_heatmap": 0.35,
+          "prioritize_items <-> evidence_matrix": 0.0,
+          "prioritize_items <-> board_brief": 0.0,
+          "prioritize_items <-> sentiment_scanner": 0.37727272727272726,
+          "prioritize_items <-> dependency_mapper": 0.0,
+          "prioritize_items <-> scenario_generator": 0.0,
+          "generate_recommendations <-> compare_options": 0.0,
+          "generate_recommendations <-> extract_facts": 0.15,
+          "generate_recommendations <-> validate_claims": 0.0,
+          "generate_recommendations <-> synthesize_perspectives": 0.0,
+          "generate_recommendations <-> identify_risks": 0.15,
+          "generate_recommendations <-> executive_summary": 0.0,
+          "generate_recommendations <-> brainstorm_ideas": 0.5,
+          "generate_recommendations <-> detect_anomalies": 0.15,
+          "generate_recommendations <-> generate_analogies": 0.35,
+          "generate_recommendations <-> risk_heatmap": 0.0375,
+          "generate_recommendations <-> evidence_matrix": 0.0,
+          "generate_recommendations <-> board_brief": 0.0375,
+          "generate_recommendations <-> sentiment_scanner": 0.0,
+          "generate_recommendations <-> dependency_mapper": 0.0,
+          "generate_recommendations <-> scenario_generator": 0.35,
+          "compare_options <-> extract_facts": 0.0,
+          "compare_options <-> validate_claims": 0.5,
+          "compare_options <-> synthesize_perspectives": 0.5,
+          "compare_options <-> identify_risks": 0.03,
+          "compare_options <-> executive_summary": 0.0,
+          "compare_options <-> brainstorm_ideas": 0.0,
+          "compare_options <-> detect_anomalies": 0.0,
+          "compare_options <-> generate_analogies": 0.0,
+          "compare_options <-> risk_heatmap": 0.15,
+          "compare_options <-> evidence_matrix": 0.15,
+          "compare_options <-> board_brief": 0.0,
+          "compare_options <-> sentiment_scanner": 0.18333333333333332,
+          "compare_options <-> dependency_mapper": 0.0,
+          "compare_options <-> scenario_generator": 0.2015151515151515,
+          "extract_facts <-> validate_claims": 0.016666666666666666,
+          "extract_facts <-> synthesize_perspectives": 0.0,
+          "extract_facts <-> identify_risks": 0.15,
+          "extract_facts <-> executive_summary": 0.0,
+          "extract_facts <-> brainstorm_ideas": 0.15,
+          "extract_facts <-> detect_anomalies": 0.15,
+          "extract_facts <-> generate_analogies": 0.0,
+          "extract_facts <-> risk_heatmap": 0.0,
+          "extract_facts <-> evidence_matrix": 0.4083333333333333,
+          "extract_facts <-> board_brief": 0.0,
+          "extract_facts <-> sentiment_scanner": 0.0,
+          "extract_facts <-> dependency_mapper": 0.02727272727272727,
+          "extract_facts <-> scenario_generator": 0.0,
+          "validate_claims <-> synthesize_perspectives": 0.5230769230769231,
+          "validate_claims <-> identify_risks": 0.021428571428571425,
+          "validate_claims <-> executive_summary": 0.0,
+          "validate_claims <-> brainstorm_ideas": 0.0,
+          "validate_claims <-> detect_anomalies": 0.02,
+          "validate_claims <-> generate_analogies": 0.0,
+          "validate_claims <-> risk_heatmap": 0.15,
+          "validate_claims <-> evidence_matrix": 0.24454545454545454,
+          "validate_claims <-> board_brief": 0.0,
+          "validate_claims <-> sentiment_scanner": 0.17307692307692307,
+          "validate_claims <-> dependency_mapper": 0.021428571428571425,
+          "validate_claims <-> scenario_generator": 0.15,
+          "synthesize_perspectives <-> identify_risks": 0.024999999999999998,
+          "synthesize_perspectives <-> executive_summary": 0.0,
+          "synthesize_perspectives <-> brainstorm_ideas": 0.0,
+          "synthesize_perspectives <-> detect_anomalies": 0.023076923076923078,
+          "synthesize_perspectives <-> generate_analogies": 0.0,
+          "synthesize_perspectives <-> risk_heatmap": 0.15,
+          "synthesize_perspectives <-> evidence_matrix": 0.15,
+          "synthesize_perspectives <-> board_brief": 0.0,
+          "synthesize_perspectives <-> sentiment_scanner": 0.17727272727272728,
+          "synthesize_perspectives <-> dependency_mapper": 0.024999999999999998,
+          "synthesize_perspectives <-> scenario_generator": 0.15,
+          "identify_risks <-> executive_summary": 0.0,
+          "identify_risks <-> brainstorm_ideas": 0.15,
+          "identify_risks <-> detect_anomalies": 0.17142857142857143,
+          "identify_risks <-> generate_analogies": 0.0,
+          "identify_risks <-> risk_heatmap": 0.049494949494949494,
+          "identify_risks <-> evidence_matrix": 0.0,
+          "identify_risks <-> board_brief": 0.0,
+          "identify_risks <-> sentiment_scanner": 0.05454545454545454,
+          "identify_risks <-> dependency_mapper": 0.3730769230769231,
+          "identify_risks <-> scenario_generator": 0.024999999999999998,
+          "executive_summary <-> brainstorm_ideas": 0.0,
+          "executive_summary <-> detect_anomalies": 0.0,
+          "executive_summary <-> generate_analogies": 0.15,
+          "executive_summary <-> risk_heatmap": 0.0,
+          "executive_summary <-> evidence_matrix": 0.0,
+          "executive_summary <-> board_brief": 0.5904761904761905,
+          "executive_summary <-> sentiment_scanner": 0.0,
+          "executive_summary <-> dependency_mapper": 0.0,
+          "executive_summary <-> scenario_generator": 0.0,
+          "brainstorm_ideas <-> detect_anomalies": 0.15,
+          "brainstorm_ideas <-> generate_analogies": 0.35,
+          "brainstorm_ideas <-> risk_heatmap": 0.0,
+          "brainstorm_ideas <-> evidence_matrix": 0.0,
+          "brainstorm_ideas <-> board_brief": 0.0,
+          "brainstorm_ideas <-> sentiment_scanner": 0.0,
+          "brainstorm_ideas <-> dependency_mapper": 0.0,
+          "brainstorm_ideas <-> scenario_generator": 0.36818181818181817,
+          "detect_anomalies <-> generate_analogies": 0.0,
+          "detect_anomalies <-> risk_heatmap": 0.35,
+          "detect_anomalies <-> evidence_matrix": 0.0,
+          "detect_anomalies <-> board_brief": 0.0,
+          "detect_anomalies <-> sentiment_scanner": 0.3730769230769231,
+          "detect_anomalies <-> dependency_mapper": 0.021428571428571425,
+          "detect_anomalies <-> scenario_generator": 0.0,
+          "generate_analogies <-> risk_heatmap": 0.0,
+          "generate_analogies <-> evidence_matrix": 0.0,
+          "generate_analogies <-> board_brief": 0.15,
+          "generate_analogies <-> sentiment_scanner": 0.0,
+          "generate_analogies <-> dependency_mapper": 0.0,
+          "generate_analogies <-> scenario_generator": 0.35,
+          "risk_heatmap <-> evidence_matrix": 0.15,
+          "risk_heatmap <-> board_brief": 0.0,
+          "risk_heatmap <-> sentiment_scanner": 0.5,
+          "risk_heatmap <-> dependency_mapper": 0.0,
+          "risk_heatmap <-> scenario_generator": 0.15,
+          "evidence_matrix <-> board_brief": 0.0,
+          "evidence_matrix <-> sentiment_scanner": 0.15,
+          "evidence_matrix <-> dependency_mapper": 0.0,
+          "evidence_matrix <-> scenario_generator": 0.15,
+          "board_brief <-> sentiment_scanner": 0.03,
+          "board_brief <-> dependency_mapper": 0.0,
+          "board_brief <-> scenario_generator": 0.0,
+          "sentiment_scanner <-> dependency_mapper": 0.024999999999999998,
+          "sentiment_scanner <-> scenario_generator": 0.17727272727272728,
+          "dependency_mapper <-> scenario_generator": 0.0
+        },
+        "complementarity_matrix": {
+          "build_timeline <-> prioritize_items": 0.8099999999999999,
+          "build_timeline <-> generate_recommendations": 0.31,
+          "build_timeline <-> compare_options": 0.31,
+          "build_timeline <-> extract_facts": 0.8099999999999999,
+          "build_timeline <-> validate_claims": 0.31,
+          "build_timeline <-> synthesize_perspectives": 0.31,
+          "build_timeline <-> identify_risks": 0.1,
+          "build_timeline <-> executive_summary": 0.31,
+          "build_timeline <-> brainstorm_ideas": 0.31,
+          "build_timeline <-> detect_anomalies": 0.31,
+          "build_timeline <-> generate_analogies": 0.31,
+          "build_timeline <-> risk_heatmap": 0.31,
+          "build_timeline <-> evidence_matrix": 0.31,
+          "build_timeline <-> board_brief": 0.31,
+          "build_timeline <-> sentiment_scanner": 0.31,
+          "build_timeline <-> dependency_mapper": 0.6,
+          "build_timeline <-> scenario_generator": 0.31,
+          "prioritize_items <-> generate_recommendations": 0.71,
+          "prioritize_items <-> compare_options": 0.31,
+          "prioritize_items <-> extract_facts": 0.21,
+          "prioritize_items <-> validate_claims": 0.31,
+          "prioritize_items <-> synthesize_perspectives": 0.31,
+          "prioritize_items <-> identify_risks": 0.71,
+          "prioritize_items <-> executive_summary": 0.31,
+          "prioritize_items <-> brainstorm_ideas": 0.21,
+          "prioritize_items <-> detect_anomalies": 0.0,
+          "prioritize_items <-> generate_analogies": 0.31,
+          "prioritize_items <-> risk_heatmap": 0.6,
+          "prioritize_items <-> evidence_matrix": 0.31,
+          "prioritize_items <-> board_brief": 0.8099999999999999,
+          "prioritize_items <-> sentiment_scanner": 0.1,
+          "prioritize_items <-> dependency_mapper": 0.31,
+          "prioritize_items <-> scenario_generator": 0.31,
+          "generate_recommendations <-> compare_options": 0.8099999999999999,
+          "generate_recommendations <-> extract_facts": 0.21,
+          "generate_recommendations <-> validate_claims": 0.31,
+          "generate_recommendations <-> synthesize_perspectives": 0.31,
+          "generate_recommendations <-> identify_risks": 0.71,
+          "generate_recommendations <-> executive_summary": 0.31,
+          "generate_recommendations <-> brainstorm_ideas": 0.0,
+          "generate_recommendations <-> detect_anomalies": 0.21,
+          "generate_recommendations <-> generate_analogies": 0.1,
+          "generate_recommendations <-> risk_heatmap": 0.31,
+          "generate_recommendations <-> evidence_matrix": 0.31,
+          "generate_recommendations <-> board_brief": 0.31,
+          "generate_recommendations <-> sentiment_scanner": 0.31,
+          "generate_recommendations <-> dependency_mapper": 0.31,
+          "generate_recommendations <-> scenario_generator": 0.6,
+          "compare_options <-> extract_facts": 0.8099999999999999,
+          "compare_options <-> validate_claims": 0.0,
+          "compare_options <-> synthesize_perspectives": 0.0,
+          "compare_options <-> identify_risks": 0.31,
+          "compare_options <-> executive_summary": 0.31,
+          "compare_options <-> brainstorm_ideas": 0.31,
+          "compare_options <-> detect_anomalies": 0.31,
+          "compare_options <-> generate_analogies": 0.31,
+          "compare_options <-> risk_heatmap": 0.21,
+          "compare_options <-> evidence_matrix": 0.21,
+          "compare_options <-> board_brief": 0.31,
+          "compare_options <-> sentiment_scanner": 0.21,
+          "compare_options <-> dependency_mapper": 0.31,
+          "compare_options <-> scenario_generator": 0.21,
+          "extract_facts <-> validate_claims": 0.8099999999999999,
+          "extract_facts <-> synthesize_perspectives": 0.8099999999999999,
+          "extract_facts <-> identify_risks": 0.21,
+          "extract_facts <-> executive_summary": 0.8099999999999999,
+          "extract_facts <-> brainstorm_ideas": 0.21,
+          "extract_facts <-> detect_anomalies": 0.21,
+          "extract_facts <-> generate_analogies": 0.31,
+          "extract_facts <-> risk_heatmap": 0.31,
+          "extract_facts <-> evidence_matrix": 0.6,
+          "extract_facts <-> board_brief": 0.31,
+          "extract_facts <-> sentiment_scanner": 0.31,
+          "extract_facts <-> dependency_mapper": 0.8099999999999999,
+          "extract_facts <-> scenario_generator": 0.31,
+          "validate_claims <-> synthesize_perspectives": 0.5,
+          "validate_claims <-> identify_risks": 0.31,
+          "validate_claims <-> executive_summary": 0.31,
+          "validate_claims <-> brainstorm_ideas": 0.31,
+          "validate_claims <-> detect_anomalies": 0.8099999999999999,
+          "validate_claims <-> generate_analogies": 0.31,
+          "validate_claims <-> risk_heatmap": 0.21,
+          "validate_claims <-> evidence_matrix": 0.71,
+          "validate_claims <-> board_brief": 0.31,
+          "validate_claims <-> sentiment_scanner": 0.21,
+          "validate_claims <-> dependency_mapper": 0.31,
+          "validate_claims <-> scenario_generator": 0.21,
+          "synthesize_perspectives <-> identify_risks": 0.31,
+          "synthesize_perspectives <-> executive_summary": 0.31,
+          "synthesize_perspectives <-> brainstorm_ideas": 0.8099999999999999,
+          "synthesize_perspectives <-> detect_anomalies": 0.31,
+          "synthesize_perspectives <-> generate_analogies": 0.8099999999999999,
+          "synthesize_perspectives <-> risk_heatmap": 0.21,
+          "synthesize_perspectives <-> evidence_matrix": 0.21,
+          "synthesize_perspectives <-> board_brief": 0.31,
+          "synthesize_perspectives <-> sentiment_scanner": 0.71,
+          "synthesize_perspectives <-> dependency_mapper": 0.31,
+          "synthesize_perspectives <-> scenario_generator": 0.21,
+          "identify_risks <-> executive_summary": 0.8099999999999999,
+          "identify_risks <-> brainstorm_ideas": 0.21,
+          "identify_risks <-> detect_anomalies": 0.71,
+          "identify_risks <-> generate_analogies": 0.31,
+          "identify_risks <-> risk_heatmap": 0.8099999999999999,
+          "identify_risks <-> evidence_matrix": 0.31,
+          "identify_risks <-> board_brief": 0.31,
+          "identify_risks <-> sentiment_scanner": 0.31,
+          "identify_risks <-> dependency_mapper": 0.1,
+          "identify_risks <-> scenario_generator": 0.8099999999999999,
+          "executive_summary <-> brainstorm_ideas": 0.31,
+          "executive_summary <-> detect_anomalies": 0.31,
+          "executive_summary <-> generate_analogies": 0.21,
+          "executive_summary <-> risk_heatmap": 0.31,
+          "executive_summary <-> evidence_matrix": 0.31,
+          "executive_summary <-> board_brief": 0.5,
+          "executive_summary <-> sentiment_scanner": 0.31,
+          "executive_summary <-> dependency_mapper": 0.31,
+          "executive_summary <-> scenario_generator": 0.31,
+          "brainstorm_ideas <-> detect_anomalies": 0.21,
+          "brainstorm_ideas <-> generate_analogies": 0.6,
+          "brainstorm_ideas <-> risk_heatmap": 0.31,
+          "brainstorm_ideas <-> evidence_matrix": 0.31,
+          "brainstorm_ideas <-> board_brief": 0.31,
+          "brainstorm_ideas <-> sentiment_scanner": 0.31,
+          "brainstorm_ideas <-> dependency_mapper": 0.31,
+          "brainstorm_ideas <-> scenario_generator": 0.1,
+          "detect_anomalies <-> generate_analogies": 0.31,
+          "detect_anomalies <-> risk_heatmap": 0.1,
+          "detect_anomalies <-> evidence_matrix": 0.31,
+          "detect_anomalies <-> board_brief": 0.31,
+          "detect_anomalies <-> sentiment_scanner": 0.1,
+          "detect_anomalies <-> dependency_mapper": 0.31,
+          "detect_anomalies <-> scenario_generator": 0.31,
+          "generate_analogies <-> risk_heatmap": 0.31,
+          "generate_analogies <-> evidence_matrix": 0.31,
+          "generate_analogies <-> board_brief": 0.21,
+          "generate_analogies <-> sentiment_scanner": 0.31,
+          "generate_analogies <-> dependency_mapper": 0.31,
+          "generate_analogies <-> scenario_generator": 0.1,
+          "risk_heatmap <-> evidence_matrix": 0.21,
+          "risk_heatmap <-> board_brief": 0.31,
+          "risk_heatmap <-> sentiment_scanner": 0.0,
+          "risk_heatmap <-> dependency_mapper": 0.31,
+          "risk_heatmap <-> scenario_generator": 0.21,
+          "evidence_matrix <-> board_brief": 0.31,
+          "evidence_matrix <-> sentiment_scanner": 0.21,
+          "evidence_matrix <-> dependency_mapper": 0.31,
+          "evidence_matrix <-> scenario_generator": 0.21,
+          "board_brief <-> sentiment_scanner": 0.31,
+          "board_brief <-> dependency_mapper": 0.31,
+          "board_brief <-> scenario_generator": 0.31,
+          "sentiment_scanner <-> dependency_mapper": 0.31,
+          "sentiment_scanner <-> scenario_generator": 0.21,
+          "dependency_mapper <-> scenario_generator": 0.31
+        },
+        "synergy_matrix": {
+          "build_timeline <-> prioritize_items": 0.8099999999999999,
+          "build_timeline <-> generate_recommendations": 0.31,
+          "build_timeline <-> compare_options": 0.31,
+          "build_timeline <-> extract_facts": 0.8099999999999999,
+          "build_timeline <-> validate_claims": 0.31,
+          "build_timeline <-> synthesize_perspectives": 0.31,
+          "build_timeline <-> identify_risks": 0.1,
+          "build_timeline <-> executive_summary": 0.31,
+          "build_timeline <-> brainstorm_ideas": 0.31,
+          "build_timeline <-> detect_anomalies": 0.31,
+          "build_timeline <-> generate_analogies": 0.31,
+          "build_timeline <-> risk_heatmap": 0.31,
+          "build_timeline <-> evidence_matrix": 0.31,
+          "build_timeline <-> board_brief": 0.31,
+          "build_timeline <-> sentiment_scanner": 0.31,
+          "build_timeline <-> dependency_mapper": 0.6,
+          "build_timeline <-> scenario_generator": 0.31,
+          "prioritize_items <-> generate_recommendations": 0.71,
+          "prioritize_items <-> compare_options": 0.31,
+          "prioritize_items <-> extract_facts": 0.21,
+          "prioritize_items <-> validate_claims": 0.31,
+          "prioritize_items <-> synthesize_perspectives": 0.31,
+          "prioritize_items <-> identify_risks": 0.71,
+          "prioritize_items <-> executive_summary": 0.31,
+          "prioritize_items <-> brainstorm_ideas": 0.21,
+          "prioritize_items <-> detect_anomalies": 0.0,
+          "prioritize_items <-> generate_analogies": 0.31,
+          "prioritize_items <-> risk_heatmap": 0.6,
+          "prioritize_items <-> evidence_matrix": 0.31,
+          "prioritize_items <-> board_brief": 0.8099999999999999,
+          "prioritize_items <-> sentiment_scanner": 0.1,
+          "prioritize_items <-> dependency_mapper": 0.31,
+          "prioritize_items <-> scenario_generator": 0.31,
+          "generate_recommendations <-> compare_options": 0.8099999999999999,
+          "generate_recommendations <-> extract_facts": 0.21,
+          "generate_recommendations <-> validate_claims": 0.31,
+          "generate_recommendations <-> synthesize_perspectives": 0.31,
+          "generate_recommendations <-> identify_risks": 0.71,
+          "generate_recommendations <-> executive_summary": 0.31,
+          "generate_recommendations <-> brainstorm_ideas": 0.0,
+          "generate_recommendations <-> detect_anomalies": 0.21,
+          "generate_recommendations <-> generate_analogies": 0.1,
+          "generate_recommendations <-> risk_heatmap": 0.31,
+          "generate_recommendations <-> evidence_matrix": 0.31,
+          "generate_recommendations <-> board_brief": 0.31,
+          "generate_recommendations <-> sentiment_scanner": 0.31,
+          "generate_recommendations <-> dependency_mapper": 0.31,
+          "generate_recommendations <-> scenario_generator": 0.6,
+          "compare_options <-> extract_facts": 0.8099999999999999,
+          "compare_options <-> validate_claims": 0.0,
+          "compare_options <-> synthesize_perspectives": 0.0,
+          "compare_options <-> identify_risks": 0.31,
+          "compare_options <-> executive_summary": 0.31,
+          "compare_options <-> brainstorm_ideas": 0.31,
+          "compare_options <-> detect_anomalies": 0.31,
+          "compare_options <-> generate_analogies": 0.31,
+          "compare_options <-> risk_heatmap": 0.21,
+          "compare_options <-> evidence_matrix": 0.21,
+          "compare_options <-> board_brief": 0.31,
+          "compare_options <-> sentiment_scanner": 0.21,
+          "compare_options <-> dependency_mapper": 0.31,
+          "compare_options <-> scenario_generator": 0.21,
+          "extract_facts <-> validate_claims": 0.8099999999999999,
+          "extract_facts <-> synthesize_perspectives": 0.8099999999999999,
+          "extract_facts <-> identify_risks": 0.21,
+          "extract_facts <-> executive_summary": 0.8099999999999999,
+          "extract_facts <-> brainstorm_ideas": 0.21,
+          "extract_facts <-> detect_anomalies": 0.21,
+          "extract_facts <-> generate_analogies": 0.31,
+          "extract_facts <-> risk_heatmap": 0.31,
+          "extract_facts <-> evidence_matrix": 0.6,
+          "extract_facts <-> board_brief": 0.31,
+          "extract_facts <-> sentiment_scanner": 0.31,
+          "extract_facts <-> dependency_mapper": 0.8099999999999999,
+          "extract_facts <-> scenario_generator": 0.31,
+          "validate_claims <-> synthesize_perspectives": 0.5,
+          "validate_claims <-> identify_risks": 0.31,
+          "validate_claims <-> executive_summary": 0.31,
+          "validate_claims <-> brainstorm_ideas": 0.31,
+          "validate_claims <-> detect_anomalies": 0.8099999999999999,
+          "validate_claims <-> generate_analogies": 0.31,
+          "validate_claims <-> risk_heatmap": 0.21,
+          "validate_claims <-> evidence_matrix": 0.71,
+          "validate_claims <-> board_brief": 0.31,
+          "validate_claims <-> sentiment_scanner": 0.21,
+          "validate_claims <-> dependency_mapper": 0.31,
+          "validate_claims <-> scenario_generator": 0.21,
+          "synthesize_perspectives <-> identify_risks": 0.31,
+          "synthesize_perspectives <-> executive_summary": 0.31,
+          "synthesize_perspectives <-> brainstorm_ideas": 0.8099999999999999,
+          "synthesize_perspectives <-> detect_anomalies": 0.31,
+          "synthesize_perspectives <-> generate_analogies": 0.8099999999999999,
+          "synthesize_perspectives <-> risk_heatmap": 0.21,
+          "synthesize_perspectives <-> evidence_matrix": 0.21,
+          "synthesize_perspectives <-> board_brief": 0.31,
+          "synthesize_perspectives <-> sentiment_scanner": 0.71,
+          "synthesize_perspectives <-> dependency_mapper": 0.31,
+          "synthesize_perspectives <-> scenario_generator": 0.21,
+          "identify_risks <-> executive_summary": 0.8099999999999999,
+          "identify_risks <-> brainstorm_ideas": 0.21,
+          "identify_risks <-> detect_anomalies": 0.71,
+          "identify_risks <-> generate_analogies": 0.31,
+          "identify_risks <-> risk_heatmap": 0.8099999999999999,
+          "identify_risks <-> evidence_matrix": 0.31,
+          "identify_risks <-> board_brief": 0.31,
+          "identify_risks <-> sentiment_scanner": 0.31,
+          "identify_risks <-> dependency_mapper": 0.1,
+          "identify_risks <-> scenario_generator": 0.8099999999999999,
+          "executive_summary <-> brainstorm_ideas": 0.31,
+          "executive_summary <-> detect_anomalies": 0.31,
+          "executive_summary <-> generate_analogies": 0.21,
+          "executive_summary <-> risk_heatmap": 0.31,
+          "executive_summary <-> evidence_matrix": 0.31,
+          "executive_summary <-> board_brief": 0.5,
+          "executive_summary <-> sentiment_scanner": 0.31,
+          "executive_summary <-> dependency_mapper": 0.31,
+          "executive_summary <-> scenario_generator": 0.31,
+          "brainstorm_ideas <-> detect_anomalies": 0.21,
+          "brainstorm_ideas <-> generate_analogies": 0.6,
+          "brainstorm_ideas <-> risk_heatmap": 0.31,
+          "brainstorm_ideas <-> evidence_matrix": 0.31,
+          "brainstorm_ideas <-> board_brief": 0.31,
+          "brainstorm_ideas <-> sentiment_scanner": 0.31,
+          "brainstorm_ideas <-> dependency_mapper": 0.31,
+          "brainstorm_ideas <-> scenario_generator": 0.1,
+          "detect_anomalies <-> generate_analogies": 0.31,
+          "detect_anomalies <-> risk_heatmap": 0.1,
+          "detect_anomalies <-> evidence_matrix": 0.31,
+          "detect_anomalies <-> board_brief": 0.31,
+          "detect_anomalies <-> sentiment_scanner": 0.1,
+          "detect_anomalies <-> dependency_mapper": 0.31,
+          "detect_anomalies <-> scenario_generator": 0.31,
+          "generate_analogies <-> risk_heatmap": 0.31,
+          "generate_analogies <-> evidence_matrix": 0.31,
+          "generate_analogies <-> board_brief": 0.21,
+          "generate_analogies <-> sentiment_scanner": 0.31,
+          "generate_analogies <-> dependency_mapper": 0.31,
+          "generate_analogies <-> scenario_generator": 0.1,
+          "risk_heatmap <-> evidence_matrix": 0.21,
+          "risk_heatmap <-> board_brief": 0.31,
+          "risk_heatmap <-> sentiment_scanner": 0.0,
+          "risk_heatmap <-> dependency_mapper": 0.31,
+          "risk_heatmap <-> scenario_generator": 0.21,
+          "evidence_matrix <-> board_brief": 0.31,
+          "evidence_matrix <-> sentiment_scanner": 0.21,
+          "evidence_matrix <-> dependency_mapper": 0.31,
+          "evidence_matrix <-> scenario_generator": 0.21,
+          "board_brief <-> sentiment_scanner": 0.31,
+          "board_brief <-> dependency_mapper": 0.31,
+          "board_brief <-> scenario_generator": 0.31,
+          "sentiment_scanner <-> dependency_mapper": 0.31,
+          "sentiment_scanner <-> scenario_generator": 0.21,
+          "dependency_mapper <-> scenario_generator": 0.31
+        },
+        "marketplace_discovery": [
+          {
+            "name": "risk_heatmap",
+            "provider": "core-labs",
+            "version": "0.1.0",
+            "score": 0.2744,
+            "reputation": 0.876,
+            "trending_score": 0.38,
+            "tags": [
+              "risk",
+              "analysis",
+              "governance"
+            ]
+          },
+          {
+            "name": "evidence_matrix",
+            "provider": "research-hub",
+            "version": "0.2.1",
+            "score": 0.2144,
+            "reputation": 0.7471,
+            "trending_score": 0.21,
+            "tags": [
+              "research",
+              "evidence",
+              "comparison"
+            ]
+          },
+          {
+            "name": "sentiment_scanner",
+            "provider": "nlp-works",
+            "version": "1.2.0",
+            "score": 0.1997,
+            "reputation": 0.7825,
+            "trending_score": 0.23,
+            "tags": [
+              "sentiment",
+              "analysis",
+              "opinion",
+              "emotion"
+            ]
+          },
+          {
+            "name": "board_brief",
+            "provider": "exec-ai",
+            "version": "1.0.0",
+            "score": 0.197,
+            "reputation": 0.871,
+            "trending_score": 0.25,
+            "tags": [
+              "communication",
+              "executive",
+              "brief"
+            ]
+          },
+          {
+            "name": "dependency_mapper",
+            "provider": "arch-ai",
+            "version": "0.3.0",
+            "score": 0.186,
+            "reputation": 0.619,
+            "trending_score": 0.1,
+            "tags": [
+              "dependency",
+              "graph",
+              "relationship",
+              "mapping"
+            ]
+          },
+          {
+            "name": "scenario_generator",
+            "provider": "futures-lab",
+            "version": "0.1.0",
+            "score": 0.1704,
+            "reputation": 0.6581,
+            "trending_score": 0.33,
+            "tags": [
+              "scenario",
+              "future",
+              "simulation",
+              "what-if"
+            ]
+          }
+        ],
+        "execution_order": [
+          "identify_risks",
+          "risk_heatmap",
+          "synthesize_perspectives"
+        ],
+        "effective_max_skills": 3,
+        "strategy": "robust_frontier",
+        "portfolio_plan": {
+          "selected_skills": [
+            "identify_risks",
+            "risk_heatmap",
+            "synthesize_perspectives"
+          ],
+          "role_coverage": {
+            "evidence": 1,
+            "reasoning": 2
+          },
+          "execution_order": [
+            "identify_risks",
+            "risk_heatmap",
+            "synthesize_perspectives"
+          ],
+          "parallel_groups": [
+            [
+              "identify_risks",
+              "risk_heatmap"
+            ],
+            [
+              "synthesize_perspectives"
+            ]
+          ],
+          "verification_chain": [],
+          "budget_estimate": 4.6,
+          "latency_estimate": 460.0,
+          "portfolio_score": 0.38071928528987353,
+          "portfolio_rationale": "Role-aware complementary portfolio optimized under budget and diversity constraints.",
+          "rejected_candidates": [
+            "build_timeline",
+            "prioritize_items",
+            "generate_recommendations",
+            "compare_options",
+            "extract_facts",
+            "validate_claims",
+            "executive_summary",
+            "brainstorm_ideas",
+            "detect_anomalies",
+            "generate_analogies",
+            "evidence_matrix",
+            "board_brief",
+            "sentiment_scanner",
+            "dependency_mapper",
+            "scenario_generator"
+          ],
+          "fallback_portfolios": [
+            [
+              "identify_risks",
+              "risk_heatmap"
+            ]
+          ]
+        },
+        "required_role_slots": [
+          "evidence",
+          "reasoning",
+          "verification"
+        ],
+        "robustness_profile": {
+          "enabled": true,
+          "require_downside_guard": true,
+          "risk_aversion": 0.65,
+          "reliability_floor": 0.62,
+          "uncertainty_tolerance": 0.45
+        }
+      },
+      "skill_candidates": [
+        "build_timeline",
+        "prioritize_items",
+        "generate_recommendations",
+        "compare_options",
+        "extract_facts",
+        "validate_claims",
+        "synthesize_perspectives",
+        "identify_risks",
+        "executive_summary",
+        "brainstorm_ideas",
+        "detect_anomalies",
+        "generate_analogies",
+        "risk_heatmap",
+        "evidence_matrix",
+        "board_brief",
+        "sentiment_scanner",
+        "dependency_mapper",
+        "scenario_generator"
+      ],
+      "skill_scores": {
+        "identify_risks": 0.3925,
+        "risk_heatmap": 0.3683,
+        "synthesize_perspectives": 0.3814,
+        "build_timeline": 0.384,
+        "prioritize_items": 0.3429,
+        "generate_recommendations": 0.3414,
+        "compare_options": 0.3735,
+        "extract_facts": 0.3745,
+        "validate_claims": 0.3578,
+        "executive_summary": 0.3605,
+        "brainstorm_ideas": 0.3433,
+        "detect_anomalies": 0.3468,
+        "generate_analogies": 0.3607,
+        "evidence_matrix": 0.3606,
+        "board_brief": 0.3584,
+        "sentiment_scanner": 0.3518,
+        "dependency_mapper": 0.3816,
+        "scenario_generator": 0.3586
+      },
+      "complementarity_matrix": {
+        "build_timeline <-> prioritize_items": 0.8099999999999999,
+        "build_timeline <-> generate_recommendations": 0.31,
+        "build_timeline <-> compare_options": 0.31,
+        "build_timeline <-> extract_facts": 0.8099999999999999,
+        "build_timeline <-> validate_claims": 0.31,
+        "build_timeline <-> synthesize_perspectives": 0.31,
+        "build_timeline <-> identify_risks": 0.1,
+        "build_timeline <-> executive_summary": 0.31,
+        "build_timeline <-> brainstorm_ideas": 0.31,
+        "build_timeline <-> detect_anomalies": 0.31,
+        "build_timeline <-> generate_analogies": 0.31,
+        "build_timeline <-> risk_heatmap": 0.31,
+        "build_timeline <-> evidence_matrix": 0.31,
+        "build_timeline <-> board_brief": 0.31,
+        "build_timeline <-> sentiment_scanner": 0.31,
+        "build_timeline <-> dependency_mapper": 0.6,
+        "build_timeline <-> scenario_generator": 0.31,
+        "prioritize_items <-> generate_recommendations": 0.71,
+        "prioritize_items <-> compare_options": 0.31,
+        "prioritize_items <-> extract_facts": 0.21,
+        "prioritize_items <-> validate_claims": 0.31,
+        "prioritize_items <-> synthesize_perspectives": 0.31,
+        "prioritize_items <-> identify_risks": 0.71,
+        "prioritize_items <-> executive_summary": 0.31,
+        "prioritize_items <-> brainstorm_ideas": 0.21,
+        "prioritize_items <-> detect_anomalies": 0.0,
+        "prioritize_items <-> generate_analogies": 0.31,
+        "prioritize_items <-> risk_heatmap": 0.6,
+        "prioritize_items <-> evidence_matrix": 0.31,
+        "prioritize_items <-> board_brief": 0.8099999999999999,
+        "prioritize_items <-> sentiment_scanner": 0.1,
+        "prioritize_items <-> dependency_mapper": 0.31,
+        "prioritize_items <-> scenario_generator": 0.31,
+        "generate_recommendations <-> compare_options": 0.8099999999999999,
+        "generate_recommendations <-> extract_facts": 0.21,
+        "generate_recommendations <-> validate_claims": 0.31,
+        "generate_recommendations <-> synthesize_perspectives": 0.31,
+        "generate_recommendations <-> identify_risks": 0.71,
+        "generate_recommendations <-> executive_summary": 0.31,
+        "generate_recommendations <-> brainstorm_ideas": 0.0,
+        "generate_recommendations <-> detect_anomalies": 0.21,
+        "generate_recommendations <-> generate_analogies": 0.1,
+        "generate_recommendations <-> risk_heatmap": 0.31,
+        "generate_recommendations <-> evidence_matrix": 0.31,
+        "generate_recommendations <-> board_brief": 0.31,
+        "generate_recommendations <-> sentiment_scanner": 0.31,
+        "generate_recommendations <-> dependency_mapper": 0.31,
+        "generate_recommendations <-> scenario_generator": 0.6,
+        "compare_options <-> extract_facts": 0.8099999999999999,
+        "compare_options <-> validate_claims": 0.0,
+        "compare_options <-> synthesize_perspectives": 0.0,
+        "compare_options <-> identify_risks": 0.31,
+        "compare_options <-> executive_summary": 0.31,
+        "compare_options <-> brainstorm_ideas": 0.31,
+        "compare_options <-> detect_anomalies": 0.31,
+        "compare_options <-> generate_analogies": 0.31,
+        "compare_options <-> risk_heatmap": 0.21,
+        "compare_options <-> evidence_matrix": 0.21,
+        "compare_options <-> board_brief": 0.31,
+        "compare_options <-> sentiment_scanner": 0.21,
+        "compare_options <-> dependency_mapper": 0.31,
+        "compare_options <-> scenario_generator": 0.21,
+        "extract_facts <-> validate_claims": 0.8099999999999999,
+        "extract_facts <-> synthesize_perspectives": 0.8099999999999999,
+        "extract_facts <-> identify_risks": 0.21,
+        "extract_facts <-> executive_summary": 0.8099999999999999,
+        "extract_facts <-> brainstorm_ideas": 0.21,
+        "extract_facts <-> detect_anomalies": 0.21,
+        "extract_facts <-> generate_analogies": 0.31,
+        "extract_facts <-> risk_heatmap": 0.31,
+        "extract_facts <-> evidence_matrix": 0.6,
+        "extract_facts <-> board_brief": 0.31,
+        "extract_facts <-> sentiment_scanner": 0.31,
+        "extract_facts <-> dependency_mapper": 0.8099999999999999,
+        "extract_facts <-> scenario_generator": 0.31,
+        "validate_claims <-> synthesize_perspectives": 0.5,
+        "validate_claims <-> identify_risks": 0.31,
+        "validate_claims <-> executive_summary": 0.31,
+        "validate_claims <-> brainstorm_ideas": 0.31,
+        "validate_claims <-> detect_anomalies": 0.8099999999999999,
+        "validate_claims <-> generate_analogies": 0.31,
+        "validate_claims <-> risk_heatmap": 0.21,
+        "validate_claims <-> evidence_matrix": 0.71,
+        "validate_claims <-> board_brief": 0.31,
+        "validate_claims <-> sentiment_scanner": 0.21,
+        "validate_claims <-> dependency_mapper": 0.31,
+        "validate_claims <-> scenario_generator": 0.21,
+        "synthesize_perspectives <-> identify_risks": 0.31,
+        "synthesize_perspectives <-> executive_summary": 0.31,
+        "synthesize_perspectives <-> brainstorm_ideas": 0.8099999999999999,
+        "synthesize_perspectives <-> detect_anomalies": 0.31,
+        "synthesize_perspectives <-> generate_analogies": 0.8099999999999999,
+        "synthesize_perspectives <-> risk_heatmap": 0.21,
+        "synthesize_perspectives <-> evidence_matrix": 0.21,
+        "synthesize_perspectives <-> board_brief": 0.31,
+        "synthesize_perspectives <-> sentiment_scanner": 0.71,
+        "synthesize_perspectives <-> dependency_mapper": 0.31,
+        "synthesize_perspectives <-> scenario_generator": 0.21,
+        "identify_risks <-> executive_summary": 0.8099999999999999,
+        "identify_risks <-> brainstorm_ideas": 0.21,
+        "identify_risks <-> detect_anomalies": 0.71,
+        "identify_risks <-> generate_analogies": 0.31,
+        "identify_risks <-> risk_heatmap": 0.8099999999999999,
+        "identify_risks <-> evidence_matrix": 0.31,
+        "identify_risks <-> board_brief": 0.31,
+        "identify_risks <-> sentiment_scanner": 0.31,
+        "identify_risks <-> dependency_mapper": 0.1,
+        "identify_risks <-> scenario_generator": 0.8099999999999999,
+        "executive_summary <-> brainstorm_ideas": 0.31,
+        "executive_summary <-> detect_anomalies": 0.31,
+        "executive_summary <-> generate_analogies": 0.21,
+        "executive_summary <-> risk_heatmap": 0.31,
+        "executive_summary <-> evidence_matrix": 0.31,
+        "executive_summary <-> board_brief": 0.5,
+        "executive_summary <-> sentiment_scanner": 0.31,
+        "executive_summary <-> dependency_mapper": 0.31,
+        "executive_summary <-> scenario_generator": 0.31,
+        "brainstorm_ideas <-> detect_anomalies": 0.21,
+        "brainstorm_ideas <-> generate_analogies": 0.6,
+        "brainstorm_ideas <-> risk_heatmap": 0.31,
+        "brainstorm_ideas <-> evidence_matrix": 0.31,
+        "brainstorm_ideas <-> board_brief": 0.31,
+        "brainstorm_ideas <-> sentiment_scanner": 0.31,
+        "brainstorm_ideas <-> dependency_mapper": 0.31,
+        "brainstorm_ideas <-> scenario_generator": 0.1,
+        "detect_anomalies <-> generate_analogies": 0.31,
+        "detect_anomalies <-> risk_heatmap": 0.1,
+        "detect_anomalies <-> evidence_matrix": 0.31,
+        "detect_anomalies <-> board_brief": 0.31,
+        "detect_anomalies <-> sentiment_scanner": 0.1,
+        "detect_anomalies <-> dependency_mapper": 0.31,
+        "detect_anomalies <-> scenario_generator": 0.31,
+        "generate_analogies <-> risk_heatmap": 0.31,
+        "generate_analogies <-> evidence_matrix": 0.31,
+        "generate_analogies <-> board_brief": 0.21,
+        "generate_analogies <-> sentiment_scanner": 0.31,
+        "generate_analogies <-> dependency_mapper": 0.31,
+        "generate_analogies <-> scenario_generator": 0.1,
+        "risk_heatmap <-> evidence_matrix": 0.21,
+        "risk_heatmap <-> board_brief": 0.31,
+        "risk_heatmap <-> sentiment_scanner": 0.0,
+        "risk_heatmap <-> dependency_mapper": 0.31,
+        "risk_heatmap <-> scenario_generator": 0.21,
+        "evidence_matrix <-> board_brief": 0.31,
+        "evidence_matrix <-> sentiment_scanner": 0.21,
+        "evidence_matrix <-> dependency_mapper": 0.31,
+        "evidence_matrix <-> scenario_generator": 0.21,
+        "board_brief <-> sentiment_scanner": 0.31,
+        "board_brief <-> dependency_mapper": 0.31,
+        "board_brief <-> scenario_generator": 0.31,
+        "sentiment_scanner <-> dependency_mapper": 0.31,
+        "sentiment_scanner <-> scenario_generator": 0.21,
+        "dependency_mapper <-> scenario_generator": 0.31
+      },
+      "execution_timeline": [
+        {
+          "skill": "identify_risks",
+          "start_time": 1775140741.4762707,
+          "end_time": 1775140741.4762816,
+          "duration_ms": 0.010967254638671875,
+          "success": true
+        },
+        {
+          "skill": "risk_heatmap",
+          "start_time": 1775140741.4775474,
+          "end_time": 1775140741.478715,
+          "duration_ms": 1.1675357818603516,
+          "success": true
+        },
+        {
+          "skill": "synthesize_perspectives",
+          "start_time": 1775140741.4813962,
+          "end_time": 1775140741.481412,
+          "duration_ms": 0.015735626220703125,
+          "success": true
+        }
+      ],
+      "latency_breakdown": {
+        "identify_risks": 0.010967254638671875,
+        "risk_heatmap": 1.1675357818603516,
+        "synthesize_perspectives": 0.015735626220703125,
+        "total": 1.1942386627197266
+      },
+      "verifier_findings": [
+        {
+          "triggered": true,
+          "reasons": [
+            "weak_output_quality",
+            "fragile_downside_case"
+          ],
+          "challenged_claims": [
+            {
+              "skill": "identify_risks",
+              "claim": "Key Risks Identified:",
+              "challenge": "Need additional evidence or cross-check before acceptance."
+            },
+            {
+              "skill": "risk_heatmap",
+              "claim": "Marketplace Skill `risk_heatmap` Output:",
+              "challenge": "Need additional evidence or cross-check before acceptance."
+            }
+          ],
+          "alternative_paths": [
+            "Add validate_claims for stronger evidence verification",
+            "Add detect_anomalies to probe contradictions"
+          ],
+          "needs_human_review": false,
+          "summary": "DISSENT branch triggered for structured challenge."
+        }
+      ],
+      "cost_breakdown": {
+        "identify_risks": 1.2,
+        "risk_heatmap": 1.0,
+        "synthesize_perspectives": 2.0,
+        "total": 4.2
+      },
+      "final_confidence_breakdown": {
+        "routing_confidence": 0.9251683501683502,
+        "portfolio_confidence": 0.5,
+        "evidence_confidence": 1.0,
+        "consistency_confidence": 1.0,
+        "verification_confidence": 0.76,
+        "calibration_adjusted_confidence": 0.9555555555555556,
+        "robustness_confidence": 0.4407917874348812
+      },
+      "interrupt_events": [
+        {
+          "type": "dissent_review_gate",
+          "approval_required": false,
+          "disagreement_triggered": true
+        }
+      ]
+    }
+  },
+  "harness": {
+    "run_summary": {
+      "query": "Design a flagship AI operating plan that balances growth, governance, and research credibility.",
+      "completed": true,
+      "plan": [
+        "understand intent",
+        "collect supporting signals",
+        "synthesize and evaluate",
+        "recipe:enterprise-ops"
+      ],
+      "final_answer_preview": "[identify_risks]\nKey Risks Identified:\n1. [Operational risk extracted from input text]\n2. [Financial or delivery risk extracted from input text]\n3. [Mitigation gap that requires follow-up]\n--- (skill: identify_risks)\n\n[risk_heatmap]\nMarketplace Skill `risk_heatmap` Output:\n- Query interpreted: Design a flagship AI oper",
+      "metrics": {
+        "tool_calls": 4.0,
+        "tool_success_rate": 1.0,
+        "guardrail_block_count": 0.0,
+        "context_reuse_score": 1.0,
+        "completion_score": 1.0,
+        "security_block_count": 0.0,
+        "security_challenge_count": 0.0,
+        "discovery_count": 8.0,
+        "discovery_utilization": 1.0,
+        "recipe_completion": 1.0,
+        "live_agent_enabled": 0.0,
+        "live_agent_configured": 0.0,
+        "live_agent_success": 0.0,
+        "live_agent_calls": 0.0
+      },
+      "value_card": {
+        "value_index": 84.71,
+        "band": "gold",
+        "dimensions": [
+          {
+            "name": "reliability",
+            "score": 0.99,
+            "weight": 0.25,
+            "weighted_score": 0.2475,
+            "evidence": [
+              "tool_success_rate=1.00",
+              "completion_score=1.00",
+              "context_reuse_score=1.00",
+              "live_agent_success=0.00"
+            ],
+            "visual_hint": "kpi_card"
+          },
+          {
+            "name": "observability",
+            "score": 1.0,
+            "weight": 0.2,
+            "weighted_score": 0.2,
+            "evidence": [
+              "discovery_count=8.0",
+              "step_trace_ratio=1.00",
+              "security_trace=yes"
+            ],
+            "visual_hint": "timeline_with_annotations"
+          },
+          {
+            "name": "adaptability",
+            "score": 0.8,
+            "weight": 0.2,
+            "weighted_score": 0.16,
+            "evidence": [
+              "discovery_utilization=1.00",
+              "recipe_completion=1.00",
+              "source_variants=1"
+            ],
+            "visual_hint": "strategy_heatmap"
+          },
+          {
+            "name": "safety",
+            "score": 0.72,
+            "weight": 0.2,
+            "weighted_score": 0.144,
+            "evidence": [
+              "preflight_action=allow",
+              "security_findings=0",
+              "guardrail_block_count=0.0"
+            ],
+            "visual_hint": "risk_shield"
+          },
+          {
+            "name": "innovation",
+            "score": 0.637,
+            "weight": 0.15,
+            "weighted_score": 0.0955,
+            "evidence": [
+              "avg_novelty=0.74",
+              "unique_tools=4",
+              "cross_type_coverage=2",
+              "live_agent_calls=0.0"
+            ],
+            "visual_hint": "novelty_radar"
+          }
+        ],
+        "narrative": "Value Index 84.7 (gold) with strengths in observability, reliability. Completed=True, steps=4, tool_calls=4.",
+        "visual_hooks": [
+          {
+            "dimension": "observability",
+            "recommended_visual": "timeline_with_annotations",
+            "headline": "Observability 100%"
+          },
+          {
+            "dimension": "reliability",
+            "recommended_visual": "kpi_card",
+            "headline": "Reliability 99%"
+          },
+          {
+            "dimension": "adaptability",
+            "recommended_visual": "strategy_heatmap",
+            "headline": "Adaptability 80%"
+          },
+          {
+            "dimension": "safety",
+            "recommended_visual": "risk_shield",
+            "headline": "Safety 72%"
+          },
+          {
+            "dimension": "innovation",
+            "recommended_visual": "novelty_radar",
+            "headline": "Innovation 64%"
+          }
+        ]
+      },
+      "security": {
+        "preflight_action": "allow",
+        "preflight_risk_score": 0.0,
+        "preflight_findings": []
+      },
+      "recipe": {
+        "name": "enterprise-ops",
+        "version": "1.0.0",
+        "total_steps": 4,
+        "executed_steps": 4
+      },
+      "live_agent": {
+        "enabled": false,
+        "configured": false,
+        "calls_used": 0,
+        "call_budget": 0,
+        "success": false,
+        "notes": [],
+        "errors": []
+      },
+      "top_discovery": [
+        {
+          "name": "api_skill_portfolio_optimizer",
+          "score": 1.086,
+          "reasons": [
+            "intent_match:research,planning",
+            "mode_boost:deep_analysis"
+          ]
+        },
+        {
+          "name": "code_experiment_design",
+          "score": 1.077,
+          "reasons": [
+            "intent_match:research,design",
+            "token_overlap:design,research"
+          ]
+        },
+        {
+          "name": "external_resource_hub",
+          "score": 0.974,
+          "reasons": [
+            "intent_match:research,design"
+          ]
+        },
+        {
+          "name": "policy_risk_matrix",
+          "score": 0.805,
+          "reasons": [
+            "intent_match:risk",
+            "token_overlap:governance"
+          ]
+        },
+        {
+          "name": "code_router_blueprint",
+          "score": 0.7875,
+          "reasons": [
+            "intent_match:design",
+            "token_overlap:design"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "tool": "memory_context_digest",
+          "source": "recipe:enterprise-ops",
+          "score": 0.757,
+          "success": true,
+          "latency_ms": 0.02,
+          "notes": [
+            "SECURITY_ALLOW:risk_score=0.00"
+          ]
+        },
+        {
+          "step": 2,
+          "tool": "policy_risk_matrix",
+          "source": "recipe:enterprise-ops",
+          "score": 0.805,
+          "success": true,
+          "latency_ms": 0.06,
+          "notes": [
+            "SECURITY_ALLOW:risk_score=0.00"
+          ]
+        },
+        {
+          "step": 3,
+          "tool": "api_skill_portfolio_optimizer",
+          "source": "recipe:enterprise-ops",
+          "score": 1.086,
+          "success": true,
+          "latency_ms": 2.97,
+          "notes": [
+            "SECURITY_ALLOW:risk_score=0.00"
+          ]
+        },
+        {
+          "step": 4,
+          "tool": "api_skill_dependency_graph",
+          "source": "recipe:enterprise-ops",
+          "score": 0.7165,
+          "success": true,
+          "latency_ms": 1.44,
+          "notes": [
+            "SECURITY_ALLOW:risk_score=0.00"
+          ]
+        }
+      ],
+      "memory_snapshot_size": 1
+    },
+    "plan": [
+      "understand intent",
+      "collect supporting signals",
+      "synthesize and evaluate",
+      "recipe:enterprise-ops"
+    ],
+    "final_answer": "[identify_risks]\nKey Risks Identified:\n1. [Operational risk extracted from input text]\n2. [Financial or delivery risk extracted from input text]\n3. [Mitigation gap that requires follow-up]\n--- (skill: identify_risks)\n\n[risk_heatmap]\nMarketplace Skill `risk_heatmap` Output:\n- Query interpreted: Design a flagship AI operating plan that balances growth, governance, and research credibility.\n- Evidence: synthetic local execution (replace with real tool backend)\n- Confidence: medium\n\n[synthesize_perspectives]\nPerspective Synthesis:\n  Viewpoint A: [perspective summary]\n  Viewpoint B: [perspective summary]\n  Common Ground: [shared conclusions]\n  Key Disagreements: [where perspectives diverge]\n  Synthesis: [integrated view acknowledging trade-offs]\n--- (skill: synthesize_perspectives)\n\nEnsemble Synthesis:\n- Query: Design a flagship AI operating plan that balances growth, governance, and research credibility.\n- Contributing skills: identify_risks, risk_heatmap, synthesize_perspectives\n- Cross-skill agreement signals: 2\n- Conflicts: no conflicts\n- Consensus strength: strong\n- DISSENT triggered: True\n- Average output quality: 0.96\n- Total execution time: 1.2ms\n- Ensemble confidence: medium\n\nDISSENT Findings:\n- Reasons: weak_output_quality, fragile_downside_case\n- Human review required: False\n\nHarness Execution Notes:\n- security preflight: allow (score=0.00)\n- discovered tools: api_skill_portfolio_optimizer, code_experiment_design, external_resource_hub\n- recipe: enterprise-ops\n- memory_context_digest: OK (0.0ms)\n- policy_risk_matrix: OK (0.1ms)\n- api_skill_portfolio_optimizer: OK (3.0ms)\n- api_skill_dependency_graph: OK (1.4ms)",
+    "final_answer_excerpt": "[identify_risks]\nKey Risks Identified:\n1. [Operational risk extracted from input text]\n2. [Financial or delivery risk extracted from input text]\n3. [Mitigation gap that requires follow-up]\n--- (skill: identify_risks)\n\n[risk_heatmap]\nMarketplace Skill `risk_heatmap` Output:\n- Query interpreted: Design a flagship AI operating plan that balances growth, governance, and research credibility.\n- Evidence: synthetic local execution (replace with real tool backend)\n- Confidence: medium\n\n[synthesize_perspectives]\nPerspective Synthesis:\n  Viewpoint A: [perspective summary]\n  Viewpoint B: [perspective summary]\n  Common Ground: [shared conclusions]\n  Key Disagreements: [where perspectives diverge]\n  Synthesis: [integrated view acknowledging trade-offs]\n--- (skill: synthesize_perspectives)\n\nEnsemble Synthesis:\n- Query: Design a flagship AI operating plan that balances growth, governance, and research credibility.\n- Contributing skills: identify_risks, risk_heatmap, synthesize_perspectives\n- Cross-skill agreement signals: 2\n- Conflicts: no conflicts\n- Consensus strength: strong\n- DISSENT triggered: True\n- Average output quality: 0.96\n- Total execution time: 1.2ms\n- Ensemble confidence: medium\n\nDISSENT Findings:\n- Reasons: weak_output_quality, fragile_downside_case\n- Human review required: False\n\nHarness Execution Notes:\n- security preflight: allow (score=0.00)\n- discovered tools: api_skill_portfolio_optimizer, code_experiment_design, external_resource_hub\n- recipe: enterprise-ops\n- memory_context_digest: OK (0.0ms)\n- policy_risk_matrix: OK (0.1ms)\n- api_skill_portfolio_optimizer: OK (3.0",
+    "generation": {
+      "mode": "baseline",
+      "live_agent_enabled": false,
+      "live_agent_configured": false,
+      "live_agent_success": false,
+      "model": "",
+      "base_url": "",
+      "calls_used": 0,
+      "call_budget": 0,
+      "notes": [],
+      "errors": []
+    },
+    "value_card": {
+      "value_index": 84.71,
+      "band": "gold",
+      "dimensions": [
+        {
+          "name": "reliability",
+          "score": 0.99,
+          "weight": 0.25,
+          "weighted_score": 0.2475,
+          "evidence": [
+            "tool_success_rate=1.00",
+            "completion_score=1.00",
+            "context_reuse_score=1.00",
+            "live_agent_success=0.00"
+          ],
+          "visual_hint": "kpi_card"
+        },
+        {
+          "name": "observability",
+          "score": 1.0,
+          "weight": 0.2,
+          "weighted_score": 0.2,
+          "evidence": [
+            "discovery_count=8.0",
+            "step_trace_ratio=1.00",
+            "security_trace=yes"
+          ],
+          "visual_hint": "timeline_with_annotations"
+        },
+        {
+          "name": "adaptability",
+          "score": 0.8,
+          "weight": 0.2,
+          "weighted_score": 0.16,
+          "evidence": [
+            "discovery_utilization=1.00",
+            "recipe_completion=1.00",
+            "source_variants=1"
+          ],
+          "visual_hint": "strategy_heatmap"
+        },
+        {
+          "name": "safety",
+          "score": 0.72,
+          "weight": 0.2,
+          "weighted_score": 0.144,
+          "evidence": [
+            "preflight_action=allow",
+            "security_findings=0",
+            "guardrail_block_count=0.0"
+          ],
+          "visual_hint": "risk_shield"
+        },
+        {
+          "name": "innovation",
+          "score": 0.637,
+          "weight": 0.15,
+          "weighted_score": 0.0955,
+          "evidence": [
+            "avg_novelty=0.74",
+            "unique_tools=4",
+            "cross_type_coverage=2",
+            "live_agent_calls=0.0"
+          ],
+          "visual_hint": "novelty_radar"
+        }
+      ],
+      "narrative": "Value Index 84.7 (gold) with strengths in observability, reliability. Completed=True, steps=4, tool_calls=4.",
+      "visual_hooks": [
+        {
+          "dimension": "observability",
+          "recommended_visual": "timeline_with_annotations",
+          "headline": "Observability 100%"
+        },
+        {
+          "dimension": "reliability",
+          "recommended_visual": "kpi_card",
+          "headline": "Reliability 99%"
+        },
+        {
+          "dimension": "adaptability",
+          "recommended_visual": "strategy_heatmap",
+          "headline": "Adaptability 80%"
+        },
+        {
+          "dimension": "safety",
+          "recommended_visual": "risk_shield",
+          "headline": "Safety 72%"
+        },
+        {
+          "dimension": "innovation",
+          "recommended_visual": "novelty_radar",
+          "headline": "Innovation 64%"
+        }
+      ]
+    },
+    "visual_kpis": {
+      "value_index": 84.71,
+      "tool_calls": 4.0,
+      "tool_success_rate": 1.0,
+      "completion_score": 1.0,
+      "live_agent_calls": 0.0,
+      "live_agent_success": 0.0,
+      "reliability": 0.99,
+      "observability": 1.0,
+      "adaptability": 0.8,
+      "safety": 0.72,
+      "innovation": 0.637
+    },
+    "first_screen_blueprint": {
+      "layout_version": "1.0.0",
+      "theme": {
+        "name": "harness-impact",
+        "style": "high-contrast-clean",
+        "primary": "#0E1A2B",
+        "accent": "#1E9B8A",
+        "warning": "#E8A317",
+        "danger": "#C0392B",
+        "surface": "#F7F8FA"
+      },
+      "hero": {
+        "title": "Harness Value Lens",
+        "subtitle": "Value Index 84.7 (gold) with strengths in observability, reliability. Completed=True, steps=4, tool_calls=4.",
+        "badges": [
+          {
+            "label": "GOLD VALUE",
+            "tone": "accent"
+          }
+        ],
+        "kpi_cards": [
+          {
+            "title": "Value Index",
+            "value": 84.71,
+            "ref": "kpis.value_index"
+          },
+          {
+            "title": "Reliability",
+            "value": 99.0,
+            "unit": "%",
+            "ref": "kpis.reliability"
+          },
+          {
+            "title": "Safety",
+            "value": 72.0,
+            "unit": "%",
+            "ref": "kpis.safety"
+          },
+          {
+            "title": "Innovation",
+            "value": 63.7,
+            "unit": "%",
+            "ref": "kpis.innovation"
+          },
+          {
+            "title": "Live Calls",
+            "value": 0.0,
+            "ref": "kpis.live_agent_calls"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": "radar",
+          "title": "Value Radar",
+          "component": "radar_chart",
+          "data_ref": "radar"
+        },
+        {
+          "id": "timeline",
+          "title": "Execution Timeline",
+          "component": "timeline_gantt",
+          "data_ref": "timeline"
+        },
+        {
+          "id": "discovery",
+          "title": "Discovery Opportunity Board",
+          "component": "bubble_scatter",
+          "data_ref": "discovery_board"
+        },
+        {
+          "id": "security",
+          "title": "Safety Decision Lane",
+          "component": "security_lane",
+          "data_ref": "security_board"
+        },
+        {
+          "id": "network",
+          "title": "Tool Relation Graph",
+          "component": "force_graph",
+          "data_ref": "tool_network"
+        }
+      ],
+      "callouts": [
+        {
+          "title": "Reliability Signal",
+          "headline": "99% reliable execution",
+          "evidence": "tool_success_rate=1.00, completion=1.00"
+        },
+        {
+          "title": "Safety Signal",
+          "headline": "72% safety posture",
+          "evidence": "security_blocks=0.0, security_challenges=0.0"
+        },
+        {
+          "title": "Innovation Signal",
+          "headline": "64% innovation density",
+          "evidence": "discovery_count=8.0, utilization=1.00"
+        }
+      ],
+      "motion_guidance": [
+        "Hero badges fade-in with 120ms stagger.",
+        "Timeline bars animate width from 0 to latency proportion.",
+        "Network graph enters with force warm-up before pinning nodes.",
+        "Agent loop board reveals analyze->synthesize->critique states sequentially."
+      ]
+    }
+  },
+  "lab": {
+    "preset": "broad",
+    "repeats": 1,
+    "scenario_ids": [
+      "daily-001",
+      "research-001",
+      "creative-001",
+      "enterprise-001",
+      "safety-001"
+    ],
+    "release_decision": {
+      "decision": "go",
+      "reason": "all_quality_gates_passed",
+      "checks": {
+        "value_ok": true,
+        "safety_ok": true,
+        "pass_rate_ok": true,
+        "stability_ok": true
+      },
+      "selected_candidate": "balanced-auto"
+    },
+    "best": {
+      "candidate": "balanced-auto",
+      "runs": 5,
+      "avg_value_index": 72.504,
+      "avg_scenario_score": 0.82,
+      "avg_completion": 0.8,
+      "avg_tool_success_rate": 0.8,
+      "avg_security_alignment": 1.0,
+      "avg_expected_tool_coverage": 1.0,
+      "efficiency_score": 0.7908,
+      "stability_score": 0.7807,
+      "pass_rate": 0.8,
+      "composite_score": 0.8338,
+      "ci95_value_index": [
+        53.772,
+        82.702
+      ],
+      "ci95_scenario_score": [
+        0.6074,
+        0.9295
+      ],
+      "by_category": {
+        "daily": {
+          "count": 1,
+          "avg_value_index": 79.31,
+          "avg_scenario_score": 0.9172,
+          "avg_security_alignment": 1.0
+        },
+        "research": {
+          "count": 1,
+          "avg_value_index": 82.19,
+          "avg_scenario_score": 0.9288,
+          "avg_security_alignment": 1.0
+        },
+        "creative": {
+          "count": 1,
+          "avg_value_index": 83.87,
+          "avg_scenario_score": 0.9355,
+          "avg_security_alignment": 1.0
+        },
+        "enterprise": {
+          "count": 1,
+          "avg_value_index": 80.95,
+          "avg_scenario_score": 0.9238,
+          "avg_security_alignment": 1.0
+        },
+        "safety": {
+          "count": 1,
+          "avg_value_index": 36.2,
+          "avg_scenario_score": 0.3948,
+          "avg_security_alignment": 1.0
+        }
+      },
+      "dominated_by_count": 2,
+      "pareto_frontier": false,
+      "dominance_rank": 3
+    },
+    "leaderboard": [
+      {
+        "candidate": "balanced-auto",
+        "runs": 5,
+        "avg_value_index": 72.504,
+        "avg_scenario_score": 0.82,
+        "avg_completion": 0.8,
+        "avg_tool_success_rate": 0.8,
+        "avg_security_alignment": 1.0,
+        "avg_expected_tool_coverage": 1.0,
+        "efficiency_score": 0.7908,
+        "stability_score": 0.7807,
+        "pass_rate": 0.8,
+        "composite_score": 0.8338,
+        "ci95_value_index": [
+          53.772,
+          82.702
+        ],
+        "ci95_scenario_score": [
+          0.6074,
+          0.9295
+        ],
+        "by_category": {
+          "daily": {
+            "count": 1,
+            "avg_value_index": 79.31,
+            "avg_scenario_score": 0.9172,
+            "avg_security_alignment": 1.0
+          },
+          "research": {
+            "count": 1,
+            "avg_value_index": 82.19,
+            "avg_scenario_score": 0.9288,
+            "avg_security_alignment": 1.0
+          },
+          "creative": {
+            "count": 1,
+            "avg_value_index": 83.87,
+            "avg_scenario_score": 0.9355,
+            "avg_security_alignment": 1.0
+          },
+          "enterprise": {
+            "count": 1,
+            "avg_value_index": 80.95,
+            "avg_scenario_score": 0.9238,
+            "avg_security_alignment": 1.0
+          },
+          "safety": {
+            "count": 1,
+            "avg_value_index": 36.2,
+            "avg_scenario_score": 0.3948,
+            "avg_security_alignment": 1.0
+          }
+        },
+        "dominated_by_count": 2,
+        "pareto_frontier": false,
+        "dominance_rank": 3
+      },
+      {
+        "candidate": "daily-operator",
+        "runs": 5,
+        "avg_value_index": 71.388,
+        "avg_scenario_score": 0.7705,
+        "avg_completion": 0.8,
+        "avg_tool_success_rate": 0.8,
+        "avg_security_alignment": 1.0,
+        "avg_expected_tool_coverage": 0.7,
+        "efficiency_score": 0.7883,
+        "stability_score": 0.7838,
+        "pass_rate": 0.8,
+        "composite_score": 0.7849,
+        "ci95_value_index": [
+          53.444,
+          80.71
+        ],
+        "ci95_scenario_score": [
+          0.5902,
+          0.9036
+        ],
+        "by_category": {
+          "daily": {
+            "count": 1,
+            "avg_value_index": 79.31,
+            "avg_scenario_score": 0.9172,
+            "avg_security_alignment": 1.0
+          },
+          "research": {
+            "count": 1,
+            "avg_value_index": 81.06,
+            "avg_scenario_score": 0.7742,
+            "avg_security_alignment": 1.0
+          },
+          "creative": {
+            "count": 1,
+            "avg_value_index": 81.06,
+            "avg_scenario_score": 0.8492,
+            "avg_security_alignment": 1.0
+          },
+          "enterprise": {
+            "count": 1,
+            "avg_value_index": 79.31,
+            "avg_scenario_score": 0.9172,
+            "avg_security_alignment": 1.0
+          },
+          "safety": {
+            "count": 1,
+            "avg_value_index": 36.2,
+            "avg_scenario_score": 0.3948,
+            "avg_security_alignment": 1.0
+          }
+        },
+        "dominated_by_count": 3,
+        "pareto_frontier": false,
+        "dominance_rank": 4
+      },
+      {
+        "candidate": "creative-studio",
+        "runs": 5,
+        "avg_value_index": 73.636,
+        "avg_scenario_score": 0.7596,
+        "avg_completion": 0.8,
+        "avg_tool_success_rate": 0.8,
+        "avg_security_alignment": 1.0,
+        "avg_expected_tool_coverage": 0.5667,
+        "efficiency_score": 0.7908,
+        "stability_score": 0.7785,
+        "pass_rate": 0.8,
+        "composite_score": 0.7727,
+        "ci95_value_index": [
+          54.568,
+          83.52
+        ],
+        "ci95_scenario_score": [
+          0.5797,
+          0.8827
+        ],
+        "by_category": {
+          "daily": {
+            "count": 1,
+            "avg_value_index": 82.12,
+            "avg_scenario_score": 0.8285,
+            "avg_security_alignment": 1.0
+          },
+          "research": {
+            "count": 1,
+            "avg_value_index": 83.87,
+            "avg_scenario_score": 0.8605,
+            "avg_security_alignment": 1.0
+          },
+          "creative": {
+            "count": 1,
+            "avg_value_index": 83.87,
+            "avg_scenario_score": 0.9355,
+            "avg_security_alignment": 1.0
+          },
+          "enterprise": {
+            "count": 1,
+            "avg_value_index": 82.12,
+            "avg_scenario_score": 0.7785,
+            "avg_security_alignment": 1.0
+          },
+          "safety": {
+            "count": 1,
+            "avg_value_index": 36.2,
+            "avg_scenario_score": 0.3948,
+            "avg_security_alignment": 1.0
+          }
+        },
+        "dominated_by_count": 1,
+        "pareto_frontier": false,
+        "dominance_rank": 2
+      },
+      {
+        "candidate": "enterprise-ops",
+        "runs": 5,
+        "avg_value_index": 71.3,
+        "avg_scenario_score": 0.7552,
+        "avg_completion": 0.8,
+        "avg_tool_success_rate": 0.8,
+        "avg_security_alignment": 1.0,
+        "avg_expected_tool_coverage": 0.6,
+        "efficiency_score": 0.7846,
+        "stability_score": 0.784,
+        "pass_rate": 0.8,
+        "composite_score": 0.7695,
+        "ci95_value_index": [
+          53.4,
+          80.6
+        ],
+        "ci95_scenario_score": [
+          0.575,
+          0.8924
+        ],
+        "by_category": {
+          "daily": {
+            "count": 1,
+            "avg_value_index": 80.95,
+            "avg_scenario_score": 0.9238,
+            "avg_security_alignment": 1.0
+          },
+          "research": {
+            "count": 1,
+            "avg_value_index": 79.2,
+            "avg_scenario_score": 0.7668,
+            "avg_security_alignment": 1.0
+          },
+          "creative": {
+            "count": 1,
+            "avg_value_index": 79.2,
+            "avg_scenario_score": 0.7668,
+            "avg_security_alignment": 1.0
+          },
+          "enterprise": {
+            "count": 1,
+            "avg_value_index": 80.95,
+            "avg_scenario_score": 0.9238,
+            "avg_security_alignment": 1.0
+          },
+          "safety": {
+            "count": 1,
+            "avg_value_index": 36.2,
+            "avg_scenario_score": 0.3948,
+            "avg_security_alignment": 1.0
+          }
+        },
+        "dominated_by_count": 4,
+        "pareto_frontier": false,
+        "dominance_rank": 5
+      },
+      {
+        "candidate": "research-rig",
+        "runs": 5,
+        "avg_value_index": 74.442,
+        "avg_scenario_score": 0.7528,
+        "avg_completion": 0.8,
+        "avg_tool_success_rate": 0.8,
+        "avg_security_alignment": 1.0,
+        "avg_expected_tool_coverage": 0.5,
+        "efficiency_score": 0.7927,
+        "stability_score": 0.7766,
+        "pass_rate": 0.8,
+        "composite_score": 0.7655,
+        "ci95_value_index": [
+          54.946,
+          85.14
+        ],
+        "ci95_scenario_score": [
+          0.5678,
+          0.8762
+        ],
+        "by_category": {
+          "daily": {
+            "count": 1,
+            "avg_value_index": 83.94,
+            "avg_scenario_score": 0.7858,
+            "avg_security_alignment": 1.0
+          },
+          "research": {
+            "count": 1,
+            "avg_value_index": 82.19,
+            "avg_scenario_score": 0.9288,
+            "avg_security_alignment": 1.0
+          },
+          "creative": {
+            "count": 1,
+            "avg_value_index": 85.94,
+            "avg_scenario_score": 0.8688,
+            "avg_security_alignment": 1.0
+          },
+          "enterprise": {
+            "count": 1,
+            "avg_value_index": 83.94,
+            "avg_scenario_score": 0.7858,
+            "avg_security_alignment": 1.0
+          },
+          "safety": {
+            "count": 1,
+            "avg_value_index": 36.2,
+            "avg_scenario_score": 0.3948,
+            "avg_security_alignment": 1.0
+          }
+        },
+        "dominated_by_count": 0,
+        "pareto_frontier": true,
+        "dominance_rank": 1
+      }
+    ],
+    "competition": {
+      "pareto_frontier": [
+        "research-rig"
+      ],
+      "dominance_matrix": [
+        {
+          "candidate": "balanced-auto",
+          "dominated_by_count": 2,
+          "pareto_frontier": false
+        },
+        {
+          "candidate": "daily-operator",
+          "dominated_by_count": 3,
+          "pareto_frontier": false
+        },
+        {
+          "candidate": "creative-studio",
+          "dominated_by_count": 1,
+          "pareto_frontier": false
+        },
+        {
+          "candidate": "enterprise-ops",
+          "dominated_by_count": 4,
+          "pareto_frontier": false
+        },
+        {
+          "candidate": "research-rig",
+          "dominated_by_count": 0,
+          "pareto_frontier": true
+        }
+      ]
+    },
+    "story_summary": {
+      "summary": {
+        "preset": "broad",
+        "scenario_count": 5,
+        "candidate_count": 5,
+        "best_candidate": "balanced-auto",
+        "best_composite_score": 0.8338,
+        "best_value_index": 72.504,
+        "release_decision": "go",
+        "release_reason": "all_quality_gates_passed",
+        "pareto_frontier_size": 1,
+        "composite_delta_vs_prev": 0.8338,
+        "champion_streak": 1
+      },
+      "applause_points": [
+        "Release gate decision is `go` with reason `all_quality_gates_passed`.",
+        "Best candidate `balanced-auto` reached composite score 0.8338.",
+        "Pareto frontier includes 1 candidate(s): research-rig.",
+        "No previous run found; this run establishes initial benchmark history."
+      ],
+      "trend": {
+        "has_previous": false,
+        "previous_run_tag": "",
+        "composite_delta": 0.8338,
+        "value_index_delta": 72.504
+      },
+      "champion_streak": {
+        "candidate": "balanced-auto",
+        "streak": 1
+      }
+    }
+  },
+  "ecosystem": {
+    "query_discovery": [
+      {
+        "name": "risk_heatmap",
+        "provider": "core-labs",
+        "version": "0.1.0",
+        "score": 0.2602,
+        "reputation": 0.805,
+        "trending_score": 0.22,
+        "tags": [
+          "risk",
+          "analysis",
+          "governance"
+        ]
+      },
+      {
+        "name": "evidence_matrix",
+        "provider": "research-hub",
+        "version": "0.2.1",
+        "score": 0.2144,
+        "reputation": 0.7471,
+        "trending_score": 0.21,
+        "tags": [
+          "research",
+          "evidence",
+          "comparison"
+        ]
+      },
+      {
+        "name": "board_brief",
+        "provider": "exec-ai",
+        "version": "1.0.0",
+        "score": 0.1983,
+        "reputation": 0.8774,
+        "trending_score": 0.27,
+        "tags": [
+          "communication",
+          "executive",
+          "brief"
+        ]
+      },
+      {
+        "name": "sentiment_scanner",
+        "provider": "nlp-works",
+        "version": "1.2.0",
+        "score": 0.1944,
+        "reputation": 0.7559,
+        "trending_score": 0.18,
+        "tags": [
+          "sentiment",
+          "analysis",
+          "opinion",
+          "emotion"
+        ]
+      },
+      {
+        "name": "dependency_mapper",
+        "provider": "arch-ai",
+        "version": "0.3.0",
+        "score": 0.186,
+        "reputation": 0.619,
+        "trending_score": 0.1,
+        "tags": [
+          "dependency",
+          "graph",
+          "relationship",
+          "mapping"
+        ]
+      },
+      {
+        "name": "scenario_generator",
+        "provider": "futures-lab",
+        "version": "0.1.0",
+        "score": 0.1704,
+        "reputation": 0.6581,
+        "trending_score": 0.33,
+        "tags": [
+          "scenario",
+          "future",
+          "simulation",
+          "what-if"
+        ]
+      }
+    ],
+    "trending": [
+      {
+        "name": "scenario_generator",
+        "provider": "futures-lab",
+        "trending_score": 0.33,
+        "installs": 42,
+        "uses": 28,
+        "rating": 4.5,
+        "tags": [
+          "scenario",
+          "future",
+          "simulation",
+          "what-if"
+        ]
+      },
+      {
+        "name": "board_brief",
+        "provider": "exec-ai",
+        "trending_score": 0.27,
+        "installs": 180,
+        "uses": 152,
+        "rating": 4.8,
+        "tags": [
+          "communication",
+          "executive",
+          "brief"
+        ]
+      },
+      {
+        "name": "risk_heatmap",
+        "provider": "core-labs",
+        "trending_score": 0.22,
+        "installs": 120,
+        "uses": 91,
+        "rating": 4.6,
+        "tags": [
+          "risk",
+          "analysis",
+          "governance"
+        ]
+      },
+      {
+        "name": "evidence_matrix",
+        "provider": "research-hub",
+        "trending_score": 0.21,
+        "installs": 95,
+        "uses": 71,
+        "rating": 4.4,
+        "tags": [
+          "research",
+          "evidence",
+          "comparison"
+        ]
+      },
+      {
+        "name": "sentiment_scanner",
+        "provider": "nlp-works",
+        "trending_score": 0.18,
+        "installs": 95,
+        "uses": 84,
+        "rating": 4.3,
+        "tags": [
+          "sentiment",
+          "analysis",
+          "opinion",
+          "emotion"
+        ]
+      },
+      {
+        "name": "dependency_mapper",
+        "provider": "arch-ai",
+        "trending_score": 0.1,
+        "installs": 68,
+        "uses": 45,
+        "rating": 4.1,
+        "tags": [
+          "dependency",
+          "graph",
+          "relationship",
+          "mapping"
+        ]
+      }
+    ],
+    "providers": [
+      {
+        "provider": "core-labs",
+        "count": 1,
+        "installs": 120,
+        "uses": 91,
+        "avg_rating": 4.6,
+        "avg_reputation": 0.805,
+        "skills": [
+          "risk_heatmap"
+        ]
+      },
+      {
+        "provider": "research-hub",
+        "count": 1,
+        "installs": 95,
+        "uses": 71,
+        "avg_rating": 4.4,
+        "avg_reputation": 0.747,
+        "skills": [
+          "evidence_matrix"
+        ]
+      },
+      {
+        "provider": "exec-ai",
+        "count": 1,
+        "installs": 180,
+        "uses": 152,
+        "avg_rating": 4.8,
+        "avg_reputation": 0.877,
+        "skills": [
+          "board_brief"
+        ]
+      },
+      {
+        "provider": "nlp-works",
+        "count": 1,
+        "installs": 95,
+        "uses": 84,
+        "avg_rating": 4.3,
+        "avg_reputation": 0.756,
+        "skills": [
+          "sentiment_scanner"
+        ]
+      }
+    ]
+  },
+  "interop": {
+    "config": {
+      "include_marketplace": true,
+      "include_external": true,
+      "include_harness_tools": true
+    },
+    "summary": {
+      "framework_count": 2,
+      "coverage_ratio": 1.0,
+      "total_skill_entries": 36,
+      "frameworks": [
+        {
+          "framework": "anthropic",
+          "skill_count": 18
+        },
+        {
+          "framework": "openai",
+          "skill_count": 18
+        }
+      ]
+    }
+  },
+  "story": {
+    "theme": "Launching a flagship AI platform with growth, governance, and research credibility in balance.",
+    "release_need": "A launch team needs a concrete operating plan that can expand the product, control governance risk, and prove the system is credible enough to release.",
+    "strategy_plan": [
+      "Synthesize competing business, governance, and research perspectives into one operating thesis.",
+      "Map major release risks before launch and make the downside visible.",
+      "Convert the result into a release recommendation backed by measurable gates."
+    ],
+    "execution_recipe": [
+      "understand intent",
+      "collect supporting signals",
+      "synthesize and evaluate",
+      "recipe:enterprise-ops"
+    ],
+    "selected_agent": "PlannerAgent",
+    "selected_skills": [
+      "identify_risks",
+      "risk_heatmap",
+      "synthesize_perspectives"
+    ],
+    "evidence_bundle": [
+      "Release decision: go (all_quality_gates_passed)",
+      "Frontier score: 0.778; bottleneck axis: orchestration_quality",
+      "Routing confidence: 0.925",
+      "Value index: 84.71 (gold)",
+      "Safety score: 0.72; reliability score: 0.99",
+      "Interop export: 2 frameworks / 36 skill entries"
+    ],
+    "audience_takeaway": "This is not just a prompt response. It is a release-ready strategy package with routing evidence, evaluation results, and ecosystem-portable artifacts.",
+    "mode": "deep",
+    "query": "Design a flagship AI operating plan that balances growth, governance, and research credibility."
+  },
+  "capability_vector": {
+    "orchestration_quality": 0.6433,
+    "research_rigor": 0.9003,
+    "ecosystem_leverage": 0.906,
+    "governance_safety": 0.818,
+    "product_readiness": 0.9567,
+    "interoperability": 1.0
+  },
+  "frontier": {
+    "score": 0.7776,
+    "mean": 0.8707,
+    "minimum_axis": 0.6433,
+    "geometric": 0.8621,
+    "bottleneck": {
+      "axis": "orchestration_quality",
+      "score": 0.6433
+    }
+  },
+  "comparison": {
+    "archetypes": [
+      {
+        "name": "deep-research",
+        "description": "Strong research loop and analysis depth; weaker productization and onboarding.",
+        "baseline_frontier": 0.5239,
+        "frontier_gap": 0.2537,
+        "wins": [
+          "research_rigor",
+          "ecosystem_leverage",
+          "governance_safety",
+          "product_readiness",
+          "interoperability"
+        ],
+        "losses": [
+          "orchestration_quality"
+        ],
+        "deltas": {
+          "orchestration_quality": -0.0767,
+          "research_rigor": 0.0203,
+          "ecosystem_leverage": 0.506,
+          "governance_safety": 0.158,
+          "product_readiness": 0.4767,
+          "interoperability": 0.45
+        },
+        "advantage_ratio": 0.8333
+      },
+      {
+        "name": "data-flow",
+        "description": "Strong flow orchestration and deterministic pipelines; weaker portability.",
+        "baseline_frontier": 0.5679,
+        "frontier_gap": 0.2097,
+        "wins": [
+          "research_rigor",
+          "ecosystem_leverage",
+          "governance_safety",
+          "product_readiness",
+          "interoperability"
+        ],
+        "losses": [
+          "orchestration_quality"
+        ],
+        "deltas": {
+          "orchestration_quality": -0.1767,
+          "research_rigor": 0.3203,
+          "ecosystem_leverage": 0.386,
+          "governance_safety": 0.198,
+          "product_readiness": 0.2967,
+          "interoperability": 0.5
+        },
+        "advantage_ratio": 0.8333
+      },
+      {
+        "name": "skill-hub",
+        "description": "Strong ecosystem integration; weaker rigorous evaluation gates.",
+        "baseline_frontier": 0.5796,
+        "frontier_gap": 0.198,
+        "wins": [
+          "orchestration_quality",
+          "research_rigor",
+          "ecosystem_leverage",
+          "governance_safety",
+          "product_readiness",
+          "interoperability"
+        ],
+        "losses": [],
+        "deltas": {
+          "orchestration_quality": 0.0233,
+          "research_rigor": 0.4003,
+          "ecosystem_leverage": 0.006,
+          "governance_safety": 0.368,
+          "product_readiness": 0.2367,
+          "interoperability": 0.14
+        },
+        "advantage_ratio": 1.0
+      }
+    ],
+    "positioning": {
+      "headline": "Ahead of deep-research by +0.254 frontier score.",
+      "best_vs_name": "deep-research",
+      "best_vs_gap": 0.2537
+    }
+  },
+  "why_use_this": [
+    "Concentrated value axis: interoperability=1.00, product_readiness=0.96, ecosystem_leverage=0.91.",
+    "Frontier score=0.778 with bottleneck `orchestration_quality`.",
+    "Ahead of deep-research by +0.254 frontier score.",
+    "Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.",
+    "Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle."
+  ]
+}

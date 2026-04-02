@@ -70,24 +70,31 @@ It turns one request into:
 
 ### Demo Gallery
 
+Published demo snapshots live under `docs/demo/`. Runtime-generated `reports/` outputs stay local and are intentionally gitignored.
+
+Browse all tracked snapshots: [docs/demo/README.md](./docs/demo/README.md)
+
 <table>
   <tr>
     <td width="33%" valign="top">
       <h3>Live Proposal Showcase</h3>
+      <p><img src="./docs/demo/live/showcase.png" alt="Live showcase screenshot"></p>
       <p>Front-page launch style HTML with proposal summary, rollout phases, evidence, framework comparison, and agent comparison.</p>
-      <p><a href="./reports/live_launch_demo/studio_showcase_deepseek-live.html">Open HTML</a></p>
-      <p><a href="./reports/live_launch_demo/studio_press_brief_deepseek-live.md">Open Press Brief</a></p>
+      <p><a href="./docs/demo/live/showcase.html">Open HTML Snapshot</a></p>
+      <p><a href="./docs/demo/live/press-brief.md">Open Press Brief</a></p>
     </td>
     <td width="33%" valign="top">
       <h3>Baseline Launch Bundle</h3>
+      <p><img src="./docs/demo/press/showcase.png" alt="Baseline showcase screenshot"></p>
       <p>Deterministic showcase bundle for reproducible demos and CI-safe product packaging.</p>
-      <p><a href="./reports/launch_demo/studio_showcase_press.html">Open HTML</a></p>
-      <p><a href="./reports/launch_demo/studio_showcase_press.json">Open JSON</a></p>
+      <p><a href="./docs/demo/press/showcase.html">Open HTML Snapshot</a></p>
+      <p><a href="./docs/demo/press/showcase.json">Open JSON</a></p>
     </td>
     <td width="33%" valign="top">
       <h3>Ecosystem Export</h3>
+      <p><img src="./docs/demo/live/showcase.png" alt="Interop-backed launch artifact"></p>
       <p>Interop bundle for OpenAI and Anthropic skill ecosystems, generated from the same project capabilities.</p>
-      <p><a href="./reports/live_launch_demo/studio_interop_deepseek-live/interop_bundle.json">Open Interop Bundle</a></p>
+      <p><a href="./docs/demo/live/interop_bundle.json">Open Interop Bundle</a></p>
     </td>
   </tr>
 </table>
@@ -381,8 +388,8 @@ python -m app.main studio-showcase "Design a flagship AI operating plan" --mode 
 
 Then open:
 
-- `reports/launch_demo/studio_showcase_press.html`
-- `reports/live_launch_demo/studio_showcase_deepseek-live.html`
-- `reports/live_launch_demo/studio_press_brief_deepseek-live.md`
+- `docs/demo/press/showcase.html`
+- `docs/demo/live/showcase.html`
+- `docs/demo/live/press-brief.md`
 
 These communicate the project better than a plain CLI trace.

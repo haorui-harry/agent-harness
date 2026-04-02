@@ -71,22 +71,22 @@ class LiveStrategyRegistry:
 
     def _heuristic_profile_name(self, query: str, mode: str) -> str:
         text = query.lower().strip()
+        rule_map = [
+            ("redteam_mirror", r"(jailbreak|prompt injection|exploit|attack|adversarial)"),
+            ("risk_sentinel", r"(risk|audit|compliance|policy|governance|security|control)"),
+            ("decision_theater", r"(launch|rollout|strategy|operating plan|board|decision|tradeoff|option|priorit)"),
+            ("systems_architect", r"(architecture|blueprint|system design|refactor|roadmap|migration|integration)"),
+        ]
+        for name, pattern in rule_map:
+            if re.search(pattern, text):
+                return name
+
         if mode == "safety_critical":
             return "risk_sentinel"
         if mode == "deep":
             return "systems_architect"
         if mode == "fast":
             return "decision_theater"
-
-        rule_map = [
-            ("redteam_mirror", r"(jailbreak|prompt injection|exploit|attack|adversarial)"),
-            ("risk_sentinel", r"(risk|audit|compliance|policy|governance|security|control)"),
-            ("systems_architect", r"(architecture|blueprint|system design|refactor|roadmap)"),
-            ("decision_theater", r"(compare|option|tradeoff|decision|priorit)"),
-        ]
-        for name, pattern in rule_map:
-            if re.search(pattern, text):
-                return name
         return "balanced_orchestrator"
 
     @staticmethod
