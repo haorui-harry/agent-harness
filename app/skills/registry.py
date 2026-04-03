@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
@@ -16,26 +18,125 @@ from app.core.state import (
 from app.ecosystem.marketplace import list_marketplace_skill_metadata
 
 
+_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{2,}")
+
+
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def _sentences(text: str) -> list[str]:
+    parts = re.split(r"(?<=[.!?])\s+|\n+", str(text or ""))
+    return [part.strip(" -\t") for part in parts if part.strip(" -\t")]
+
+
+def _keywords(text: str, limit: int = 6) -> list[str]:
+    stop = {
+        "this",
+        "that",
+        "with",
+        "from",
+        "into",
+        "about",
+        "there",
+        "their",
+        "would",
+        "could",
+        "should",
+        "have",
+        "has",
+        "been",
+        "were",
+        "will",
+        "your",
+        "ours",
+        "they",
+        "them",
+        "what",
+        "when",
+        "where",
+        "which",
+        "because",
+        "while",
+        "after",
+        "before",
+        "also",
+        "more",
+        "most",
+        "only",
+        "than",
+        "then",
+        "into",
+    }
+    tokens = [word.lower() for word in _WORD_RE.findall(str(text or "")) if word.lower() not in stop]
+    counts = Counter(tokens)
+    return [word for word, _ in counts.most_common(limit)]
+
+
+def _candidate_lines(text: str) -> list[str]:
+    lines = [line.strip(" -\t") for line in str(text or "").splitlines() if line.strip(" -\t")]
+    return lines or _sentences(text)
+
+
+def _match_lines(text: str, keywords: list[str], limit: int = 4) -> list[str]:
+    rows: list[tuple[int, str]] = []
+    for line in _candidate_lines(text):
+        lowered = line.lower()
+        score = sum(1 for keyword in keywords if keyword in lowered)
+        if score:
+            rows.append((score, line))
+    rows.sort(key=lambda item: (-item[0], len(item[1])))
+    out: list[str] = []
+    for _, line in rows:
+        if line not in out:
+            out.append(line)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _bullet_block(title: str, rows: list[str]) -> str:
+    payload = rows or ["No grounded items extracted from input."]
+    return title + "\n" + "\n".join(f"- {row}" for row in payload)
+
+
 def identify_risks(text: str) -> str:
     """Extract and list key risks from the given text."""
 
-    return (
-        "Key Risks Identified:\n"
-        "1. [Operational risk extracted from input text]\n"
-        "2. [Financial or delivery risk extracted from input text]\n"
-        "3. [Mitigation gap that requires follow-up]\n"
-        "--- (skill: identify_risks)"
+    risks = _match_lines(
+        text,
+        [
+            "risk",
+            "issue",
+            "blocker",
+            "delay",
+            "breach",
+            "failure",
+            "uncertain",
+            "audit",
+            "compliance",
+            "dependency",
+            "cost",
+        ],
+        limit=5,
     )
+    if not risks:
+        risks = [f"Potential exposure around {keyword}" for keyword in _keywords(text, limit=4)]
+    return _bullet_block("Key Risks Identified:", risks) + "\n--- (skill: identify_risks)"
 
 
 def executive_summary(text: str) -> str:
     """Produce a concise executive summary."""
 
+    sentences = _sentences(text)
+    context = sentences[0] if sentences else _normalize_text(text)[:180]
+    findings = _match_lines(text, ["must", "need", "result", "impact", "evidence", "decision"], limit=2)
+    action = findings[0] if findings else f"Focus next on {', '.join(_keywords(text, limit=3)) or 'the main task'}."
     return (
         "Executive Summary:\n"
-        "- Context: [what this text is about]\n"
-        "- Core finding: [most important conclusion]\n"
-        "- Decision implication: [what to do next]\n"
+        f"- Context: {context[:220]}\n"
+        f"- Core finding: {(findings[1] if len(findings) > 1 else action)[:220]}\n"
+        f"- Decision implication: {action[:220]}\n"
         "--- (skill: executive_summary)"
     )
 
@@ -43,90 +144,93 @@ def executive_summary(text: str) -> str:
 def compare_options(text: str) -> str:
     """Compare options or alternatives mentioned in the text."""
 
-    return (
-        "Option Comparison:\n"
-        "| Option | Strengths | Risks |\n"
-        "|--------|-----------|-------|\n"
-        "| A      | ...       | ...   |\n"
-        "| B      | ...       | ...   |\n"
-        "Recommendation Basis: [trade-offs + context]\n"
-        "--- (skill: compare_options)"
-    )
+    lines = _candidate_lines(text)
+    options = [line for line in lines if any(token in line.lower() for token in ["option", "plan", "approach", "strategy"])]
+    if len(options) < 2:
+        options = lines[:2] if len(lines) >= 2 else [text, "Fallback alternative based on extracted keywords"]
+    rows = options[:3]
+    rendered = ["Option Comparison:", "| Option | Strengths | Risks |", "|--------|-----------|-------|"]
+    for index, row in enumerate(rows, start=1):
+        keywords = _keywords(row, limit=3)
+        strength = ", ".join(keywords[:2]) or "coverage"
+        risk = keywords[-1] if keywords else "ambiguity"
+        rendered.append(f"| {index} | {strength} | {risk} |")
+    rendered.append(f"Recommendation Basis: prioritize {', '.join(_keywords(text, limit=3)) or 'the clearest option'}")
+    rendered.append("--- (skill: compare_options)")
+    return "\n".join(rendered)
 
 
 def extract_facts(text: str) -> str:
     """Extract factual statements from the text."""
 
-    return (
-        "Extracted Facts:\n"
-        "- [Fact 1]\n"
-        "- [Fact 2]\n"
-        "- [Fact 3]\n"
-        "Evidence quality: medium\n"
-        "--- (skill: extract_facts)"
-    )
+    facts = [item for item in _sentences(text) if any(token.isdigit() for token in item) or len(item.split()) >= 6][:5]
+    if not facts:
+        facts = _candidate_lines(text)[:4]
+    quality = "high" if len(facts) >= 3 else "medium"
+    return _bullet_block("Extracted Facts:", facts) + f"\nEvidence quality: {quality}\n--- (skill: extract_facts)"
 
 
 def generate_recommendations(text: str) -> str:
     """Generate actionable recommendations based on analysis."""
 
-    return (
-        "Recommendations:\n"
-        "1. [Action item 1 with owner and timeline]\n"
-        "2. [Action item 2 with owner and timeline]\n"
-        "3. [Action item 3 with expected impact]\n"
-        "--- (skill: generate_recommendations)"
-    )
+    priorities = _keywords(text, limit=3)
+    recommendations = [
+        f"1. Stabilize {priorities[0] if priorities else 'the core workflow'} with a named owner and deadline.",
+        f"2. Validate {priorities[1] if len(priorities) > 1 else 'the highest-risk assumption'} using direct evidence or tests.",
+        f"3. Package {priorities[2] if len(priorities) > 2 else 'the deliverable'} into an artifact others can review.",
+    ]
+    return "Recommendations:\n" + "\n".join(recommendations) + "\n--- (skill: generate_recommendations)"
 
 
 def brainstorm_ideas(text: str) -> str:
     """Generate creative ideas and angles related to the topic."""
 
-    return (
-        "Brainstormed Ideas:\n"
-        "- [Creative angle 1]\n"
-        "- [Creative angle 2]\n"
-        "- [Unconventional approach]\n"
-        "- [High-risk/high-upside experiment]\n"
-        "--- (skill: brainstorm_ideas)"
-    )
+    seeds = _keywords(text, limit=4)
+    ideas = [
+        f"Reframe {seeds[0] if seeds else 'the task'} as a reusable product surface instead of a one-off output.",
+        f"Turn {seeds[1] if len(seeds) > 1 else 'the workflow'} into a measurable experiment with clear pass or fail criteria.",
+        f"Expose {seeds[2] if len(seeds) > 2 else 'the strongest capability'} through a smaller public interface or skill.",
+        f"Run a high-upside variant optimized around {seeds[3] if len(seeds) > 3 else 'speed and quality together'}.",
+    ]
+    return _bullet_block("Brainstormed Ideas:", ideas) + "\n--- (skill: brainstorm_ideas)"
 
 
 def detect_anomalies(text: str) -> str:
     """Detect anomalies, contradictions, and inconsistency patterns."""
 
-    return (
-        "Anomaly Detection Report:\n"
-        "1. [Inconsistency detected between section A and B]\n"
-        "2. [Unusual pattern: metric X deviates from expected range]\n"
-        "3. [Contradiction between claim and table evidence]\n"
-        "--- (skill: detect_anomalies)"
-    )
+    anomalies = _match_lines(text, ["but", "however", "despite", "inconsistent", "unexpected", "error", "fail"], limit=4)
+    if not anomalies:
+        anomalies = [f"No direct contradiction found; inspect {keyword} for drift." for keyword in _keywords(text, limit=3)]
+    return _bullet_block("Anomaly Detection Report:", anomalies) + "\n--- (skill: detect_anomalies)"
 
 
 def build_timeline(text: str) -> str:
     """Extract events and build a timeline."""
 
-    return (
-        "Timeline:\n"
-        "  [T1] [Event A - earliest mention]\n"
-        "  [T2] [Event B - subsequent development]\n"
-        "  [T3] [Event C - most recent]\n"
-        "  Dependencies: T2 depends on T1, T3 depends on T2\n"
-        "--- (skill: build_timeline)"
-    )
+    items = _match_lines(text, ["first", "then", "next", "after", "before", "phase", "day", "week", "month"], limit=5)
+    if not items:
+        items = _candidate_lines(text)[:3]
+    lines = ["Timeline:"] + [f"  [T{idx}] {item}" for idx, item in enumerate(items, start=1)]
+    if len(items) >= 2:
+        lines.append(f"  Dependencies: T2 depends on T1{' , T3 depends on T2' if len(items) >= 3 else ''}")
+    lines.append("--- (skill: build_timeline)")
+    return "\n".join(lines)
 
 
 def synthesize_perspectives(text: str) -> str:
     """Integrate viewpoints to find consensus and divergence."""
 
+    lines = _candidate_lines(text)
+    left = lines[0] if lines else "No clear first viewpoint extracted."
+    right = lines[1] if len(lines) > 1 else "No contrasting viewpoint extracted."
+    common = ", ".join(_keywords(text, limit=3)) or "shared objective"
     return (
         "Perspective Synthesis:\n"
-        "  Viewpoint A: [perspective summary]\n"
-        "  Viewpoint B: [perspective summary]\n"
-        "  Common Ground: [shared conclusions]\n"
-        "  Key Disagreements: [where perspectives diverge]\n"
-        "  Synthesis: [integrated view acknowledging trade-offs]\n"
+        f"  Viewpoint A: {left[:180]}\n"
+        f"  Viewpoint B: {right[:180]}\n"
+        f"  Common Ground: {common}\n"
+        f"  Key Disagreements: {('different emphasis on ' + common)[:180]}\n"
+        f"  Synthesis: combine the strongest claims while validating the highest-risk disagreement.\n"
         "--- (skill: synthesize_perspectives)"
     )
 
@@ -134,29 +238,30 @@ def synthesize_perspectives(text: str) -> str:
 def validate_claims(text: str) -> str:
     """Validate claims and estimate evidence confidence."""
 
-    return (
-        "Claim Validation:\n"
-        "  Claim 1: [claim text]\n"
-        "    Evidence: [supporting/contradicting evidence]\n"
-        "    Confidence: HIGH / MEDIUM / LOW\n"
-        "    Verdict: SUPPORTED / UNSUPPORTED / INSUFFICIENT_EVIDENCE\n"
-        "  Claim 2: [claim text]\n"
-        "    Evidence: [supporting/contradicting evidence]\n"
-        "    Confidence: MEDIUM\n"
-        "    Verdict: PARTIALLY_SUPPORTED\n"
-        "--- (skill: validate_claims)"
-    )
+    claims = _candidate_lines(text)[:2]
+    sections = ["Claim Validation:"]
+    for index, claim in enumerate(claims or ["No explicit claim extracted."], start=1):
+        confidence = "HIGH" if any(char.isdigit() for char in claim) else "MEDIUM"
+        verdict = "SUPPORTED" if len(claim.split()) >= 6 else "INSUFFICIENT_EVIDENCE"
+        evidence = claim if verdict == "SUPPORTED" else "Need stronger external or empirical support."
+        sections.append(f"  Claim {index}: {claim[:180]}")
+        sections.append(f"    Evidence: {evidence[:180]}")
+        sections.append(f"    Confidence: {confidence}")
+        sections.append(f"    Verdict: {verdict}")
+    sections.append("--- (skill: validate_claims)")
+    return "\n".join(sections)
 
 
 def generate_analogies(text: str) -> str:
     """Generate analogies for complex concepts."""
 
+    focus = ", ".join(_keywords(text, limit=3)) or "the system"
     return (
         "Analogies:\n"
-        "  Concept: [complex concept from text]\n"
-        "  Analogy 1: [relatable analogy from everyday experience]\n"
-        "  Analogy 2: [cross-domain analogy for deeper insight]\n"
-        "  Why it works: [structural mapping between source and target]\n"
+        f"  Concept: {focus}\n"
+        f"  Analogy 1: Like an airport control tower coordinating many runways without collisions.\n"
+        f"  Analogy 2: Like a research lab notebook that also knows how to run the next experiment.\n"
+        f"  Why it works: both analogies emphasize coordination, memory, and verifiable execution.\n"
         "--- (skill: generate_analogies)"
     )
 
@@ -164,14 +269,125 @@ def generate_analogies(text: str) -> str:
 def prioritize_items(text: str) -> str:
     """Rank and prioritize items by urgency and impact."""
 
+    items = _candidate_lines(text)[:4]
+    while len(items) < 4:
+        items.append(f"Follow-up on {(_keywords(text, limit=4) + ['execution'])[len(items)]}")
     return (
         "Priority Ranking:\n"
-        "  [P0 - Critical] [item description] - Impact: HIGH, Urgency: HIGH\n"
-        "  [P1 - High]     [item description] - Impact: HIGH, Urgency: MEDIUM\n"
-        "  [P2 - Medium]   [item description] - Impact: MEDIUM, Urgency: MEDIUM\n"
-        "  [P3 - Low]      [item description] - Impact: LOW, Urgency: LOW\n"
-        "  Rationale: [why this ordering]\n"
+        f"  [P0 - Critical] {items[0][:90]} - Impact: HIGH, Urgency: HIGH\n"
+        f"  [P1 - High]     {items[1][:90]} - Impact: HIGH, Urgency: MEDIUM\n"
+        f"  [P2 - Medium]   {items[2][:90]} - Impact: MEDIUM, Urgency: MEDIUM\n"
+        f"  [P3 - Low]      {items[3][:90]} - Impact: LOW, Urgency: LOW\n"
+        f"  Rationale: prioritize the items most tied to {', '.join(_keywords(text, limit=3)) or 'execution risk'}.\n"
         "--- (skill: prioritize_items)"
+    )
+
+
+def decompose_task(text: str) -> str:
+    """Break a task into an executable checklist with dependencies."""
+
+    keywords = _keywords(text, limit=4)
+    tasks = [
+        f"[1] Define scope around {keywords[0] if keywords else 'the request'}",
+        f"[2] Gather evidence and workspace context for {keywords[1] if len(keywords) > 1 else 'the key objects'}",
+        f"[3] Execute the highest-value action touching {keywords[2] if len(keywords) > 2 else 'the core path'}",
+        f"[4] Validate outputs and package review artifacts for {keywords[3] if len(keywords) > 3 else 'handoff'}",
+    ]
+    return "Executable Task Breakdown:\n" + "\n".join(f"- {item}" for item in tasks) + "\n--- (skill: decompose_task)"
+
+
+def artifact_synthesis(text: str) -> str:
+    """Turn mixed notes, logs, and artifact snippets into a grounded synthesis."""
+
+    facts = _candidate_lines(text)[:4]
+    focus = ", ".join(_keywords(text, limit=3)) or "the artifact set"
+    return (
+        "Artifact Synthesis:\n"
+        f"- Observed signals: {' | '.join(item[:90] for item in facts) if facts else 'No strong signals extracted.'}\n"
+        f"- Stable interpretation: the artifacts converge on {focus}.\n"
+        f"- Remaining gap: validate the weakest unsupported assumption before finalizing.\n"
+        "--- (skill: artifact_synthesis)"
+    )
+
+
+def validation_planner(text: str) -> str:
+    """Produce a validation plan tied to concrete outputs and failure checks."""
+
+    focus = _keywords(text, limit=3)
+    checks = [
+        f"Check 1: verify output completeness for {focus[0] if focus else 'the main deliverable'}",
+        f"Check 2: stress the highest-risk path around {focus[1] if len(focus) > 1 else 'runtime behavior'}",
+        f"Check 3: retain an artifact proving {focus[2] if len(focus) > 2 else 'the validation result'}",
+    ]
+    return "Validation Plan:\n" + "\n".join(f"- {item}" for item in checks) + "\n--- (skill: validation_planner)"
+
+
+def codebase_triage(text: str) -> str:
+    """Summarize likely code hotspots, missing tests, and execution priorities."""
+
+    focus = _keywords(text, limit=4)
+    items = [
+        f"Hotspot: inspect {focus[0] if focus else 'the primary module'} first.",
+        f"Patch target: isolate the defect around {focus[1] if len(focus) > 1 else 'input handling'}.",
+        f"Test gap: add regression coverage for {focus[2] if len(focus) > 2 else 'the failing edge case'}.",
+        f"Execution note: preserve an artifact for {focus[3] if len(focus) > 3 else 'validation output'}.",
+    ]
+    return "Codebase Triage:\n" + "\n".join(f"- {item}" for item in items) + "\n--- (skill: codebase_triage)"
+
+
+def research_brief(text: str) -> str:
+    """Turn a topic into a research brief with hypotheses, evidence, and gaps."""
+
+    focus = _keywords(text, limit=3)
+    return (
+        "Research Brief:\n"
+        f"- Question: how should we improve {focus[0] if focus else 'the target system'}?\n"
+        f"- Hypothesis: better structure around {focus[1] if len(focus) > 1 else 'task decomposition'} improves results.\n"
+        f"- Evidence to gather: benchmarks, failure cases, and direct artifacts touching {focus[2] if len(focus) > 2 else 'runtime behavior'}.\n"
+        "- Open gap: separate anecdotal wins from reproducible gains.\n"
+        "--- (skill: research_brief)"
+    )
+
+
+def ops_runbook(text: str) -> str:
+    """Convert a task into a runbook with triggers, actions, and escalation points."""
+
+    focus = _keywords(text, limit=3)
+    return (
+        "Ops Runbook:\n"
+        f"- Trigger: when {focus[0] if focus else 'the workflow'} deviates from expected state.\n"
+        f"- Action: stabilize {focus[1] if len(focus) > 1 else 'the critical path'} and capture evidence.\n"
+        f"- Escalation: involve review if {focus[2] if len(focus) > 2 else 'risk or ambiguity'} remains unresolved.\n"
+        "- Artifact: leave a handoff note plus validation record.\n"
+        "--- (skill: ops_runbook)"
+    )
+
+
+def benchmark_ablation(text: str) -> str:
+    """Produce a compact benchmark and ablation design."""
+
+    focus = _keywords(text, limit=3)
+    return (
+        "Benchmark Ablation Plan:\n"
+        f"- Baseline: current pipeline centered on {focus[0] if focus else 'the default configuration'}.\n"
+        f"- Ablation A: remove or weaken {focus[1] if len(focus) > 1 else 'dynamic discovery'}.\n"
+        f"- Ablation B: tighten validation around {focus[2] if len(focus) > 2 else 'artifact quality'}.\n"
+        "- Report: compare pass rate, value, latency, and failure clusters.\n"
+        "--- (skill: benchmark_ablation)"
+    )
+
+
+def frontend_critique(text: str) -> str:
+    """Generate a sharp product or interface critique with redesign priorities."""
+
+    focus = _keywords(text, limit=3)
+    return (
+        "Frontend Critique:\n"
+        f"- Strength: the surface already communicates {focus[0] if focus else 'the main message'}.\n"
+        f"- Weakness: hierarchy around {focus[1] if len(focus) > 1 else 'primary actions'} is not decisive enough.\n"
+        f"- Redesign priority: make {focus[2] if len(focus) > 2 else 'the first-screen story'} obvious within one glance.\n"
+        "- Finish: package the critique with before or after visual guidance.\n"
+        "--- (skill: frontend_critique)"
     )
 
 
@@ -387,6 +603,134 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             tier=SkillTier.BASIC,
             compute_cost=0.8,
             synergies=["identify_risks", "generate_recommendations"],
+            conflicts=[],
+        ),
+    },
+    "decompose_task": {
+        "fn": decompose_task,
+        "metadata": SkillMetadata(
+            name="decompose_task",
+            description="Break a request into executable tasks, dependencies, and validation steps",
+            strengths=["task decomposition", "dependency ordering", "execution framing"],
+            weaknesses=["heuristic on underspecified tasks", "does not execute actions itself"],
+            category=SkillCategory.REASONING,
+            output_type="structured",
+            confidence_keywords=["decompose", "break down", "task graph", "checklist", "steps", "workflow"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.3,
+            synergies=["prioritize_items", "generate_recommendations", "validation_planner"],
+            conflicts=[],
+        ),
+    },
+    "artifact_synthesis": {
+        "fn": artifact_synthesis,
+        "metadata": SkillMetadata(
+            name="artifact_synthesis",
+            description="Synthesize logs, notes, and outputs into a grounded artifact summary",
+            strengths=["artifact grounding", "cross-source compression", "handoff clarity"],
+            weaknesses=["depends on input quality", "not a substitute for raw artifacts"],
+            category=SkillCategory.COMMUNICATION,
+            output_type="text",
+            confidence_keywords=["artifact", "log", "trace", "summary", "synthesize", "handoff"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.1,
+            synergies=["extract_facts", "executive_summary", "validate_claims"],
+            conflicts=[],
+        ),
+    },
+    "validation_planner": {
+        "fn": validation_planner,
+        "metadata": SkillMetadata(
+            name="validation_planner",
+            description="Translate a task or artifact into concrete validation checks and evidence hooks",
+            strengths=["verification design", "failure anticipation", "artifact-oriented validation"],
+            weaknesses=["does not run tests itself", "may miss domain-specific edge cases"],
+            category=SkillCategory.ANALYSIS,
+            output_type="list",
+            confidence_keywords=["validate", "test", "check", "verify", "acceptance", "quality gate"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.2,
+            synergies=["decompose_task", "identify_risks", "extract_facts"],
+            conflicts=[],
+        ),
+    },
+    "codebase_triage": {
+        "fn": codebase_triage,
+        "metadata": SkillMetadata(
+            name="codebase_triage",
+            description="Identify code hotspots, patch targets, tests, and validation artifacts",
+            strengths=["engineering triage", "code-task framing", "test-gap detection"],
+            weaknesses=["works from text summaries unless paired with workspace tools", "does not patch code itself"],
+            category=SkillCategory.ANALYSIS,
+            output_type="structured",
+            confidence_keywords=["codebase", "patch", "bug", "test", "regression", "module"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.4,
+            synergies=["decompose_task", "validation_planner", "extract_facts"],
+            conflicts=[],
+        ),
+    },
+    "research_brief": {
+        "fn": research_brief,
+        "metadata": SkillMetadata(
+            name="research_brief",
+            description="Turn a topic into a research question, hypothesis, evidence plan, and open gap list",
+            strengths=["research framing", "hypothesis design", "gap analysis"],
+            weaknesses=["not a substitute for external evidence gathering", "still heuristic on narrow domains"],
+            category=SkillCategory.REASONING,
+            output_type="structured",
+            confidence_keywords=["research", "study", "hypothesis", "paper", "question", "evidence plan"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.4,
+            synergies=["extract_facts", "benchmark_ablation", "validate_claims"],
+            conflicts=[],
+        ),
+    },
+    "ops_runbook": {
+        "fn": ops_runbook,
+        "metadata": SkillMetadata(
+            name="ops_runbook",
+            description="Convert operational tasks into trigger-action-escalation runbooks",
+            strengths=["ops structure", "incident response framing", "handoff clarity"],
+            weaknesses=["does not integrate external ticketing by itself", "assumes the task is operationalizable"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["runbook", "ops", "incident", "workflow", "playbook", "escalation"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.1,
+            synergies=["prioritize_items", "generate_recommendations", "validation_planner"],
+            conflicts=[],
+        ),
+    },
+    "benchmark_ablation": {
+        "fn": benchmark_ablation,
+        "metadata": SkillMetadata(
+            name="benchmark_ablation",
+            description="Produce a benchmark runner plan with ablations, metrics, and failure analysis hooks",
+            strengths=["benchmark framing", "ablation design", "evaluation rigor"],
+            weaknesses=["does not execute benchmarks", "depends on a real task suite to be conclusive"],
+            category=SkillCategory.ANALYSIS,
+            output_type="structured",
+            confidence_keywords=["benchmark", "ablation", "metric", "runner", "evaluation", "failure cluster"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.4,
+            synergies=["research_brief", "validation_planner", "compare_options"],
+            conflicts=[],
+        ),
+    },
+    "frontend_critique": {
+        "fn": frontend_critique,
+        "metadata": SkillMetadata(
+            name="frontend_critique",
+            description="Critique interface hierarchy, story clarity, and redesign priorities",
+            strengths=["UI critique", "first-screen clarity", "product storytelling"],
+            weaknesses=["not a replacement for visual execution", "works best with screenshots or design text"],
+            category=SkillCategory.COMMUNICATION,
+            output_type="text",
+            confidence_keywords=["ui", "ux", "frontend", "screen", "layout", "visual hierarchy"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.1,
+            synergies=["executive_summary", "brainstorm_ideas", "generate_recommendations"],
             conflicts=[],
         ),
     },

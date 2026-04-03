@@ -316,6 +316,13 @@ class StudioShowcaseBuilder:
             "capability_vector": capability,
             "frontier": frontier,
             "comparison": comparison,
+            "score_provenance": self._score_provenance(
+                run_summary=run_summary,
+                value_card=value_card,
+                frontier=frontier,
+                comparison=comparison,
+                generation=self._generation_summary(run),
+            ),
             "why_use_this": self._why_use(capability=capability, frontier=frontier, comparison=comparison),
         }
         if include_interop_catalog:
@@ -488,6 +495,8 @@ class StudioShowcaseBuilder:
             "mean": round(mean_score, 4),
             "minimum_axis": round(min_score, 4),
             "geometric": round(geo, 4),
+            "kind": "internal_heuristic",
+            "benchmark_validated": False,
             "bottleneck": {"axis": axis, "score": round(axis_score, 4)},
         }
 
@@ -514,11 +523,20 @@ class StudioShowcaseBuilder:
         rows.sort(key=lambda row: float(row.get("frontier_gap", 0.0)), reverse=True)
         strongest = rows[0] if rows else {}
         headline = (
-            f"Ahead of {strongest.get('name', 'baseline')} by {strongest.get('frontier_gap', 0.0):+.3f} frontier score."
+            f"Ahead of built-in {strongest.get('name', 'baseline')} archetype by {strongest.get('frontier_gap', 0.0):+.3f} internal frontier."
             if strongest
             else "No comparison available."
         )
-        return {"archetypes": rows, "positioning": {"headline": headline, "best_vs_name": strongest.get("name", ""), "best_vs_gap": strongest.get("frontier_gap", 0.0)}}
+        return {
+            "archetypes": rows,
+            "positioning": {
+                "headline": headline,
+                "best_vs_name": strongest.get("name", ""),
+                "best_vs_gap": strongest.get("frontier_gap", 0.0),
+                "benchmark_validated": False,
+                "comparison_basis": "built_in_archetype_vectors",
+            },
+        }
 
     @staticmethod
     def _story_frame(
@@ -553,10 +571,10 @@ class StudioShowcaseBuilder:
             "selected_skills": selected_skills,
             "evidence_bundle": [
                 f"Release decision: {release.get('decision', 'block')} ({release.get('reason', '-')})",
-                f"Frontier score: {_safe_float(frontier.get('score', 0.0)):.3f}; bottleneck axis: {bottleneck.get('axis', '-')}",
-                f"Routing confidence: {routing_confidence:.3f}",
-                f"Value index: {_safe_float(value_card.get('value_index', 0.0)):.2f} ({value_card.get('band', '-')})",
-                f"Safety score: {_safe_float(dims.get('safety', 0.0)):.2f}; reliability score: {_safe_float(dims.get('reliability', 0.0)):.2f}",
+                f"Internal frontier estimate: {_safe_float(frontier.get('score', 0.0)):.3f}; bottleneck axis: {bottleneck.get('axis', '-')}",
+                f"Routing signal (heuristic): {routing_confidence:.3f}",
+                f"Internal value index: {_safe_float(value_card.get('value_index', 0.0)):.2f} ({value_card.get('band', '-')})",
+                f"Internal safety/reliability signals: {_safe_float(dims.get('safety', 0.0)):.2f} / {_safe_float(dims.get('reliability', 0.0)):.2f}",
                 f"Evidence packet: {int(evidence.get('record_count', 0))} records / {int(evidence.get('citation_count', 0))} citations",
                 f"Interop export: {int(interop_summary.get('framework_count', 0))} frameworks / {int(interop_summary.get('total_skill_entries', 0))} skill entries",
             ],
@@ -853,11 +871,76 @@ class StudioShowcaseBuilder:
         bottleneck = frontier.get("bottleneck", {})
         return [
             f"Concentrated value axis: {top_text}.",
-            f"Frontier score={frontier.get('score', 0.0):.3f} with bottleneck `{bottleneck.get('axis', '')}`.",
+            f"Internal frontier estimate={frontier.get('score', 0.0):.3f} with bottleneck `{bottleneck.get('axis', '')}`.",
             str(comparison.get("positioning", {}).get("headline", "")),
             "Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.",
             "Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.",
         ]
+
+    @staticmethod
+    def _score_provenance(
+        *,
+        run_summary: dict[str, Any],
+        value_card: dict[str, Any],
+        frontier: dict[str, Any],
+        comparison: dict[str, Any],
+        generation: dict[str, Any],
+    ) -> dict[str, Any]:
+        metrics = run_summary.get("metrics", {}) if isinstance(run_summary, dict) else {}
+        evidence = run_summary.get("evidence", {}) if isinstance(run_summary, dict) else {}
+        facts = [
+            {
+                "name": "tool_success_rate",
+                "value": round(_safe_float(metrics.get("tool_success_rate", 0.0)), 4),
+                "basis": "measured_run_execution",
+            },
+            {
+                "name": "completion_score",
+                "value": round(_safe_float(metrics.get("completion_score", 0.0)), 4),
+                "basis": "measured_run_completion",
+            },
+            {
+                "name": "evidence_records",
+                "value": int(evidence.get("record_count", 0)),
+                "basis": "counted_evidence_bundle",
+            },
+            {
+                "name": "evidence_citations",
+                "value": int(evidence.get("citation_count", 0)),
+                "basis": "counted_citations",
+            },
+            {
+                "name": "live_agent_success",
+                "value": bool(generation.get("live_agent_success", False)),
+                "basis": "measured_api_run",
+            },
+        ]
+        heuristics = [
+            {
+                "name": "value_index",
+                "value": round(_safe_float(value_card.get("value_index", 0.0)), 2),
+                "basis": "internal_weighted_heuristic",
+            },
+            {
+                "name": "frontier_score",
+                "value": round(_safe_float(frontier.get("score", 0.0)), 4),
+                "basis": "internal_bottleneck_aware_heuristic",
+            },
+            {
+                "name": "archetype_gap",
+                "value": round(_safe_float(comparison.get("positioning", {}).get("best_vs_gap", 0.0)), 4),
+                "basis": "built_in_archetype_comparison",
+            },
+        ]
+        warnings = [
+            "Value index, frontier score, and archetype gap are internal heuristics, not public benchmark results.",
+            "Archetype comparison uses built-in baseline vectors and should not be presented as a measured win over external repositories.",
+        ]
+        if any("length" in str(item).lower() for item in generation.get("notes", []) if isinstance(item, str)):
+            warnings.append("At least one live-model stage ended on length, so answer quality may still be token-bounded.")
+        if int(evidence.get("record_count", 0)) <= 0:
+            warnings.append("Evidence packet is empty; any narrative score should be treated as low-confidence.")
+        return {"facts": facts, "heuristics": heuristics, "warnings": warnings}
 
     @staticmethod
     def _regen_interop_catalog(payload: dict[str, Any]) -> dict[str, Any]:
@@ -880,6 +963,7 @@ class StudioShowcaseBuilder:
         capability = payload.get("capability_vector", {})
         lab = payload.get("lab", {})
         comparison = payload.get("comparison", {})
+        score_provenance = payload.get("score_provenance", {})
         why_use = payload.get("why_use_this", [])
         interop = payload.get("interop", {}).get("summary", {})
         story = payload.get("story", {})
@@ -943,7 +1027,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
         <span class="badge">Release {html.escape(str(release.get("decision", "block"))).upper()}</span>
         <span class="badge">Generation {html.escape(str(generation.get("mode", "baseline"))).upper()}</span>
         <span class="badge">Model {html.escape(str(generation.get("model", "")) or "-")}</span>
-        <span class="badge">Frontier {float(frontier.get("score", 0.0)):.3f}</span>
+        <span class="badge">Capability Estimate {float(frontier.get("score", 0.0)):.3f}</span>
       </div>
       <div style="margin-top:14px" class="hero-panel">
         <div class="kicker">Primary View</div>
@@ -955,7 +1039,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
       <div class="kicker">Release Decision</div>
       <div class="signal"><div class="label">Recommendation</div><div class="value">{html.escape(str(proposal.get("decision", {}).get("status", "block"))).upper()}</div><p>{html.escape(str(proposal.get("decision", {}).get("reason", "")))}</p></div>
       <div class="grid4" style="margin-top:12px">
-        <div class="signal"><div class="label">Value Index</div><div class="value">{_safe_float(delivery.get("value_card", {}).get("value_index", 0.0)):.1f}</div></div>
+        <div class="signal"><div class="label">Internal Value</div><div class="value">{_safe_float(delivery.get("value_card", {}).get("value_index", 0.0)):.1f}</div></div>
         <div class="signal"><div class="label">Expected</div><div class="value">{robust_expected:.2f}</div></div>
         <div class="signal"><div class="label">Worst Case</div><div class="value">{robust_worst_case:.2f}</div></div>
         <div class="signal"><div class="label">Uncertainty</div><div class="value">{avg_uncertainty:.2f}</div></div>
@@ -1003,17 +1087,32 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
   </article>
 </section>
 <section class="card glass">
-  <div class="kicker">Evidence And Scores</div>
+  <div class="kicker">Facts And Estimates</div>
   <div class="grid">
     <article>
-      <h2>Evidence Bundle</h2>
+      <h2>Measured Facts</h2>
       <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in story.get("evidence_bundle", []))}</ul>
       <h3 style="margin-top:14px">Execution Plan</h3>
       <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in delivery.get("plan", []))}</ul>
     </article>
     <article>
-      <h2>Capability Vector</h2>
+      <h2>Internal Capability Estimate</h2>
       {self._metric_rows(capability)}
+    </article>
+  </div>
+</section>
+<section class="card glass">
+  <div class="kicker">Score Provenance</div>
+  <div class="grid">
+    <article>
+      <h2>Measured Signals</h2>
+      <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("facts", []))}</tbody></table>
+    </article>
+    <article>
+      <h2>Internal Heuristics</h2>
+      <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("heuristics", []))}</tbody></table>
+      <h3 style="margin-top:14px">Warnings</h3>
+      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in score_provenance.get("warnings", []))}</ul>
     </article>
   </div>
 </section>
@@ -1048,7 +1147,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
 </section>
 <section class="grid">
   <article class="card glass">
-    <div class="kicker">Framework Comparison</div>
+    <div class="kicker">Built-in Archetype Comparison</div>
     <h2>{html.escape(str(comparison.get("positioning", {}).get("headline", "")))}</h2>
     <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody>{self._compare_rows(comparison.get("archetypes", []), compact=True)}</tbody></table>
   </article>
@@ -1110,6 +1209,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
         generation = delivery.get("generation", {}) if isinstance(delivery, dict) else {}
         evidence = delivery.get("run_summary", {}).get("evidence", {}) if isinstance(delivery, dict) else {}
         why_use = payload.get("why_use_this", [])
+        score_provenance = payload.get("score_provenance", {})
         return "\n".join(
             [
                 f"# {identity.get('name', 'Agent Harness Studio')}",
@@ -1173,7 +1273,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 f"- Mode: {query.get('mode', 'balanced')}",
                 f"- Selected agent: {query.get('selected_agent', '-')}",
                 f"- Skills: {', '.join(query.get('selected_skills', [])) or '-'}",
-                f"- Frontier score: {float(frontier.get('score', 0.0)):.3f}",
+                f"- Internal frontier estimate: {float(frontier.get('score', 0.0)):.3f}",
                 f"- Bottleneck axis: {frontier.get('bottleneck', {}).get('axis', '-')}",
                 f"- Release decision: {release.get('decision', 'block')} ({release.get('reason', '-')})",
                 f"- Robust expected utility: {_safe_float(router_quality.get('robust_expected_utility', 0.0)):.3f}",
@@ -1198,6 +1298,12 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 "",
                 *(f"- {item}" for item in why_use),
                 "",
+                "## Score Provenance",
+                "",
+                *(f"- Fact: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("facts", [])[:6]),
+                *(f"- Heuristic: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("heuristics", [])[:6]),
+                *(f"- Warning: {item}" for item in score_provenance.get("warnings", [])[:4]),
+                "",
                 "## Benchmark Fit",
                 "",
                 *(f"- {item.get('name', '')}: fit={item.get('fit', '')}; strength={item.get('strength', '')}; gap={item.get('gap', '')}" for item in mission.get("benchmark_targets", [])[:6]),
@@ -1206,11 +1312,11 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 "",
                 str(mission.get("honest_boundary", "")),
                 "",
-                "## Competitive Positioning",
+                "## Built-in Archetype Positioning",
                 "",
                 f"- Headline: {comparison.get('headline', '')}",
                 f"- Best-vs archetype: {comparison.get('best_vs_name', '-')}",
-                f"- Frontier gap: {_safe_float(comparison.get('best_vs_gap', 0.0)):+.3f}",
+                f"- Internal frontier gap: {_safe_float(comparison.get('best_vs_gap', 0.0)):+.3f}",
                 "",
                 "## Artifact Bundle",
                 "",
@@ -1256,6 +1362,26 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 "</div>"
             )
         return "".join(blocks)
+
+    @staticmethod
+    def _score_rows(rows: list[dict[str, Any]]) -> str:
+        if not rows:
+            return "<tr><td colspan='3'>No score provenance data.</td></tr>"
+        parts: list[str] = []
+        for row in rows[:8]:
+            value = row.get("value", "")
+            if isinstance(value, float):
+                value_text = f"{value:.4f}"
+            else:
+                value_text = str(value)
+            parts.append(
+                "<tr>"
+                f"<td>{html.escape(str(row.get('name', '')))}</td>"
+                f"<td>{html.escape(value_text)}</td>"
+                f"<td>{html.escape(str(row.get('basis', '')))}</td>"
+                "</tr>"
+            )
+        return "".join(parts)
 
     @staticmethod
     def _leaderboard_rows(rows: list[dict[str, Any]]) -> str:

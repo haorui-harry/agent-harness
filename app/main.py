@@ -1362,6 +1362,58 @@ def agent_thread_exec_mission_async_command(
     console.print_json(json.dumps(payload, indent=2, default=str))
 
 
+@app.command("agent-thread-exec-task")
+def agent_thread_exec_task_command(
+    thread_id: str = typer.Argument(..., help="Persistent thread id"),
+    query: str = typer.Argument(..., help="General task query"),
+    target: str = typer.Option("general", "--target", help="general | code | research | ops"),
+    max_nodes: int = typer.Option(0, "--max-nodes", help="Optional execution slice size"),
+    output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
+) -> None:
+    """Build and execute a generic executable task graph inside the persistent thread runtime."""
+
+    payload = HARNESS.execute_thread_generic_task(
+        thread_id,
+        query,
+        target=target,
+        max_nodes=max(0, max_nodes),
+    )
+    if output:
+        path = Path(output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        console.print(f"[green]Thread task execution written:[/] {path}")
+        return
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
+@app.command("deep-research-report")
+def deep_research_report_command(
+    topic: str = typer.Argument(..., help="Research topic"),
+    subject_root: str = typer.Option(".", "--subject-root", help="Primary repository root"),
+    competitor_root: str = typer.Option("", "--competitor-root", help="Optional comparator repository root"),
+    subject_name: str = typer.Option("agent-harness", "--subject-name", help="Primary repository label"),
+    competitor_name: str = typer.Option("deer-flow", "--competitor-name", help="Comparator repository label"),
+    output_dir: str = typer.Option("reports", "--output-dir", "-o", help="Output directory"),
+) -> None:
+    """Generate a deep research framework/report/html bundle for repository comparison."""
+
+    competitor_value = competitor_root.strip()
+    if not competitor_value:
+        default_ref = (Path(subject_root).resolve().parent / "deer-flow-ref").resolve()
+        if default_ref.exists():
+            competitor_value = str(default_ref)
+    payload = HARNESS.generate_deep_research_report(
+        topic,
+        subject_root=subject_root,
+        competitor_root=competitor_value or None,
+        subject_name=subject_name,
+        competitor_name=competitor_name,
+        output_dir=output_dir,
+    )
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
 @app.command("agent-thread-resume")
 def agent_thread_resume_command(
     thread_id: str = typer.Argument(..., help="Persistent thread id"),

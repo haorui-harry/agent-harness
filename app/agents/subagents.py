@@ -30,7 +30,7 @@ class ParallelSubagentExecutor:
                 execution_label=f"subagent:{label}",
                 context=item.get("context", {}) if isinstance(item.get("context", {}), dict) else {},
             )
-            execution = queued_payload.get("executions", [])[-1] if queued_payload.get("executions") else {}
+            execution = queued_payload.get("execution", {}) if isinstance(queued_payload.get("execution", {}), dict) else {}
             queued.append(
                 {
                     "name": label,

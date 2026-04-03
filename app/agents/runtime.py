@@ -204,6 +204,7 @@ class AgentThreadRuntime:
         summary: str = "",
     ) -> dict[str, Any]:
         payload = self.ensure_thread(thread_id)
+        thread_root = (self.root / thread_id).resolve()
         safe_name = name.strip() or f"{kind}.txt"
         target = self._sandbox(thread_id).write_text(safe_name, content, area=directory)
         artifact = {
@@ -212,7 +213,7 @@ class AgentThreadRuntime:
             "kind": kind,
             "content_type": content_type,
             "path": str(target),
-            "relative_path": target.relative_to(self.root / thread_id).as_posix(),
+            "relative_path": target.resolve().relative_to(thread_root).as_posix(),
             "summary": summary,
             "created_at": _utc_now(),
             "size_bytes": target.stat().st_size,
@@ -258,8 +259,10 @@ class AgentThreadRuntime:
         payload = self.ensure_thread(thread_id)
         execution = self._get_execution(payload, execution_id)
         if execution is None:
-            execution = self._create_execution(graph=graph, execution_label=execution_label)
+            execution = self._create_execution(graph=graph, execution_label=execution_label, context=context)
             payload.setdefault("executions", []).append(execution)
+        elif context:
+            execution["context"] = {**dict(execution.get("context", {})), **dict(context)}
         execution["status"] = "running"
         execution["updated_at"] = _utc_now()
         payload["status"] = "running"
@@ -268,6 +271,11 @@ class AgentThreadRuntime:
         self._save_execution(thread_id, payload, execution)
 
         sandbox = self._sandbox(thread_id)
+        execution_context = dict(execution.get("context", {}) if isinstance(execution.get("context", {}), dict) else {})
+        execution_context.setdefault("thread_id", thread_id)
+        execution_context.setdefault("workspace", payload.get("workspace", sandbox.workspace_paths()))
+        execution_context.setdefault("node_results", {})
+        execution["context"] = execution_context
         processed = 0
 
         while True:
@@ -321,22 +329,27 @@ class AgentThreadRuntime:
                 execution_id=execution["execution_id"],
                 node=node,
                 graph=execution["graph"],
-                context=context,
+                context=execution_context,
             )
             node["status"] = str(result.get("status", "completed"))
+            execution_context.setdefault("node_results", {})[str(node.get("node_id", ""))] = result
+            execution_context["latest_result"] = result
+            execution["context"] = execution_context
             if result.get("artifact"):
                 node.setdefault("artifacts", []).append(dict(result["artifact"]))
+                thread_root = (self.root / thread_id).resolve()
+                artifact_path = Path(str(result["artifact"].get("path", ""))).resolve()
                 payload.setdefault("artifacts", []).append(
                     {
                         "artifact_id": uuid.uuid4().hex[:12],
                         "name": Path(str(result["artifact"].get("path", ""))).name,
                         "kind": result["artifact"].get("kind", "node_artifact"),
-                        "content_type": "application/json",
+                        "content_type": str(result["artifact"].get("content_type", "application/json")),
                         "path": str(result["artifact"].get("path", "")),
-                        "relative_path": Path(str(result["artifact"].get("path", ""))).relative_to(self.root / thread_id).as_posix(),
+                        "relative_path": artifact_path.relative_to(thread_root).as_posix(),
                         "summary": str(result["artifact"].get("summary", "")),
                         "created_at": _utc_now(),
-                        "size_bytes": Path(str(result["artifact"].get("path", ""))).stat().st_size,
+                        "size_bytes": artifact_path.stat().st_size,
                     }
                 )
                 payload["artifact_count"] = len(payload.get("artifacts", []))
@@ -382,6 +395,7 @@ class AgentThreadRuntime:
             thread_id,
             graph=execution["graph"],
             execution_label=str(execution.get("label", "")),
+            context=execution.get("context", {}) if isinstance(execution.get("context", {}), dict) else None,
             execution_id=execution_id,
         )
 
@@ -398,7 +412,7 @@ class AgentThreadRuntime:
         payload = self.ensure_thread(thread_id)
         execution = self._get_execution(payload, execution_id)
         if execution is None:
-            execution = self._create_execution(graph=graph, execution_label=execution_label)
+            execution = self._create_execution(graph=graph, execution_label=execution_label, context=context)
             execution["status"] = "queued"
             payload.setdefault("executions", []).append(execution)
             self._save_thread_payload(thread_id, payload)
@@ -421,7 +435,9 @@ class AgentThreadRuntime:
                 "label": execution.get("label", execution_label),
             },
         )
-        return self.load_thread(thread_id) or payload
+        response = self.load_thread(thread_id) or payload
+        response["execution"] = copy.deepcopy(execution)
+        return response
 
     def wait_for_execution(
         self,
@@ -469,6 +485,7 @@ class AgentThreadRuntime:
             graph=graph,
             execution_label=f"retry:{execution.get('label', execution_id)}",
             parent_execution_id=execution_id,
+            context=execution.get("context", {}) if isinstance(execution.get("context", {}), dict) else None,
         )
         payload.setdefault("executions", []).append(retry_execution)
         self._save_thread_payload(thread_id, payload)
@@ -586,6 +603,7 @@ class AgentThreadRuntime:
         graph: dict[str, Any],
         execution_label: str = "",
         parent_execution_id: str = "",
+        context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         graph_copy = self._normalize_graph_for_execution(copy.deepcopy(graph))
         return {
@@ -598,6 +616,7 @@ class AgentThreadRuntime:
             "interrupt_reason": "",
             "graph": graph_copy,
             "node_results": [],
+            "context": dict(context or {}),
         }
 
     @staticmethod

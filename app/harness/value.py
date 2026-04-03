@@ -61,9 +61,23 @@ class HarnessValueScorer:
         return {
             "value_index": value_index,
             "band": band,
+            "kind": "internal_heuristic",
+            "benchmark_validated": False,
             "dimensions": [item.to_dict() for item in dimensions],
             "narrative": narrative,
             "visual_hooks": hooks,
+            "provenance": {
+                "measured_inputs": [
+                    "tool_success_rate",
+                    "completion_score",
+                    "context_reuse_score",
+                    "security_block_count",
+                    "security_challenge_count",
+                    "discovery_count",
+                    "live_agent_calls",
+                ],
+                "warning": "Value index is an internal weighted heuristic for product regression tracking, not a public benchmark score.",
+            },
         }
 
     def _score_reliability(self, run: HarnessRun) -> ValueDimension:

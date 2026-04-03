@@ -94,3 +94,37 @@ def test_live_gateway_does_not_retry_non_retryable_http_errors(monkeypatch) -> N
 
     assert calls["count"] == 1
     assert "http_error:401" in message
+
+
+def test_live_gateway_unlimited_budget_and_provider_default_tokens(monkeypatch) -> None:
+    config = LiveModelConfig(
+        base_url="https://example.com/v1",
+        api_key="secret",
+        model_name="demo-model",
+        max_tokens=0,
+    )
+    gateway = LiveModelGateway(config)
+    seen: dict[str, object] = {}
+
+    def fake_urlopen(req, timeout=0):  # type: ignore[no-untyped-def]
+        seen["payload"] = json.loads(req.data.decode("utf-8"))
+        return _FakeResponse(
+            {
+                "model": "demo-model",
+                "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+                "usage": {"total_tokens": 9},
+            }
+        )
+
+    monkeypatch.setattr("app.harness.live_agent.request.urlopen", fake_urlopen)
+
+    budget = CallBudget(max_calls=0)
+    first, _ = gateway.chat(messages=[{"role": "user", "content": "first"}], budget=budget)
+    second, _ = gateway.chat(messages=[{"role": "user", "content": "second"}], budget=budget)
+
+    assert first == "ok"
+    assert second == "ok"
+    assert budget.used_calls == 2
+    payload = seen["payload"]
+    assert isinstance(payload, dict)
+    assert "max_tokens" not in payload

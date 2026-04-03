@@ -335,6 +335,42 @@ class EvidenceProviderRegistry:
                 "domains": ["research", "enterprise"],
                 "trust_score": 0.82,
             },
+            {
+                "record_id": "gaia-benchmark",
+                "title": "GAIA Benchmark",
+                "summary": "Public benchmark for evaluating general AI assistants on multi-step reasoning tasks.",
+                "url": "https://huggingface.co/gaia-benchmark",
+                "tags": ["benchmark", "research", "reasoning"],
+                "domains": ["research", "evidence"],
+                "trust_score": 0.9,
+            },
+            {
+                "record_id": "swe-bench",
+                "title": "SWE-bench",
+                "summary": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                "url": "https://github.com/SWE-bench/SWE-bench",
+                "tags": ["benchmark", "engineering", "evaluation"],
+                "domains": ["research", "enterprise"],
+                "trust_score": 0.92,
+            },
+            {
+                "record_id": "webarena",
+                "title": "WebArena",
+                "summary": "Benchmark for evaluating long-horizon web environment interaction by autonomous agents.",
+                "url": "https://webarena.dev/",
+                "tags": ["benchmark", "web", "agents"],
+                "domains": ["research", "enterprise"],
+                "trust_score": 0.88,
+            },
+            {
+                "record_id": "tau-bench",
+                "title": "tau-bench",
+                "summary": "Enterprise-oriented benchmark for realistic tool-using agent tasks and long-horizon workflows.",
+                "url": "https://github.com/sierra-research/tau-bench",
+                "tags": ["benchmark", "enterprise", "workflow"],
+                "domains": ["research", "enterprise"],
+                "trust_score": 0.9,
+            },
         ]
         return [
             EvidenceRecord(

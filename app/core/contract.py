@@ -21,19 +21,37 @@ def _extract_key_findings(state: GraphState) -> list[str]:
 
 
 def _build_confidence_components(state: GraphState) -> dict[str, float]:
+    redundancy = float(state.routing_metrics.get("redundancy", 0.0))
+    coverage = float(state.routing_metrics.get("coverage", 0.0))
+    avg_quality = float(state.routing_metrics.get("avg_quality_score", 0.0))
+    agreement = float(state.consensus_result.get("agreement_ratio", 0.0))
+    worst_case = float(state.routing_metrics.get("robust_worst_case_utility", 0.0))
+    avg_uncertainty = float(state.routing_metrics.get("avg_uncertainty", 0.0))
+    conflict_count = float(state.routing_metrics.get("conflict_count", 0.0))
+    routing_signal = max(
+        0.0,
+        min(
+            1.0,
+            0.35 * max(0.0, 1.0 - redundancy)
+            + 0.20 * coverage
+            + 0.15 * avg_quality
+            + 0.15 * agreement
+            + 0.15 * max(0.0, min(1.0, worst_case * (1.0 - avg_uncertainty))),
+        ),
+    )
     return {
-        "routing_confidence": max(0.0, 1.0 - float(state.routing_metrics.get("redundancy", 0.0))),
-        "portfolio_confidence": float(state.routing_metrics.get("coverage", 0.0)),
-        "evidence_confidence": float(state.consensus_result.get("agreement_ratio", 0.0)),
-        "consistency_confidence": max(0.0, 1.0 - float(state.routing_metrics.get("conflict_count", 0.0)) / 3.0),
+        "routing_confidence": routing_signal,
+        "portfolio_confidence": max(0.0, min(1.0, 0.55 * coverage + 0.45 * agreement)),
+        "evidence_confidence": agreement,
+        "consistency_confidence": max(0.0, 1.0 - conflict_count / 3.0),
         "verification_confidence": float(state.consensus_result.get("strength_score", 0.0)),
-        "calibration_adjusted_confidence": float(state.routing_metrics.get("avg_quality_score", 0.0)),
+        "calibration_adjusted_confidence": max(0.0, min(1.0, 0.65 * avg_quality + 0.35 * agreement)),
         "robustness_confidence": max(
             0.0,
             min(
                 1.0,
-                float(state.routing_metrics.get("robust_worst_case_utility", 0.0))
-                * (1.0 - float(state.routing_metrics.get("avg_uncertainty", 0.0))),
+                worst_case
+                * (1.0 - avg_uncertainty),
             ),
         ),
     }

@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import fnmatch
+import json
+import re
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
+from app.core.task_graph import TaskGraphNode
 from app.ecosystem.marketplace import (
     discover_for_query,
     get_provider_stats,
@@ -14,9 +19,10 @@ from app.ecosystem.marketplace import (
 )
 from app.ecosystem.store import load_marketplace
 from app.harness.evidence import EvidenceProviderRegistry
-from app.skills.registry import list_all_skills
-
+from app.harness.manifest import ToolManifestRegistry
 from app.harness.models import ToolCall, ToolResult, ToolType
+from app.harness.task_profile import analyze_task_request, build_dynamic_task_graph, infer_domains
+from app.skills.registry import list_all_skills
 
 
 class ToolRegistry:
@@ -24,10 +30,17 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         self._evidence = EvidenceProviderRegistry()
+        self._manifests = ToolManifestRegistry()
+        self._tool_schemas = self._build_tool_schemas()
         self._tools: dict[str, Callable[[dict[str, Any]], Any]] = {
+            "tool_search": self._tool_search,
             "api_market_discover": self._api_market_discover,
             "browser_trending_scan": self._browser_trending_scan,
             "code_skill_search": self._code_skill_search,
+            "workspace_file_search": self._workspace_file_search,
+            "workspace_file_read": self._workspace_file_read,
+            "workspace_file_write": self._workspace_file_write,
+            "task_graph_builder": self._task_graph_builder,
             "policy_risk_matrix": self._policy_risk_matrix,
             "memory_context_digest": self._memory_context_digest,
             "ecosystem_provider_radar": self._ecosystem_provider_radar,
@@ -39,9 +52,14 @@ class ToolRegistry:
             "code_experiment_design": self._code_experiment_design,
         }
         self._tool_types: dict[str, ToolType] = {
+            "tool_search": ToolType.CODE,
             "api_market_discover": ToolType.API,
             "browser_trending_scan": ToolType.BROWSER,
             "code_skill_search": ToolType.CODE,
+            "workspace_file_search": ToolType.CODE,
+            "workspace_file_read": ToolType.CODE,
+            "workspace_file_write": ToolType.CODE,
+            "task_graph_builder": ToolType.CODE,
             "policy_risk_matrix": ToolType.CODE,
             "memory_context_digest": ToolType.CODE,
             "ecosystem_provider_radar": ToolType.API,
@@ -57,6 +75,28 @@ class ToolRegistry:
         """List all registered tools."""
 
         return sorted(self._tools.keys())
+
+    def describe_tools(self, names: list[str] | None = None) -> list[dict[str, Any]]:
+        """Return schema-like descriptions for searchable tool discovery."""
+
+        selected = set(names or [])
+        out: list[dict[str, Any]] = []
+        for manifest in self._manifests.list_all():
+            if selected and manifest.name not in selected:
+                continue
+            out.append(
+                {
+                    "name": manifest.name,
+                    "tool_type": manifest.tool_type.value,
+                    "summary": manifest.summary,
+                    "risk_level": manifest.risk_level,
+                    "tags": list(manifest.tags),
+                    "intents": list(manifest.intents),
+                    "capabilities": list(manifest.capabilities),
+                    "schema": self._tool_schemas.get(manifest.name, {}),
+                }
+            )
+        return out
 
     def list_evidence_sources(self) -> list[dict[str, Any]]:
         """List configured evidence sources backing evidence-aware tools."""
@@ -107,6 +147,58 @@ class ToolRegistry:
             metadata=metadata,
         )
 
+    def _tool_search(self, args: dict[str, Any]) -> dict[str, Any]:
+        query = str(args.get("query", "")).strip()
+        limit = max(1, min(int(args.get("limit", 5)), 20))
+        catalog = self.describe_tools()
+        if not query:
+            matches = catalog[:limit]
+        elif query.startswith("select:"):
+            wanted = {item.strip() for item in query[7:].split(",") if item.strip()}
+            matches = [item for item in catalog if item["name"] in wanted][:limit]
+        else:
+            pattern = query
+            required = ""
+            if query.startswith("+"):
+                parts = query[1:].split(None, 1)
+                required = parts[0].lower()
+                pattern = parts[1] if len(parts) > 1 else required
+            try:
+                regex = re.compile(pattern, re.IGNORECASE)
+            except re.error:
+                regex = re.compile(re.escape(pattern), re.IGNORECASE)
+
+            scored: list[tuple[float, dict[str, Any]]] = []
+            for item in catalog:
+                searchable = " ".join(
+                    [
+                        item["name"],
+                        item["summary"],
+                        " ".join(item.get("tags", [])),
+                        " ".join(item.get("capabilities", [])),
+                        " ".join(item.get("intents", [])),
+                    ]
+                )
+                if required and required not in item["name"].lower():
+                    continue
+                if not regex.search(searchable):
+                    continue
+                score = 0.2
+                if regex.search(item["name"]):
+                    score += 0.5
+                score += 0.08 * len(regex.findall(searchable))
+                if required:
+                    score += 0.2
+                scored.append((score, item))
+            scored.sort(key=lambda pair: pair[0], reverse=True)
+            matches = [item for _, item in scored[:limit]]
+
+        return {
+            "query": query,
+            "count": len(matches),
+            "matches": matches,
+        }
+
     @staticmethod
     def _api_market_discover(args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", ""))
@@ -145,6 +237,113 @@ class ToolRegistry:
                 for meta in list_all_skills()[:limit]
             ]
         return {"skills": matches[:limit]}
+
+    @staticmethod
+    def _workspace_file_search(args: dict[str, Any]) -> dict[str, Any]:
+        workspace_root = ToolRegistry._resolve_workspace_root(args)
+        query = str(args.get("query", "")).strip().lower()
+        pattern = str(args.get("pattern", "")).strip().lower()
+        glob = str(args.get("glob", "*")).strip() or "*"
+        limit = max(1, min(int(args.get("limit", 10)), 50))
+        matches: list[dict[str, Any]] = []
+
+        for path in sorted(p for p in workspace_root.rglob("*") if p.is_file()):
+            rel = path.relative_to(workspace_root).as_posix()
+            if glob and not fnmatch.fnmatch(rel, glob) and not fnmatch.fnmatch(path.name, glob):
+                continue
+            name_hit = pattern in rel.lower() if pattern else False
+            content_hit = False
+            preview = rel
+            if query or pattern:
+                try:
+                    content = path.read_text(encoding="utf-8", errors="ignore")
+                except Exception:
+                    content = ""
+                if query and query in content.lower():
+                    content_hit = True
+                    preview = ToolRegistry._preview_match(content, query)
+                elif pattern and pattern in content.lower():
+                    content_hit = True
+                    preview = ToolRegistry._preview_match(content, pattern)
+            if query or pattern:
+                if not (name_hit or content_hit):
+                    continue
+            matches.append(
+                {
+                    "path": str(path),
+                    "relative_path": rel,
+                    "name_hit": name_hit,
+                    "content_hit": content_hit,
+                    "preview": preview,
+                }
+            )
+            if len(matches) >= limit:
+                break
+
+        return {
+            "workspace_root": str(workspace_root),
+            "count": len(matches),
+            "matches": matches,
+        }
+
+    @staticmethod
+    def _workspace_file_read(args: dict[str, Any]) -> dict[str, Any]:
+        workspace_root = ToolRegistry._resolve_workspace_root(args)
+        target = ToolRegistry._resolve_within_workspace(
+            workspace_root,
+            str(args.get("path", args.get("relative_path", ""))).strip(),
+        )
+        start_line = max(1, int(args.get("start_line", 1)))
+        default_count = max(1, int(args.get("line_count", 80)))
+        end_line = max(start_line, int(args.get("end_line", start_line + default_count - 1)))
+        max_chars = max(200, min(int(args.get("max_chars", 4000)), 20000))
+        lines = target.read_text(encoding="utf-8", errors="ignore").splitlines()
+        window = lines[start_line - 1 : end_line]
+        excerpt = "\n".join(window)[:max_chars]
+        return {
+            "path": str(target),
+            "relative_path": target.relative_to(workspace_root).as_posix(),
+            "start_line": start_line,
+            "end_line": min(end_line, len(lines)),
+            "line_count": len(lines),
+            "excerpt": excerpt,
+        }
+
+    @staticmethod
+    def _workspace_file_write(args: dict[str, Any]) -> dict[str, Any]:
+        workspace_root = ToolRegistry._resolve_workspace_root(args)
+        relative_path = str(args.get("path", args.get("relative_path", ""))).strip()
+        if not relative_path:
+            raise ValueError("path is required")
+        target = ToolRegistry._resolve_within_workspace(workspace_root, relative_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = str(args.get("content", ""))
+        target.write_text(content, encoding="utf-8")
+        return {
+            "path": str(target),
+            "relative_path": target.relative_to(workspace_root).as_posix(),
+            "bytes_written": target.stat().st_size,
+        }
+
+    @staticmethod
+    def _task_graph_builder(args: dict[str, Any]) -> dict[str, Any]:
+        query = str(args.get("query", "")).strip()
+        target = str(args.get("target", "general")).strip().lower() or "general"
+        workspace_root = ToolRegistry._resolve_workspace_root(args)
+        live_model = args.get("live_model", {}) if isinstance(args.get("live_model", {}), dict) else None
+        profile, graph = build_dynamic_task_graph(
+            query=query,
+            target=target,
+            workspace_root=workspace_root,
+            live_model_overrides=live_model,
+        )
+        return {
+            "query": query,
+            "target": target,
+            "workspace_root": str(workspace_root),
+            "profile": profile.to_dict(),
+            "graph": graph.to_dict(),
+        }
 
     def _policy_risk_matrix(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).lower()
@@ -597,15 +796,123 @@ class ToolRegistry:
 
     @staticmethod
     def _infer_domains(query: str) -> list[str]:
-        lowered = query.lower()
-        domains: list[str] = []
-        mapping = {
-            "risk": ["risk", "security", "audit", "compliance", "governance", "control"],
-            "enterprise": ["enterprise", "workflow", "operations", "stakeholder", "board"],
-            "research": ["research", "benchmark", "experiment", "study", "evaluation"],
-            "fintech": ["fintech", "bank", "payments", "insurance", "customer support"],
-        }
-        for domain, markers in mapping.items():
-            if any(marker in lowered for marker in markers):
-                domains.append(domain)
+        domains = infer_domains(query)
         return domains or ["evidence"]
+
+    @staticmethod
+    def _resolve_workspace_root(args: dict[str, Any]) -> Path:
+        raw = str(args.get("workspace_root", ".")).strip() or "."
+        root = Path(raw).resolve()
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    @staticmethod
+    def _resolve_within_workspace(workspace_root: Path, relative_or_absolute: str) -> Path:
+        if not relative_or_absolute:
+            raise ValueError("path is required")
+        raw = Path(relative_or_absolute)
+        target = raw.resolve() if raw.is_absolute() else (workspace_root / raw).resolve()
+        if target != workspace_root and workspace_root not in target.parents:
+            raise ValueError(f"path escapes workspace: {relative_or_absolute}")
+        return target
+
+    @staticmethod
+    def _preview_match(content: str, needle: str, radius: int = 80) -> str:
+        lowered = content.lower()
+        index = lowered.find(needle.lower())
+        if index < 0:
+            return content[: radius * 2].replace("\n", " ")
+        start = max(0, index - radius)
+        end = min(len(content), index + len(needle) + radius)
+        return content[start:end].replace("\n", " ")
+
+    @staticmethod
+    def _build_task_graph_nodes(query: str, target: str) -> list[TaskGraphNode]:
+        _, graph = build_dynamic_task_graph(query=query, target=target)
+        nodes = graph.to_dict().get("nodes", [])
+        return [
+            TaskGraphNode(
+                node_id=str(item.get("node_id", "")),
+                title=str(item.get("title", "")),
+                node_type=str(item.get("node_type", "")),
+                status=str(item.get("status", "")),
+                depends_on=list(item.get("depends_on", [])),
+                commands=list(item.get("commands", [])),
+                notes=list(item.get("notes", [])),
+                metrics=dict(item.get("metrics", {})),
+            )
+            for item in nodes
+        ]
+
+    @staticmethod
+    def _build_tool_schemas() -> dict[str, dict[str, Any]]:
+        return {
+            "tool_search": {
+                "arguments": {
+                    "query": "Search string. Supports select:name1,name2 and +required term forms.",
+                    "limit": "Maximum number of tool schemas to return.",
+                }
+            },
+            "api_market_discover": {"arguments": {"query": "Search query.", "limit": "Result limit."}},
+            "browser_trending_scan": {"arguments": {"limit": "Trending result limit."}},
+            "code_skill_search": {"arguments": {"query": "Capability keyword.", "limit": "Result limit."}},
+            "workspace_file_search": {
+                "arguments": {
+                    "workspace_root": "Workspace root directory.",
+                    "query": "Content substring to search for.",
+                    "pattern": "Filename or content substring.",
+                    "glob": "File glob filter such as *.py or docs/*.",
+                    "limit": "Maximum matches.",
+                }
+            },
+            "workspace_file_read": {
+                "arguments": {
+                    "workspace_root": "Workspace root directory.",
+                    "path": "Relative or absolute path inside workspace_root.",
+                    "start_line": "1-based start line.",
+                    "end_line": "1-based end line.",
+                    "max_chars": "Maximum excerpt length.",
+                }
+            },
+            "workspace_file_write": {
+                "arguments": {
+                    "workspace_root": "Workspace root directory.",
+                    "path": "Relative output path within workspace_root.",
+                    "content": "Content to write.",
+                }
+            },
+            "task_graph_builder": {
+                "arguments": {
+                    "query": "Task request to convert into executable task graph.",
+                    "target": "general | code | research | ops.",
+                    "workspace_root": "Optional workspace root used for downstream graph execution.",
+                }
+            },
+            "policy_risk_matrix": {"arguments": {"query": "Task text.", "evidence_limit": "Evidence item limit."}},
+            "memory_context_digest": {"arguments": {"events": "Prior event list.", "limit": "Event window size."}},
+            "ecosystem_provider_radar": {"arguments": {"limit": "Provider count."}},
+            "evidence_dossier_builder": {
+                "arguments": {
+                    "query": "Research query.",
+                    "limit": "Evidence record limit.",
+                    "domains": "Optional domain filters.",
+                }
+            },
+            "external_resource_hub": {"arguments": {"query": "Topic query.", "limit": "Resource limit."}},
+            "api_skill_dependency_graph": {"arguments": {"limit": "Node or edge output limit."}},
+            "code_router_blueprint": {"arguments": {"query": "Architecture query."}},
+            "api_skill_portfolio_optimizer": {
+                "arguments": {
+                    "query": "Portfolio query.",
+                    "limit": "Portfolio size.",
+                    "risk_tolerance": "low | medium | high.",
+                }
+            },
+            "code_experiment_design": {
+                "arguments": {
+                    "query": "Experiment topic.",
+                    "objective": "Optimization objective.",
+                    "max_experiments": "Maximum experiment rows.",
+                }
+            },
+        }

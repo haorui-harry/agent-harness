@@ -55,6 +55,7 @@ class HarnessConstraints:
     security_strictness: str = "balanced"
     enable_live_agent: bool = False
     max_live_agent_calls: int = 8
+    # 0 means unlimited and lets the runtime stop on task quality rather than an arbitrary call cap.
     live_agent_temperature: float = 0.15
     live_agent_timeout_seconds: int = 45
     live_agent_fail_open: bool = True

@@ -13,9 +13,30 @@ from app.harness.state import HarnessMemoryStore
 
 def test_harness_planner_builds_plan() -> None:
     planner = HarnessPlanner()
-    plan = planner.build_plan("Audit this compliance plan and compare options")
+    plan = planner.build_plan("Analyze my repository and give me a fix plan plus tests")
     assert len(plan) >= 3
-    assert "synthesize and evaluate" in plan
+    assert any("workspace" in item for item in plan)
+    assert any("validate" in item for item in plan)
+
+
+def test_harness_planner_switches_tools_by_task_context() -> None:
+    planner = HarnessPlanner()
+
+    repo_tool = planner.next_tool_call(
+        query="Analyze my repository and propose fixes",
+        step=1,
+        plan=planner.build_plan("Analyze my repository and propose fixes"),
+    )
+    research_tool = planner.next_tool_call(
+        query="Write a deep research report about AI agent frameworks",
+        step=1,
+        plan=planner.build_plan("Write a deep research report about AI agent frameworks"),
+    )
+
+    assert repo_tool is not None
+    assert repo_tool.name == "workspace_file_search"
+    assert research_tool is not None
+    assert research_tool.name == "external_resource_hub"
 
 
 def test_guardrail_blocks_known_tool() -> None:

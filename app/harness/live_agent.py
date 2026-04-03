@@ -24,7 +24,8 @@ class LiveModelConfig:
     model_name: str
     timeout_seconds: int = 45
     temperature: float = 0.15
-    max_tokens: int = 1200
+    # 0 means let the provider default decide instead of imposing a local cap.
+    max_tokens: int = 0
     retry_attempts: int = 3
     retry_backoff_seconds: float = 0.75
 
@@ -46,7 +47,7 @@ class LiveModelConfig:
                 minimum=0.0,
                 maximum=1.5,
             ),
-            max_tokens=_safe_int(os.getenv("AGENT_HARNESS_MODEL_MAX_TOKENS", "1200"), 1200, minimum=128, maximum=8192),
+            max_tokens=_optional_non_negative_int(os.getenv("AGENT_HARNESS_MODEL_MAX_TOKENS", "0"), 0),
             retry_attempts=_safe_int(os.getenv("AGENT_HARNESS_MODEL_RETRY_ATTEMPTS", "3"), 3, minimum=1, maximum=8),
             retry_backoff_seconds=_safe_float(
                 os.getenv("AGENT_HARNESS_MODEL_RETRY_BACKOFF", "0.75"),
@@ -89,7 +90,7 @@ class LiveModelConfig:
             model_name=model_name,
             timeout_seconds=_safe_int(payload.get("timeout_seconds", 45), 45, minimum=5, maximum=300),
             temperature=_safe_float(payload.get("temperature", 0.15), 0.15, minimum=0.0, maximum=1.5),
-            max_tokens=_safe_int(payload.get("max_tokens", 1200), 1200, minimum=128, maximum=8192),
+            max_tokens=_optional_non_negative_int(payload.get("max_tokens", 0), 0),
             retry_attempts=_safe_int(payload.get("retry_attempts", 3), 3, minimum=1, maximum=8),
             retry_backoff_seconds=_safe_float(
                 payload.get("retry_backoff_seconds", 0.75),
@@ -120,12 +121,14 @@ class CallBudget:
     used_calls: int = 0
 
     def consume(self) -> None:
-        if self.used_calls >= self.max_calls:
+        if self.max_calls > 0 and self.used_calls >= self.max_calls:
             raise RuntimeError(f"live_agent_call_budget_exhausted:{self.max_calls}")
         self.used_calls += 1
 
     @property
     def remaining(self) -> int:
+        if self.max_calls <= 0:
+            return 10**9
         return max(self.max_calls - self.used_calls, 0)
 
 
@@ -183,68 +186,101 @@ class LiveModelGateway:
         require_json: bool = False,
     ) -> tuple[str, dict[str, Any]]:
         budget.consume()
-        endpoint = self.config.base_url.rstrip("/") + "/chat/completions"
         payload: dict[str, Any] = {
             "model": self.config.model_name,
             "messages": messages,
             "temperature": self.config.temperature if temperature is None else float(temperature),
-            "max_tokens": self.config.max_tokens if max_tokens is None else int(max_tokens),
         }
+        effective_max_tokens = self.config.max_tokens if max_tokens is None else int(max_tokens)
+        if effective_max_tokens > 0:
+            payload["max_tokens"] = effective_max_tokens
         if require_json:
             payload["response_format"] = {"type": "json_object"}
 
         raw = json.dumps(payload).encode("utf-8")
-        req = request.Request(
-            endpoint,
-            data=raw,
-            headers={
-                "Authorization": f"Bearer {self.config.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
         start = time.time()
         attempts = max(1, int(self.config.retry_attempts))
+        endpoints = self._candidate_endpoints(self.config.base_url)
         retry_errors: list[str] = []
         for attempt in range(1, attempts + 1):
-            try:
-                with request.urlopen(req, timeout=self.config.timeout_seconds) as response:
-                    body = response.read().decode("utf-8", errors="replace")
-                latency_ms = (time.time() - start) * 1000.0
-                parsed = json.loads(body)
-                content = self._extract_content(parsed)
-                meta = {
-                    "latency_ms": latency_ms,
-                    "model": parsed.get("model", self.config.model_name),
-                    "finish_reason": self._extract_finish_reason(parsed),
-                    "usage": parsed.get("usage", {}),
-                    "attempts": attempt,
-                    "retries": max(0, attempt - 1),
-                }
-                if retry_errors:
-                    meta["retry_errors"] = list(retry_errors)
-                return content, meta
-            except error.HTTPError as exc:
-                text = exc.read().decode("utf-8", errors="replace")
-                descriptor = f"http_error:{exc.code}:{text[:500]}"
-                if attempt < attempts and self._is_retryable_http_error(exc.code, text):
-                    retry_errors.append(descriptor)
-                    time.sleep(self._retry_delay(attempt))
-                    continue
-                raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
-            except (error.URLError, TimeoutError, socket.timeout, ssl.SSLError, OSError) as exc:
-                descriptor = self._format_network_error(exc)
-                if attempt < attempts and self._is_retryable_network_error(exc):
-                    retry_errors.append(descriptor)
-                    time.sleep(self._retry_delay(attempt))
-                    continue
-                raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
-            except Exception as exc:  # pragma: no cover - defensive
-                raise RuntimeError(f"live_gateway_error:{exc}") from exc
+            for endpoint_index, endpoint in enumerate(endpoints):
+                req = request.Request(
+                    endpoint,
+                    data=raw,
+                    headers={
+                        "Authorization": f"Bearer {self.config.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                try:
+                    with request.urlopen(req, timeout=self.config.timeout_seconds) as response:
+                        body = response.read().decode("utf-8", errors="replace")
+                    latency_ms = (time.time() - start) * 1000.0
+                    parsed = json.loads(body)
+                    content = self._extract_content(parsed)
+                    meta = {
+                        "latency_ms": latency_ms,
+                        "model": parsed.get("model", self.config.model_name),
+                        "finish_reason": self._extract_finish_reason(parsed),
+                        "usage": parsed.get("usage", {}),
+                        "attempts": attempt,
+                        "retries": max(0, attempt - 1),
+                        "endpoint": endpoint,
+                    }
+                    if retry_errors:
+                        meta["retry_errors"] = list(retry_errors)
+                    return content, meta
+                except error.HTTPError as exc:
+                    text = exc.read().decode("utf-8", errors="replace")
+                    descriptor = f"http_error:{exc.code}:{endpoint}:{text[:500]}"
+                    if endpoint_index < len(endpoints) - 1:
+                        retry_errors.append(descriptor)
+                        continue
+                    if attempt < attempts and self._is_retryable_http_error(exc.code, text):
+                        retry_errors.append(descriptor)
+                        time.sleep(self._retry_delay(attempt))
+                        continue
+                    raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+                except (error.URLError, TimeoutError, socket.timeout, ssl.SSLError, OSError) as exc:
+                    descriptor = f"{self._format_network_error(exc)}:{endpoint}"
+                    if endpoint_index < len(endpoints) - 1:
+                        retry_errors.append(descriptor)
+                        continue
+                    if attempt < attempts and self._is_retryable_network_error(exc):
+                        retry_errors.append(descriptor)
+                        time.sleep(self._retry_delay(attempt))
+                        continue
+                    raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+                except json.JSONDecodeError as exc:
+                    descriptor = f"json_decode_error:{endpoint}:{str(exc)}"
+                    if endpoint_index < len(endpoints) - 1:
+                        retry_errors.append(descriptor)
+                        continue
+                    raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+                except Exception as exc:  # pragma: no cover - defensive
+                    descriptor = f"live_gateway_error:{endpoint}:{exc}"
+                    if endpoint_index < len(endpoints) - 1:
+                        retry_errors.append(descriptor)
+                        continue
+                    raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
+        raise RuntimeError("live_gateway_error:exhausted_all_endpoints")
 
     def _retry_delay(self, attempt: int) -> float:
         base = max(0.1, float(self.config.retry_backoff_seconds))
         return min(base * (2 ** max(attempt - 1, 0)), 8.0)
+
+    @staticmethod
+    def _candidate_endpoints(base_url: str) -> list[str]:
+        root = str(base_url or "").rstrip("/")
+        if not root:
+            return []
+        if root.endswith("/chat/completions"):
+            return [root]
+        candidates = [root + "/chat/completions"]
+        if not root.endswith("/v1"):
+            candidates.insert(0, root + "/v1/chat/completions")
+        return candidates
 
     @staticmethod
     def _finalize_error(descriptor: str, retry_errors: list[str], attempt: int) -> str:
@@ -367,7 +403,7 @@ class LiveAgentOrchestrator:
         result = LiveAgentResult(
             enabled=True,
             configured=config is not None,
-            call_budget=max(1, min(int(max_calls), 50)),
+            call_budget=max(0, int(max_calls)),
             model=config.model_name if config else "",
             base_url=config.base_url if config else "",
             strategy={
@@ -391,7 +427,6 @@ class LiveAgentOrchestrator:
                 messages=self._analysis_messages(query, mode, plan, steps, discovery, profile=profile),
                 budget=budget,
                 temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
-                max_tokens=max(256, 800 + profile.max_tokens_bias),
                 require_json=True,
             )
             result.analysis = _coerce_json(analysis_text)
@@ -415,7 +450,6 @@ class LiveAgentOrchestrator:
                     ),
                     budget=budget,
                     temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
-                    max_tokens=max(512, 1400 + profile.max_tokens_bias),
                     require_json=False,
                 )
                 result.transport["synthesis"] = synth_meta
@@ -432,7 +466,6 @@ class LiveAgentOrchestrator:
                     messages=self._critique_messages(query, synth_text, profile=profile),
                     budget=budget,
                     temperature=max(0.0, min(1.5, temperature + profile.temperature_bias - 0.05)),
-                    max_tokens=max(256, 500 + int(profile.max_tokens_bias * 0.5)),
                     require_json=True,
                 )
                 critique_payload = _coerce_json(critique_text)
@@ -565,6 +598,14 @@ def _safe_int(value: Any, fallback: int, minimum: int, maximum: int) -> int:
     except Exception:
         num = fallback
     return max(minimum, min(maximum, num))
+
+
+def _optional_non_negative_int(value: Any, fallback: int = 0) -> int:
+    try:
+        num = int(value)
+    except Exception:
+        num = fallback
+    return max(0, num)
 
 
 def _safe_float(value: Any, fallback: float, minimum: float, maximum: float) -> float:

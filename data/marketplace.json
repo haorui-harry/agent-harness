@@ -10,8 +10,8 @@
         "governance"
       ],
       "installs": 120,
-      "uses": 174,
-      "success": 164,
+      "uses": 617,
+      "success": 607,
       "failures": 10,
       "avg_rating": 4.6,
       "rating_count": 29,
@@ -97,8 +97,8 @@
         "comparison"
       ],
       "installs": 95,
-      "uses": 71,
-      "success": 65,
+      "uses": 109,
+      "success": 103,
       "failures": 6,
       "avg_rating": 4.4,
       "rating_count": 22,
@@ -114,7 +114,7 @@
         "validate_claims"
       ],
       "last_updated": "2026-02-03",
-      "trending_score": 0.21,
+      "trending_score": 0.5900000000000003,
       "metadata": {
         "name": "evidence_matrix",
         "description": "Build claim-evidence-confidence matrix from source text.",
@@ -186,8 +186,8 @@
         "brief"
       ],
       "installs": 180,
-      "uses": 195,
-      "success": 178,
+      "uses": 314,
+      "success": 297,
       "failures": 17,
       "avg_rating": 4.8,
       "rating_count": 55,
@@ -203,7 +203,7 @@
         "generate_recommendations"
       ],
       "last_updated": "2026-03-11",
-      "trending_score": 0.7000000000000004,
+      "trending_score": 1.0,
       "metadata": {
         "name": "board_brief",
         "description": "Produce board-level concise summary with recommendations.",
@@ -274,8 +274,8 @@
         "emotion"
       ],
       "installs": 95,
-      "uses": 82,
-      "success": 74,
+      "uses": 131,
+      "success": 123,
       "failures": 8,
       "avg_rating": 4.3,
       "rating_count": 31,
@@ -291,7 +291,7 @@
         "executive_summary"
       ],
       "last_updated": "2026-02-18",
-      "trending_score": 0.16,
+      "trending_score": 0.6500000000000004,
       "metadata": {
         "name": "sentiment_scanner",
         "description": "Analyze sentiment polarity and emotional tone across text segments.",
@@ -364,8 +364,8 @@
         "mapping"
       ],
       "installs": 68,
-      "uses": 107,
-      "success": 101,
+      "uses": 208,
+      "success": 202,
       "failures": 6,
       "avg_rating": 4.1,
       "rating_count": 15,
@@ -381,7 +381,7 @@
         "prioritize_items"
       ],
       "last_updated": "2026-01-30",
-      "trending_score": 0.7200000000000005,
+      "trending_score": 1.0,
       "metadata": {
         "name": "dependency_mapper",
         "description": "Map dependencies, relationships, and causal chains in structured content.",
@@ -455,8 +455,8 @@
         "what-if"
       ],
       "installs": 42,
-      "uses": 30,
-      "success": 26,
+      "uses": 28,
+      "success": 24,
       "failures": 4,
       "avg_rating": 4.5,
       "rating_count": 12,
@@ -472,7 +472,7 @@
         "generate_recommendations"
       ],
       "last_updated": "2026-03-20",
-      "trending_score": 0.35000000000000003,
+      "trending_score": 0.33,
       "metadata": {
         "name": "scenario_generator",
         "description": "Generate alternative scenarios and what-if analyses based on input conditions.",

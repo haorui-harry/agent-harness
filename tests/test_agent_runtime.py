@@ -320,3 +320,185 @@ def test_workspace_stream_builder_compacts_thread_payload() -> None:
 
     assert stream["metrics"]["artifact_count"] == 1
     assert stream["executions"][0]["completed_nodes"] == 3
+
+
+def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Path) -> None:
+    engine = HarnessEngine()
+    engine.thread_runtime = AgentThreadRuntime(tmp_path / "threads")
+    engine.memory = HarnessMemoryStore(tmp_path / "memory.json")
+    engine.scheduler.runtime = engine.thread_runtime
+    engine.subagents.runtime = engine.thread_runtime
+
+    thread = engine.create_thread(title="Generic Task Thread")
+    sandbox = engine.thread_runtime.sandbox_provider.get(tmp_path / "threads" / thread["thread_id"])
+    sandbox.write_text("notes.md", "Fix parser bug, add tests, and package the result.", area="workspace")
+    sandbox.write_text("test_demo.py", "def test_demo():\n    assert True\n", area="workspace")
+    sandbox.write_text("tests/test_demo.py", "def test_demo():\n    assert True\n", area="workspace")
+
+    payload = engine.execute_thread_generic_task(
+        thread["thread_id"],
+        "Inspect the workspace, prepare a concrete engineering task brief, and run validation tests.",
+        target="code",
+    )
+    persisted = engine.get_thread(thread["thread_id"])
+
+    assert payload["execution"]["status"] == "completed"
+    assert payload["graph"]["summary"]["node_count"] >= 5
+    assert persisted is not None
+    assert any(item["relative_path"].endswith("report.md") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("execution-trace.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("patch-scaffold.md") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("patch-draft.diff") for item in persisted["artifacts"])
+
+
+def test_engine_executes_benchmark_actions_and_dataset_spec(tmp_path: Path) -> None:
+    engine = HarnessEngine()
+    engine.thread_runtime = AgentThreadRuntime(tmp_path / "threads")
+    engine.memory = HarnessMemoryStore(tmp_path / "memory.json")
+    engine.scheduler.runtime = engine.thread_runtime
+    engine.subagents.runtime = engine.thread_runtime
+
+    thread = engine.create_thread(title="Benchmark Task Thread")
+    sandbox = engine.thread_runtime.sandbox_provider.get(tmp_path / "threads" / thread["thread_id"])
+    sandbox.write_text("tests/test_demo.py", "def test_demo():\n    assert True\n", area="workspace")
+
+    payload = engine.execute_thread_generic_task(
+        thread["thread_id"],
+        "Design a benchmark and ablation study, generate run config, and prepare dataset pull spec.",
+        target="general",
+    )
+    persisted = engine.get_thread(thread["thread_id"])
+
+    assert payload["execution"]["status"] == "completed"
+    assert persisted is not None
+    assert any(item["relative_path"].endswith("run-config.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("manifest.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("pull-spec.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("loader_template.py") for item in persisted["artifacts"])
+
+
+def test_graph_replan_can_add_tool_and_subagent_nodes_on_failure(tmp_path: Path) -> None:
+    engine = HarnessEngine()
+    engine.thread_runtime = AgentThreadRuntime(tmp_path / "threads")
+    engine.memory = HarnessMemoryStore(tmp_path / "memory.json")
+    engine.scheduler.runtime = engine.thread_runtime
+    engine.subagents.runtime = engine.thread_runtime
+
+    thread = engine.create_thread(title="Replan Failure Thread")
+    sandbox = engine.thread_runtime.sandbox_provider.get(tmp_path / "threads" / thread["thread_id"])
+    sandbox.write_text("tests/test_fail.py", "def test_fail():\n    assert False\n", area="workspace")
+
+    payload = engine.execute_thread_generic_task(
+        thread["thread_id"],
+        "Inspect the workspace, run validation tests, and produce a repair plan.",
+        target="code",
+    )
+    persisted = engine.get_thread(thread["thread_id"])
+
+    assert payload["execution"]["status"] == "completed"
+    assert persisted is not None
+    replan_result = payload["execution"]["context"]["node_results"]["replan"]["result"]
+    assert replan_result["failure_policy"]["policy"] == "assertion_failure"
+    assert any(item["relative_path"].endswith("replan_tool_workspace_file_search.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("replan_subagent_repair_probe.json") for item in persisted["artifacts"])
+
+
+def test_graph_replan_selects_missing_dependency_policy(tmp_path: Path) -> None:
+    engine = HarnessEngine()
+    engine.thread_runtime = AgentThreadRuntime(tmp_path / "threads")
+    engine.memory = HarnessMemoryStore(tmp_path / "memory.json")
+    engine.scheduler.runtime = engine.thread_runtime
+    engine.subagents.runtime = engine.thread_runtime
+
+    thread = engine.create_thread(title="Missing Dependency Thread")
+    sandbox = engine.thread_runtime.sandbox_provider.get(tmp_path / "threads" / thread["thread_id"])
+    sandbox.write_text("tests/test_import.py", "import definitely_missing_module\n\ndef test_demo():\n    assert True\n", area="workspace")
+
+    payload = engine.execute_thread_generic_task(
+        thread["thread_id"],
+        "Inspect the workspace, run validation tests, and recover from dependency failures.",
+        target="code",
+    )
+    persisted = engine.get_thread(thread["thread_id"])
+
+    assert payload["execution"]["status"] == "completed"
+    assert persisted is not None
+    replan_result = payload["execution"]["context"]["node_results"]["replan"]["result"]
+    assert replan_result["failure_policy"]["policy"] == "missing_dependency"
+    assert any(item["relative_path"].endswith("replan_tool_workspace_file_search.json") for item in persisted["artifacts"])
+
+
+def test_subagent_can_use_live_model_generated_mini_plan(monkeypatch, tmp_path: Path) -> None:
+    runtime = AgentThreadRuntime(tmp_path / "threads")
+    thread = runtime.create_thread(title="Live Subagent Thread")
+    sandbox = runtime.sandbox_provider.get(tmp_path / "threads" / thread["thread_id"])
+    sandbox.write_text("notes.md", "repair parser issue and inspect tests", area="workspace")
+
+    class _FakeResponse:
+        def __init__(self, payload: dict[str, object]) -> None:
+            self.payload = json.dumps(payload).encode("utf-8")
+
+        def read(self) -> bytes:
+            return self.payload
+
+        def __enter__(self) -> "_FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    def fake_urlopen(req, timeout=0):  # type: ignore[no-untyped-def]
+        return _FakeResponse(
+            {
+                "model": "demo-model",
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "skill_name": "codebase_triage",
+                                    "tool_calls": [
+                                        {"name": "tool_search", "args": {"query": "repair parser", "limit": 4}},
+                                        {"name": "workspace_file_search", "args": {"query": "parser", "glob": "*", "limit": 4}},
+                                    ],
+                                    "rationale": ["use workspace plus discovery for repair work"],
+                                }
+                            )
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+            }
+        )
+
+    monkeypatch.setattr(request, "urlopen", fake_urlopen)
+
+    graph = {
+        "graph_id": "subagent-live",
+        "nodes": [
+            {"node_id": "scope", "title": "Scope", "node_type": "routing", "status": "ready", "depends_on": [], "commands": [], "notes": [], "artifacts": [], "metrics": {}},
+            {
+                "node_id": "subagent",
+                "title": "Subagent",
+                "node_type": "subagent",
+                "status": "ready",
+                "depends_on": ["scope"],
+                "commands": [],
+                "notes": [],
+                "artifacts": [],
+                "metrics": {"subagent_kind": "repair_probe", "objective": "repair parser failure", "source_node_ids": ["scope"]},
+            },
+        ],
+    }
+
+    execution = runtime.execute_task_graph(
+        thread["thread_id"],
+        graph=graph,
+        execution_label="live-subagent",
+        context={"query": "repair parser failure", "live_model": {"base_url": "https://example.com/v1", "api_key": "secret", "model_name": "demo-model"}},
+    )
+
+    result = execution["context"]["node_results"]["subagent"]["result"]
+    assert execution["status"] == "completed"
+    assert result["plan"]["source"] == "live_model"
+    assert result["plan"]["skill_name"] == "codebase_triage"

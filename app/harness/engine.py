@@ -15,6 +15,7 @@ from app.core.state import GraphState
 from app.graph import build_graph
 from app.core.mission import MissionRegistry
 from app.harness.code_mission import CodeMissionPackBuilder
+from app.harness.deep_research import HarnessDeepResearchBuilder
 from app.harness.discovery import DiscoveredTool, ToolDiscoveryEngine
 from app.harness.evaluator import HarnessEvaluator
 from app.harness.guardrails import GuardrailEngine
@@ -23,7 +24,7 @@ from app.harness.live_agent import LiveAgentOrchestrator
 from app.harness.live_experiment import HarnessLiveExperiment, LiveExperimentConfig
 from app.harness.lab_product import LabProductBuilder
 from app.harness.manifest import ToolManifestRegistry
-from app.harness.models import HarnessConstraints, HarnessRun, HarnessStep, ToolCall
+from app.harness.models import HarnessConstraints, HarnessRun, HarnessStep, ToolCall, ToolType
 from app.harness.optimizer import HarnessOptimizer
 from app.harness.planner import HarnessPlanner
 from app.harness.presentation import PresentationBlueprintBuilder
@@ -67,6 +68,7 @@ class HarnessEngine:
         self.reporter = HarnessReportBuilder()
         self.missions = MissionRegistry()
         self.code_mission = CodeMissionPackBuilder()
+        self.deep_research = HarnessDeepResearchBuilder()
         self.value = HarnessValueScorer()
         self.visuals = HarnessVisualProtocol()
         self.showcase = HarnessShowcaseBuilder()
@@ -495,6 +497,90 @@ class HarnessEngine:
 
         return self.workspace_view.to_html(self.build_thread_workspace_stream(thread_id))
 
+    def generate_deep_research_report(
+        self,
+        topic: str,
+        *,
+        subject_root: str | Path = ".",
+        competitor_root: str | Path | None = None,
+        subject_name: str = "agent-harness",
+        competitor_name: str = "deer-flow",
+        output_dir: str | Path = "reports",
+    ) -> dict[str, Any]:
+        """Build and write a deep research report bundle for repository comparison."""
+
+        payload = self.deep_research.build(
+            topic=topic,
+            subject_root=subject_root,
+            competitor_root=competitor_root,
+            subject_name=subject_name,
+            competitor_name=competitor_name,
+        )
+        payload["paths"] = self.deep_research.write_bundle(payload, output_dir=output_dir)
+        return payload
+
+    def build_generic_task_graph(
+        self,
+        query: str,
+        *,
+        target: str = "general",
+        workspace_root: str = ".",
+        live_model: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Build a generic executable task graph for non-mission agent work."""
+
+        result = self.tools.call(
+            ToolCall(
+                name="task_graph_builder",
+                tool_type=ToolType.CODE,
+                args={
+                    "query": query,
+                    "target": target,
+                    "workspace_root": workspace_root,
+                    "live_model": dict(live_model or {}),
+                },
+            )
+        )
+        if not result.success:
+            raise ValueError(result.error or "task_graph_builder failed")
+        output = result.output if isinstance(result.output, dict) else {}
+        graph = output.get("graph", {})
+        if not isinstance(graph, dict):
+            raise ValueError("task_graph_builder returned invalid graph")
+        return graph
+
+    def execute_thread_generic_task(
+        self,
+        thread_id: str,
+        query: str,
+        *,
+        target: str = "general",
+        max_nodes: int = 0,
+        live_model: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Build and execute a generic cross-scene task graph inside one thread."""
+
+        thread = self.thread_runtime.ensure_thread(thread_id, title=query[:80])
+        workspace_root = str(thread.get("workspace", {}).get("workspace", "."))
+        graph = self.build_generic_task_graph(
+            query=query,
+            target=target,
+            workspace_root=workspace_root,
+            live_model=live_model,
+        )
+        execution = self.execute_thread_task_graph(
+            thread_id,
+            graph,
+            execution_label=f"generic:{target}",
+            context={"query": query, "target": target, "live_model": dict(live_model or {})},
+            max_nodes=max_nodes,
+        )
+        return {
+            "thread": self.get_thread(thread_id),
+            "graph": graph,
+            "execution": execution,
+        }
+
     def run(
         self,
         query: str,
@@ -540,7 +626,7 @@ class HarnessEngine:
         safe_query = preflight.redacted_query or query
         graph_result = self.graph.invoke(GraphState(query=safe_query, system_mode=mode))
         payload: dict[str, Any] = graph_result if isinstance(graph_result, dict) else graph_result.model_dump()
-        plan = self.planner.build_plan(safe_query)
+        plan = self.planner.build_plan(safe_query, live_model_overrides=live_model)
         if active_recipe:
             plan.append(f"recipe:{active_recipe.name}")
 
@@ -645,7 +731,14 @@ class HarnessEngine:
                         discovered_item = discovery_map.get(tool_call.name)
 
                 if not tool_call:
-                    fallback = self.planner.next_tool_call(query=safe_query, step=step_idx, plan=plan)
+                    fallback = self.planner.next_tool_call(
+                        query=safe_query,
+                        step=step_idx,
+                        plan=plan,
+                        session_events=session_events,
+                        used_tools=used_tools,
+                        live_model_overrides=live_model,
+                    )
                     if not fallback:
                         break
                     tool_call = fallback
@@ -694,7 +787,7 @@ class HarnessEngine:
             plan=plan,
             steps=[self._step_to_dict(item) for item in steps],
             discovery=discovery_trace,
-            max_calls=max(1, min(constraints.max_live_agent_calls, 50)),
+            max_calls=max(0, int(constraints.max_live_agent_calls)),
             temperature=constraints.live_agent_temperature,
             live_model_overrides=live_overrides,
         ) if constraints.enable_live_agent else None
