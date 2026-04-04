@@ -1,20 +1,20 @@
-<p align="right">
+﻿<p align="right">
   <a href="../../README.md"><img alt="English" src="https://img.shields.io/badge/Language-English-0f766e?style=for-the-badge"></a>
-  <a href="../../README.zh-CN.md"><img alt="Simplified Chinese" src="https://img.shields.io/badge/Language-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=for-the-badge"></a>
+  <a href="../../README.zh-CN.md"><img alt="Simplified Chinese" src="https://img.shields.io/badge/Language-Simplified%20Chinese-2563eb?style=for-the-badge"></a>
 </p>
 
 # Demo Snapshots
 
 These are tracked showcase snapshots that ship with the repository.
 
-`reports/` is runtime output and intentionally gitignored.
+`reports/` is local runtime output and is intentionally gitignored.
 
 ## 1. Live Fintech Launch
 
 ![Live Fintech Launch](./live/showcase.png)
 
 - Theme: regulated AI customer-support copilot launch
-- Mode: live API
+- Main deliverable: [live/deliverable.md](./live/deliverable.md)
 - HTML snapshot: [live/showcase.html](./live/showcase.html)
 - Press brief: [live/press-brief.md](./live/press-brief.md)
 - JSON payload: [live/showcase.json](./live/showcase.json)
@@ -25,7 +25,7 @@ These are tracked showcase snapshots that ship with the repository.
 ![Enterprise Rollout Pack](./enterprise/showcase.png)
 
 - Theme: enterprise AI operating layer rollout
-- Mode: deterministic baseline
+- Main deliverable: [enterprise/deliverable.md](./enterprise/deliverable.md)
 - HTML snapshot: [enterprise/showcase.html](./enterprise/showcase.html)
 - Press brief: [enterprise/press-brief.md](./enterprise/press-brief.md)
 - JSON payload: [enterprise/showcase.json](./enterprise/showcase.json)
@@ -36,7 +36,7 @@ These are tracked showcase snapshots that ship with the repository.
 ![Research Promotion Pack](./research/showcase.png)
 
 - Theme: applied research promotion and release packet
-- Mode: deterministic baseline
+- Main deliverable: [research/deliverable.md](./research/deliverable.md)
 - HTML snapshot: [research/showcase.html](./research/showcase.html)
 - Press brief: [research/press-brief.md](./research/press-brief.md)
 - JSON payload: [research/showcase.json](./research/showcase.json)
@@ -44,7 +44,7 @@ These are tracked showcase snapshots that ship with the repository.
 
 ## 4. Baseline Press Snapshot
 
-This older snapshot is kept as a reproducible baseline for CI-safe demos.
+This older snapshot is kept as a CI-safe baseline.
 
 - HTML snapshot: [press/showcase.html](./press/showcase.html)
 - Press brief: [press/press-brief.md](./press/press-brief.md)

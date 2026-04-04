@@ -1,184 +1,127 @@
-<p align="right">
+﻿<p align="right">
   <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/Language-English-0f766e?style=for-the-badge"></a>
-  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/语言-简体中文-2563eb?style=for-the-badge"></a>
+  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/Language-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:081826,35:0F766E,70:2563EB,100:F59E0B&height=220&section=header&text=Agent%20Harness&fontSize=54&fontColor=ffffff&desc=%E6%8A%8A%E4%B8%80%E4%B8%AA%E8%AF%B7%E6%B1%82%E5%8F%98%E6%88%90%E5%8F%AF%E5%AE%A1%E8%AE%A1%E7%9A%84%20mission%20pack.&descAlignY=68&animation=fadeIn" alt="Agent Harness banner"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:081826,35:0F766E,70:2563EB,100:F59E0B&height=220&section=header&text=Agent%20Harness&fontSize=54&fontColor=ffffff&desc=%E4%B8%80%E4%B8%AA%E9%9D%A2%E5%90%91%E9%80%9A%E7%94%A8%E4%BB%BB%E5%8A%A1%E7%9A%84%20agent%20runtime%EF%BC%8C%E8%83%BD%E7%95%99%E4%B8%8B%E7%9C%9F%E6%AD%A3%E5%8F%AF%E4%BA%A4%E4%BB%98%E7%9A%84%E4%BA%A7%E7%89%A9%E3%80%82&descAlignY=68&animation=fadeIn" alt="Agent Harness banner"/>
 </p>
 
 <p align="center">
-  <b>Agent Harness 会把一个请求变成 mission pack：交付物、执行路径、证据包、benchmark posture，以及可互操作的能力 bundle。</b>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Routing-robust_frontier-0f766e?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Execution-Harness%20Engine-2563eb?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Eval-harness--lab-f59e0b?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Interop-OpenAI%20%7C%20Anthropic-111827?style=for-the-badge"/>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/LangGraph-Orchestrated-0B1020"/>
-  <img src="https://img.shields.io/badge/CLI-Typer-111827"/>
-  <img src="https://img.shields.io/badge/Tests-91%20passed-16a34a"/>
+  <b>Agent Harness 是一个 thread-first 的通用智能体运行时：它按能力规划任务，在需要时调用 skill、tool 和 workspace action，并把结果落成真正可打开、可审查、可继续执行的交付物。</b>
 </p>
 
 ---
 
-## 框架图
+## 一句话
 
-![Agent Harness Framework Diagram](docs/d5_260402_5995__QakBh2Z.jpg)
-
-核心主线：
-
-`User Request -> Agent Router -> Agent Council -> Skill Router -> Harness Engine -> Mission Pack -> Evidence / Lab / Showcase / Interop`
-
-这不是一个普通 router，也不是一个 skill 列表，而是一条把请求转成可交付产品包的流水线。
-
----
-
-## 一句话概括
-
-Agent Harness 的目标不是“再生成一段答案”，而是把请求变成一个可审计、可展示、可评测、可外部消费的 `mission pack`。
-
-这个 `mission pack` 可以是：
-
-- 业务发布方案
-- 研究晋升包
-- 运营 playbook
-- 实施规格书
-
-这样项目不会被锁死在某一种 demo 上。
-
----
+Agent Harness 会把一个开放任务变成“主交付物 + 证据/工件轨道”，而不是只吐出一段答案字符串。
 
 ## 为什么做这个项目
 
-很多热门项目各自只强一面：
+最优秀的通用 agent 往往不需要非常复杂。
 
-- 偏 flow 的项目，擅长 orchestration，但不擅长证明为什么这样选
-- 偏 research 的项目，分析深，但不擅长交付和展示
-- 偏 skill hub 的项目，生态广，但治理、发布门禁和评测薄弱
+真正重要的是少数几个强原语：
 
-Agent Harness 想统一这三件事，并且用统一的输出协议来承接：
+- 一个持久 thread
+- 一个按 capability 规划的 planner，而不是写死流程
+- 一个真实 workspace，可以落文件、跑动作、留痕迹
+- 一个用户真正会打开的主交付物
+- 一条支持审计、恢复、追踪和继续工作的 artifact / evidence 轨道
 
-- 路由决策
-- 执行计划
-- 证据包
-- benchmark fit 与能力边界
-- 可展示页面
-- OpenAI / Anthropic 互操作导出
+Agent Harness 就围绕这几个东西收敛。
+
+## 它最终能产出什么
+
+根据任务不同，主交付物可以是：
+
+- 研究报告
+- patch draft
+- 工程 handoff memo
+- benchmark manifest / run config
+- rollout plan / launch memo
+- slide deck plan / webpage blueprint
+- delivery bundle
+
+配套工件可以包括：
+
+- evidence bundle
+- workspace findings
+- validation plan / execution trace
+- source matrix
+- OpenAI / Anthropic 风格互操作导出
+
+## 核心模型
+
+`Request -> Thread -> Capability Planner -> Skills / Tools / Workspace Actions -> Main Deliverable -> Evidence + Artifact Bundle`
+
+这个结构比“给每类任务写一条固定工作流”更通用，也更容易继续变强。
+
+框架不应该先假设“这是 research flow”或“这是 code flow”，而应该先看：
+
+- 任务要什么主交付物
+- 当前有哪些能力可用
+- 还缺哪些证据或工件
+- workspace 里有什么真实上下文
+
+## 这个项目和常见框架的差别
+
+### 1. 主交付物优先
+
+最重要的结果是用户要的交付物本身。
+
+不是分数。
+不是 bundle。
+不是 planner trace。
+
+后者都保留，但它们应该服务主结果，而不是抢主结果的戏份。
+
+### 2. 默认按通用任务设计
+
+它的目标不是“研究工作流引擎”或“代码工作流引擎”。
+
+它从 task spec、capability、证据缺口和 workspace 状态出发，因此同一套 runtime 能覆盖代码、研究、运营和混合任务。
+
+### 3. Thread + Workspace + Recovery
+
+每个任务都能进入持久 thread，天然支持：
+
+- resume
+- retry
+- interrupt
+- recover
+- workspace artifact
+- event stream / snapshot export
+
+### 4. Skill 有用，但不绑死产品
+
+skill 是能力模块，不是整个产品本身。运行时还可以把能力导出成互操作目录，方便外部生态消费。
 
 ---
 
 ## Demo 展示
 
-已跟仓库一起提交的快照在 `docs/demo/` 下，运行期输出留在 `reports/`。
+仓库中可直接打开的 demo 在 `docs/demo/`。
 
 完整索引见：[docs/demo/README.zh-CN.md](./docs/demo/README.zh-CN.md)
 
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <h3>实时金融发布包</h3>
-      <p><img src="./docs/demo/live/showcase.png" alt="Live fintech showcase"></p>
-      <p>真实 API 生成的受监管金融发布包，前台先展示 mission summary，再展示证据、benchmark fit 与发布建议。</p>
-      <p><a href="./docs/demo/live/showcase.html">打开 HTML</a></p>
-      <p><a href="./docs/demo/live/press-brief.md">打开 Press Brief</a></p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>企业 rollout 套件</h3>
-      <p><img src="./docs/demo/enterprise/showcase.png" alt="Enterprise rollout showcase"></p>
-      <p>企业 AI operating layer 推广包，重点展示 deployment、governance gate 与能力可移植性。</p>
-      <p><a href="./docs/demo/enterprise/showcase.html">打开 HTML</a></p>
-      <p><a href="./docs/demo/enterprise/press-brief.md">打开 Press Brief</a></p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>研究晋升包</h3>
-      <p><img src="./docs/demo/research/showcase.png" alt="Research promotion showcase"></p>
-      <p>研究结果晋升到生产前的 promotion packet，包含 benchmark readout、证据包与 release gate。</p>
-      <p><a href="./docs/demo/research/showcase.html">打开 HTML</a></p>
-      <p><a href="./docs/demo/research/press-brief.md">打开 Press Brief</a></p>
-    </td>
-  </tr>
-</table>
+### 实时金融发布包
 
-当前 showcase 首页优先展示：
+- 主交付物：[docs/demo/live/deliverable.md](./docs/demo/live/deliverable.md)
+- 展示页：[docs/demo/live/showcase.html](./docs/demo/live/showcase.html)
+- Press Brief：[docs/demo/live/press-brief.md](./docs/demo/live/press-brief.md)
 
-1. mission summary
-2. deliverable package
-3. phased rollout / execution tracks
-4. evidence packet 与 citations
-5. benchmark fit 与 honest boundary
-6. framework / agent comparison 与附录
+### 企业 rollout 套件
 
----
+- 主交付物：[docs/demo/enterprise/deliverable.md](./docs/demo/enterprise/deliverable.md)
+- 展示页：[docs/demo/enterprise/showcase.html](./docs/demo/enterprise/showcase.html)
+- Press Brief：[docs/demo/enterprise/press-brief.md](./docs/demo/enterprise/press-brief.md)
 
-## 方法亮点
+### 研究晋升包
 
-### 1. Risk-Calibrated Frontier Routing
-
-`robust_frontier` 不是只按 relevance 排序，而是联合考虑：
-
-- relevance
-- diversity
-- redundancy penalty
-- synergy
-- empirical reliability
-- uncertainty penalty
-- downside risk
-
-核心暴露指标：
-
-- `robust_expected_utility`
-- `robust_worst_case_utility`
-- `avg_uncertainty`
-
-### 2. Mission-Pack Output Contract
-
-框架前台不再写死成 proposal 页面，而是统一成 `mission pack`，所以同一套底层能力可以支撑：
-
-- strategy
-- research
-- operations
-- implementation
-
-### 3. Research-Grade Release Gating
-
-`harness-lab` 提供：
-
-- leaderboard
-- pass rate
-- value index
-- safety alignment
-- `go / caution / block` 发布结论
-
----
-
-## Benchmark 姿态
-
-Agent Harness 现在是 benchmark-aware，还不是 benchmark-maxed-out。
-
-当前重点对齐的 benchmark 家族：
-
-- `GAIA`：多步推理与证据检索
-- `TAU-bench` / `TheAgentCompany`：企业工作流与知识工作任务
-- `WebArena`：浏览器驱动的长链路任务
-- `SWE-bench Verified`：代码问题修复与实现验证
-
-当前强项：
-
-- 把推理结果变成可审计交付物
-- 把 evidence / governance / release gate 放进同一条流水线
-- 同一份能力可以导出到外部 skill 生态
-
-当前诚实短板：
-
-- 还不能声称在 WebArena 这类浏览器 benchmark 上领先
-- 还不能声称在 SWE-bench 这类代码 benchmark 上领先
-- 企业连接器虽然已经有 skeleton provider，但还需要继续接实
+- 主交付物：[docs/demo/research/deliverable.md](./docs/demo/research/deliverable.md)
+- 展示页：[docs/demo/research/showcase.html](./docs/demo/research/showcase.html)
+- Press Brief：[docs/demo/research/press-brief.md](./docs/demo/research/press-brief.md)
 
 ---
 
@@ -190,122 +133,97 @@ Agent Harness 现在是 benchmark-aware，还不是 benchmark-maxed-out。
 pip install -r requirements.txt
 ```
 
-### 2. 跑核心路由
+### 2. 创建一个持久 thread
 
 ```bash
-python -m app.main run "Compare two rollout plans and highlight governance risk" --mode deep --contract
+python -m app.main agent-thread-create "General Agent Demo"
 ```
 
-### 3. 跑 harness 执行层
+### 3. 跑一个通用任务
 
 ```bash
-python -m app.main harness "Prepare a governance-ready execution memo" --mode balanced
+python -m app.main agent-thread-run <thread_id> "请写一份关于 agent runtime 可靠性的深度研究报告" --target auto
 ```
 
-### 4. 查看 mission profiles
+### 4. 查看 thread workspace
 
 ```bash
-python -m app.main mission-profiles
-python -m app.main proposal-scenarios
-python -m app.main harness-mission "Design an implementation roadmap with migration risks and validation gates."
-python -m app.main harness-code-pack "Implement a safer migration path and validation plan" --workspace .
-python -m app.main benchmark-suite --adapters routing_internal,lab_daily
-python -m app.main benchmark-ablation --scenarios daily-001,research-001
+python -m app.main agent-thread-workspace-view <thread_id> --output reports/thread_view
 ```
 
 ### 5. 生成 showcase
 
 ```bash
-python -m app.main studio-showcase "Design a flagship AI operating plan" --mode deep --lab-preset broad --tag flagship
+python -m app.main studio-showcase "为一个受监管 AI copilot 设计发布计划" --tag demo
 ```
 
-### 6. 生成 live demo
+### 6. 接入 live model
+
+请把密钥放在环境变量或命令行参数里，不要写进仓库。
 
 ```bash
 set AGENT_HARNESS_MODEL_BASE_URL=https://your-endpoint/v1
 set AGENT_HARNESS_MODEL_API_KEY=your_api_key
 set AGENT_HARNESS_MODEL_NAME=your_model
-python -m app.main launch-demo --output-dir reports/live_launch_demo --tag live --live-agent --max-model-calls 6
+python -m app.main harness-live "写一份有 benchmark 支撑的研究简报"
 ```
 
-### 7. 跑全部测试
+### 7. 运行测试
 
 ```bash
 pytest -q
 ```
 
-### 命令地图
+---
+
+## 常用命令
 
 | 目标 | 命令 |
 |---|---|
-| 基础路由 | `python -m app.main run "<query>"` |
-| harness 执行 | `python -m app.main harness "<query>"` |
-| mission pack | `python -m app.main harness-mission "<query>"` |
-| code mission pack | `python -m app.main harness-code-pack "<query>" --workspace .` |
-| value card | `python -m app.main harness-value "<query>"` |
-| benchmark adapter 列表 | `python -m app.main benchmark-adapters` |
-| benchmark suite | `python -m app.main benchmark-suite --adapters routing_internal,lab_daily` |
-| benchmark ablation | `python -m app.main benchmark-ablation --scenarios daily-001,research-001` |
-| showcase | `python -m app.main studio-showcase "<query>" --tag demo` |
+| 创建 thread | `python -m app.main agent-thread-create "My Task"` |
+| 列出 threads | `python -m app.main agent-threads` |
+| 运行通用 super-agent | `python -m app.main agent-thread-run <thread_id> "<query>" --target auto` |
+| 直接执行 task graph | `python -m app.main agent-thread-exec-task <thread_id> "<query>" --target general` |
+| 导出 workspace 视图 | `python -m app.main agent-thread-workspace-view <thread_id>` |
+| 导出 thread snapshot | `python -m app.main agent-thread-export <thread_id>` |
+| live model 模式运行 | `python -m app.main harness-live "<query>"` |
+| 生成 code mission pack | `python -m app.main harness-code-pack "<query>" --workspace .` |
+| 跑 benchmark suite | `python -m app.main benchmark-suite --adapters routing_internal,lab_daily` |
+| 生成 showcase | `python -m app.main studio-showcase "<query>" --tag demo` |
+| 导出 skills interop | `python -m app.main skills-interop-export` |
 
 ---
 
 ## 仓库结构
 
-### 核心运行层
+### Runtime
 
-- `app/routing/`：agent routing、skill routing、complementarity、robust frontier
-- `app/policy/`：系统模式、治理与鲁棒性策略
-- `app/personality/`：profile 与行为偏置
-- `app/coordination/`：conflict、dissent、consensus
-- `app/core/`：状态、contract、共享协议
+- `app/harness/`：planner、live orchestration、evaluation、report、visuals
+- `app/agents/`：thread runtime、workspace action mapper、scheduler、sandbox、workspace view
+- `app/skills/`：内置 skill、skill package、interop export
+- `app/core/`：task spec、capability graph、contract、共享状态
 
-### 执行与产品化
+### Product Surface
 
-- `app/harness/`：执行引擎、tool manifest、evidence、report、lab、visuals
-- `app/studio/`：mission pack、showcase、发布包装
-- `app/tracing/`：trace 渲染与路由分析
-- `app/utils/`：控制台与展示工具
+- `app/studio/`：showcase 和发布包装层
+- `docs/demo/`：随仓库提交的 demo 快照
+- `reports/`：本地运行时生成的输出
 
-### Skill 与生态
+### Validation
 
-- `app/skills/`：内置与外部 skill registry
-- `app/ecosystem/`：marketplace 信号、provider、导入
-- `app/skills/interop.py`：OpenAI / Anthropic 兼容导出
-
-### 资产与产物
-
-- `docs/`：图、说明、demo 快照
-- `reports/`：运行时生成的展示与实验产物
-- `tests/`：回归测试
+- `tests/`：runtime、showcase、planner、live orchestration 的测试
 
 ---
 
 ## 当前状态
 
-- `robust_frontier` routing 已实现
-- agent council routing 已实现
-- harness engine 与 research lab 已实现
-- mission-pack output contract 已实现
-- code mission pack 已实现
-- benchmark adapter 与 ablation runner 已实现
-- studio showcase 与 launch demo 已实现
-- OpenAI / Anthropic interop export 已实现
-- 当前本地测试结果：`91 passed`
+Agent Harness 现在最强的地方是：
 
----
+- persistent thread
+- artifact-producing execution
+- evidence-aware synthesis
+- inspectable output
 
-## 建议的第一体验
+它还没有完成。
 
-```bash
-python -m app.main launch-demo --output-dir reports/launch_demo --tag press
-python -m app.main studio-showcase "Design a flagship AI operating plan" --mode deep --lab-preset broad --tag studio
-```
-
-然后打开：
-
-- `docs/demo/live/showcase.html`
-- `docs/demo/enterprise/showcase.html`
-- `docs/demo/research/showcase.html`
-
-这三份产物比单看 CLI trace 更能说明项目的真实方向。
+接下来的主线不是继续堆复杂层，而是继续减少任务模板依赖，让 generic runtime 更多依赖 capability planning 和高质量主交付物本身。

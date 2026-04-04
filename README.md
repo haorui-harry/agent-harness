@@ -1,291 +1,124 @@
-<p align="right">
+﻿<p align="right">
   <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/Language-English-0f766e?style=for-the-badge"></a>
-  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=for-the-badge"></a>
+  <a href="./README.zh-CN.md"><img alt="Simplified Chinese" src="https://img.shields.io/badge/Language-Simplified%20Chinese-2563eb?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:081826,35:0F766E,70:2563EB,100:F59E0B&height=220&section=header&text=Agent%20Harness&fontSize=54&fontColor=ffffff&desc=Turn%20one%20request%20into%20an%20auditable%20agent%20product.&descAlignY=68&animation=fadeIn" alt="Agent Harness banner"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:081826,35:0F766E,70:2563EB,100:F59E0B&height=220&section=header&text=Agent%20Harness&fontSize=54&fontColor=ffffff&desc=A%20general-purpose%20agent%20runtime%20that%20ships%20real%20deliverables.&descAlignY=68&animation=fadeIn" alt="Agent Harness banner"/>
 </p>
 
 <p align="center">
-  <b>Agent Harness turns one request into a mission pack: deliverable, execution plan, evidence packet, benchmark posture, and ecosystem-portable bundle.</b>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Routing-robust_frontier-0f766e?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Execution-Harness%20Engine-2563eb?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Eval-harness--lab-f59e0b?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Interop-OpenAI%20%7C%20Anthropic-111827?style=for-the-badge"/>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/LangGraph-Orchestrated-0B1020"/>
-  <img src="https://img.shields.io/badge/CLI-Typer-111827"/>
-  <img src="https://img.shields.io/badge/Tests-91%20passed-16a34a"/>
+  <b>Agent Harness is a thread-first general agent runtime: it plans with capabilities, uses skills and tools when needed, works inside a real workspace, and leaves behind inspectable deliverables instead of only an answer string.</b>
 </p>
 
 ---
 
-## Framework Diagram
+## One Line
 
-![Agent Harness Framework Diagram](docs/d5_260402_5995__QakBh2Z.jpg)
+Agent Harness turns an open-ended request into a main deliverable plus the evidence, artifacts, and runtime trace needed to review or continue the work.
 
-Agent Harness is built around one thesis:
+## Why This Project
 
-`User Request -> Agent Router -> Agent Council -> Skill Router -> Harness Engine -> Mission Pack -> Evidence / Lab / Showcase / Interop`
+The best general agents are usually not the most complicated ones.
 
-This repo is not just a router and not just a skill list. It is a system that:
+What matters is a small number of strong primitives:
 
-1. chooses better
-2. executes with evidence
-3. benchmarks against the right benchmark family before release
-4. packages outputs as reusable mission artifacts
-5. exports capabilities into external ecosystems
+- one persistent thread
+- one planner that reasons over capabilities instead of fixed flows
+- one workspace where actions can create real files
+- one main deliverable that the user can actually open
+- one artifact/evidence rail for audit, retry, and follow-up
 
----
+That is the design center of Agent Harness.
 
-## Why This Exists
+## What It Can Produce
 
-Most projects in this space are strong in only one direction:
+Depending on the task, the main deliverable can be:
 
-- flow-first systems are good at orchestration, weak at proof
-- research-first systems are deep, weak at packaging
-- skill hubs are broad, weak at governance and release gating
+- a research report
+- a patch draft
+- an engineering handoff memo
+- a benchmark manifest or run config
+- a launch memo or rollout pack
+- a slide deck plan or webpage blueprint
+- a delivery bundle with linked artifacts
 
-Agent Harness is designed to unify all three with one output contract.
+Supporting artifacts can include:
 
-It turns one request into:
+- evidence bundles
+- workspace findings
+- validation plans or execution traces
+- source matrices
+- interoperability exports for external skill ecosystems
 
-- a routing decision
-- an execution plan
-- an evidence packet
-- a mission-specific deliverable set
-- a benchmark-fit statement with honest gaps
-- a launch-ready showcase
-- an interop export for outside ecosystems
+## Core Model
 
-The important difference is that the front-end object is no longer "a proposal page".
-It is a `mission pack`, which can represent:
+`Request -> Thread -> Capability Planner -> Skills/Tools/Workspace Actions -> Main Deliverable -> Evidence + Artifact Bundle`
 
-- strategy rollout
-- research promotion packet
-- operations playbook
-- implementation spec
+This is deliberately simpler than a task-specific workflow catalog.
 
-That keeps the framework general instead of drifting into a one-demo toy.
+The runtime should decide how to use skills, tools, and workspace actions based on the task, not because the task was shoved into a hard-coded funnel.
 
----
+## What Makes It Different
 
-## Launch Demo
+### 1. Deliverable-first
 
-### Demo Gallery
+The first-class result is the deliverable the user asked for.
 
-Published demo snapshots live under `docs/demo/`. Runtime-generated `reports/` outputs stay local and are intentionally gitignored.
+Not the scorecard.
+Not the bundle.
+Not the planner trace.
 
-Browse all tracked snapshots: [docs/demo/README.md](./docs/demo/README.md)
+Those still exist, but they support the main result instead of replacing it.
 
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <h3>Live Fintech Launch</h3>
-      <p><img src="./docs/demo/live/showcase.png" alt="Live showcase screenshot"></p>
-      <p>Real API-backed regulated copilot launch pack with mission summary, evidence packet, benchmark fit, and release recommendation.</p>
-      <p><a href="./docs/demo/live/showcase.html">Open HTML Snapshot</a></p>
-      <p><a href="./docs/demo/live/press-brief.md">Open Press Brief</a></p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>Enterprise Rollout Pack</h3>
-      <p><img src="./docs/demo/enterprise/showcase.png" alt="Enterprise rollout screenshot"></p>
-      <p>Enterprise operating-layer rollout for internal workflows, showing deployment posture, governance gates, and portable capability export.</p>
-      <p><a href="./docs/demo/enterprise/showcase.html">Open HTML Snapshot</a></p>
-      <p><a href="./docs/demo/enterprise/press-brief.md">Open Press Brief</a></p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>Research Promotion Pack</h3>
-      <p><img src="./docs/demo/research/showcase.png" alt="Research mission screenshot"></p>
-      <p>Applied research promotion artifact with benchmark readout, evidence-backed release packet, and promotion checklist.</p>
-      <p><a href="./docs/demo/research/showcase.html">Open HTML Snapshot</a></p>
-      <p><a href="./docs/demo/research/press-brief.md">Open Press Brief</a></p>
-    </td>
-  </tr>
-</table>
+### 2. Generic By Default
 
-### What The Demo Shows
+The runtime is not supposed to be “the research flow” or “the code flow”.
 
-The current showcase UI is intentionally front-loaded with:
+It starts from a task spec, available capabilities, current evidence gaps, and workspace state. That keeps the system usable across code, research, operations, and mixed tasks.
 
-1. mission summary
-2. deliverable package
-3. phased rollout and execution tracks
-4. evidence bundle and external citations
-5. benchmark fit and honest capability boundary
-6. framework comparison, agent comparison, and appendix
+### 3. Thread + Workspace + Recovery
 
-The live fintech snapshot is generated with real model calls. The enterprise and research snapshots are deterministic, so they can be shipped in-repo and stay reproducible.
+Each task runs inside a persistent thread with:
+
+- resumable execution
+- retry / interrupt / recovery
+- workspace artifacts
+- event stream / snapshot export
+
+### 4. Skills Without Lock-In
+
+Skills are packaged capabilities, not the entire product. The runtime can also export an interoperability catalog so external OpenAI/Anthropic-style ecosystems can consume the project’s capabilities.
 
 ---
 
-## Feature Highlights
+## Demo Gallery
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>What Typical Repos Stop At</h3>
-      <ul>
-        <li>single-agent selection</li>
-        <li>top-k or relevance-only skill choice</li>
-        <li>answer generation without formal evidence</li>
-        <li>ad hoc evaluation</li>
-        <li>one-off demos tied to a single output type</li>
-        <li>closed internal ecosystem</li>
-      </ul>
-    </td>
-    <td width="50%" valign="top">
-      <h3>What Agent Harness Adds</h3>
-      <ul>
-        <li>agent council and collaboration-aware routing</li>
-        <li><code>robust_frontier</code> skill selection under uncertainty</li>
-        <li>mission-pack output contract across strategy, research, ops, and implementation tasks</li>
-        <li>trace, response contract, and routing analysis</li>
-        <li><code>harness-lab</code> leaderboard and release gate</li>
-        <li>studio showcase and OpenAI / Anthropic interop export</li>
-      </ul>
-    </td>
-  </tr>
-</table>
+Tracked demo snapshots live in `docs/demo/`.
 
-### Capability Matrix
+Open the full index: [docs/demo/README.md](./docs/demo/README.md)
 
-| Capability | Typical Repo | Agent Harness |
-|---|---|---|
-| Agent routing | single winner | primary agent + agent council |
-| Skill routing | relevance/top-k | `robust_frontier` over reliability, uncertainty, downside |
-| Execution | tool loop | harness engine with tools, memory, guardrails, live API |
-| Evidence | partial logs | trace + response contract + routing analysis |
-| Evaluation | ad hoc | `harness-lab` with leaderboard + release gate |
-| Product output | answer only | mission pack + HTML + JSON + press brief + manifest |
-| Ecosystem | closed | OpenAI / Anthropic skill interop |
+### Live Fintech Launch
+
+- Deliverable: [docs/demo/live/deliverable.md](./docs/demo/live/deliverable.md)
+- Showcase: [docs/demo/live/showcase.html](./docs/demo/live/showcase.html)
+- Press Brief: [docs/demo/live/press-brief.md](./docs/demo/live/press-brief.md)
+
+### Enterprise Rollout Pack
+
+- Deliverable: [docs/demo/enterprise/deliverable.md](./docs/demo/enterprise/deliverable.md)
+- Showcase: [docs/demo/enterprise/showcase.html](./docs/demo/enterprise/showcase.html)
+- Press Brief: [docs/demo/enterprise/press-brief.md](./docs/demo/enterprise/press-brief.md)
+
+### Research Promotion Pack
+
+- Deliverable: [docs/demo/research/deliverable.md](./docs/demo/research/deliverable.md)
+- Showcase: [docs/demo/research/showcase.html](./docs/demo/research/showcase.html)
+- Press Brief: [docs/demo/research/press-brief.md](./docs/demo/research/press-brief.md)
 
 ---
 
-## Architecture
-
-### Routing Layer
-
-- `Agent Router`: scores candidate agents against intent, complexity, and risk
-- `Agent Council`: expands available capabilities when collaboration is useful
-- `Skill Router`: chooses the final skill portfolio using `robust_frontier`
-
-### Skill Layer
-
-A `skill` is the atomic capability unit of the framework. It carries:
-
-- metadata
-- strengths / weaknesses
-- cost
-- reliability
-- uncertainty signals
-- category / tier / synergies / conflicts
-
-Skills can come from:
-
-- built-in local registry
-- marketplace-style ecosystem sources
-- runtime external skill loading
-- OpenAI / Anthropic compatible exported bundles
-
-### Harness Layer
-
-`harness` is the execution operating system around routing. It is responsible for:
-
-- tool discovery
-- recipe selection
-- memory reuse
-- guardrails
-- live API enhancement
-- evaluation
-- value scoring
-- visual payload generation
-- report generation
-- research lab benchmarking
-
-This is why the repo is not just a router.
-
-### Studio Layer
-
-`studio-showcase` turns runtime evidence into a mission-pack product:
-
-- strategy / research / ops / implementation views
-- benchmark comparison and fit statement
-- agent comparison
-- generated result excerpt
-- appendix for internal skills and tools
-
-### Interop Layer
-
-The framework can export skills for outside ecosystems so the project is not locked inside its own runtime.
-
----
-
-## Core Method
-
-### Risk-Calibrated Frontier Routing
-
-The skill selector does not optimize only relevance. It jointly considers:
-
-- relevance
-- diversity
-- redundancy penalty
-- synergy
-- empirical reliability
-- uncertainty penalty
-- downside risk
-
-The main exposed objectives are:
-
-- `robust_expected_utility`
-- `robust_worst_case_utility`
-- `avg_uncertainty`
-
-### Research-Grade Release Gating
-
-`harness-lab` runs repeatable scenario suites and returns:
-
-- leaderboard
-- pass rate
-- value index
-- security alignment
-- release decision: `go / caution / block`
-
----
-
-## Benchmark Posture
-
-Agent Harness is benchmark-aware, not benchmark-maxed-out yet.
-
-Benchmark families this framework is built to map against:
-
-- `GAIA`: evidence-backed multi-step reasoning and retrieval-heavy tasks
-- `TAU-bench` and `TheAgentCompany`: enterprise workflow execution and knowledge-work packaging
-- `WebArena`: browser-actuated long-horizon workflows
-- `SWE-bench Verified`: code issue resolution with implementation proof
-
-Current strength:
-
-- turning reasoning into auditable mission artifacts
-- combining evidence, governance, and release gating in one pipeline
-- packaging the same capability set for external ecosystems
-
-Current honest gap:
-
-- no claim of state-of-the-art on browser benchmarks yet
-- no claim of state-of-the-art on code-fix benchmarks yet
-- real enterprise connectors still need to grow beyond skeleton providers
-
----
-
-## Quick Start
+## Quickstart
 
 ### 1. Install
 
@@ -293,71 +126,42 @@ Current honest gap:
 pip install -r requirements.txt
 ```
 
-### 2. Run the core router
+### 2. Create A Persistent Thread
 
 ```bash
-python -m app.main run "Compare two rollout plans and highlight governance risk" --mode deep --contract
+python -m app.main agent-thread-create "General Agent Demo"
 ```
 
-### 3. Run the harness engine
+### 3. Run A Generic Task
 
 ```bash
-python -m app.main harness "Prepare a governance-ready execution memo" --mode balanced
+python -m app.main agent-thread-run <thread_id> "Produce a deep research report on agent runtime reliability" --target auto
 ```
 
-### 4. Generate a showcase
+### 4. Inspect The Thread Workspace
 
 ```bash
-python -m app.main studio-showcase "Design a flagship AI operating plan" --mode deep --lab-preset broad --tag flagship
+python -m app.main agent-thread-workspace-view <thread_id> --output reports/thread_view
 ```
 
-### 5. Inspect generalized mission profiles
+### 5. Run The Studio Showcase
 
 ```bash
-python -m app.main mission-profiles
-python -m app.main proposal-scenarios
-python -m app.main harness-mission "Design an implementation roadmap with migration risks and validation gates."
-python -m app.main harness-code-pack "Implement a safer migration path and validation plan" --workspace .
-python -m app.main benchmark-suite --adapters routing_internal,lab_daily
-python -m app.main benchmark-ablation --scenarios daily-001,research-001
+python -m app.main studio-showcase "Design a launch plan for a regulated AI copilot" --tag demo
 ```
 
-### 6. Generate a launch demo
+### 6. Enable A Live Model
 
-```bash
-python -m app.main launch-demo --output-dir reports/launch_demo --tag press
-```
-
-### 7. Generate a live API launch demo
-
-Set environment variables first:
+Use environment variables or CLI flags. Keep secrets outside the repo.
 
 ```bash
 set AGENT_HARNESS_MODEL_BASE_URL=https://your-endpoint/v1
 set AGENT_HARNESS_MODEL_API_KEY=your_api_key
 set AGENT_HARNESS_MODEL_NAME=your_model
+python -m app.main harness-live "Write a benchmark-backed research brief"
 ```
 
-Then run:
-
-```bash
-python -m app.main launch-demo --output-dir reports/live_launch_demo --tag live --live-agent --max-model-calls 6
-```
-
-### 8. Run research lab
-
-```bash
-python -m app.main harness-lab --preset broad --repeats 2 --output reports/lab.json
-python -m app.main harness-lab-product --preset broad --repeats 2 --tag release --output-dir reports
-```
-
-### 9. Export interop bundles
-
-```bash
-python -m app.main skills-interop-export --framework all --output-dir reports/skills_interop
-```
-
-### 10. Run tests
+### 7. Run Tests
 
 ```bash
 pytest -q
@@ -365,84 +169,54 @@ pytest -q
 
 ---
 
-## Command Map
+## Main Commands
 
 | Goal | Command |
 |---|---|
-| basic routing | `python -m app.main run "<query>"` |
-| trace and reasoning | `python -m app.main trace "<query>" --views` |
-| harness execution | `python -m app.main harness "<query>"` |
-| mission pack | `python -m app.main harness-mission "<query>"` |
-| code mission pack | `python -m app.main harness-code-pack "<query>" --workspace .` |
-| value card | `python -m app.main harness-value "<query>"` |
-| visual payload | `python -m app.main harness-visual "<query>" --output reports/visual.json` |
-| mission profiles | `python -m app.main mission-profiles` |
-| benchmark adapters | `python -m app.main benchmark-adapters` |
-| benchmark suite | `python -m app.main benchmark-suite --adapters routing_internal,lab_daily` |
-| benchmark ablation | `python -m app.main benchmark-ablation --scenarios daily-001,research-001` |
-| showcase | `python -m app.main studio-showcase "<query>" --tag demo` |
-| launch demo | `python -m app.main launch-demo --tag press` |
-| research lab | `python -m app.main harness-lab --preset broad` |
-| interop export | `python -m app.main skills-interop-export --framework all` |
+| Create thread | `python -m app.main agent-thread-create "My Task"` |
+| List threads | `python -m app.main agent-threads` |
+| Run generic super-agent | `python -m app.main agent-thread-run <thread_id> "<query>" --target auto` |
+| Execute task graph directly | `python -m app.main agent-thread-exec-task <thread_id> "<query>" --target general` |
+| Export workspace view | `python -m app.main agent-thread-workspace-view <thread_id>` |
+| Export thread snapshot | `python -m app.main agent-thread-export <thread_id>` |
+| Run harness with live model | `python -m app.main harness-live "<query>"` |
+| Build code mission pack | `python -m app.main harness-code-pack "<query>" --workspace .` |
+| Run benchmark suite | `python -m app.main benchmark-suite --adapters routing_internal,lab_daily` |
+| Run showcase | `python -m app.main studio-showcase "<query>" --tag demo` |
+| Export skills interop | `python -m app.main skills-interop-export` |
 
 ---
 
-## Repository Map
+## Repository Layout
 
-### Core runtime
+### Runtime
 
-- `app/routing/` - agent routing, skill routing, complementarity, robust frontier
-- `app/policy/` - system modes, governance, robustness policy
-- `app/personality/` - profiles and adaptation
-- `app/coordination/` - conflict, dissent, consensus
-- `app/core/` - state, contracts, shared protocol
+- `app/harness/`: planner, live orchestration, evaluation, reporting, visuals
+- `app/agents/`: thread runtime, workspace action mapper, scheduler, sandbox, workspace view
+- `app/skills/`: built-in skills, packages, interop export
+- `app/core/`: task spec, capability graph, contracts, shared state
 
-### Execution and productization
+### Product Surfaces
 
-- `app/harness/` - execution engine, manifests, tools, reports, lab, value, visuals
-- `app/studio/` - flagship showcase builder and launch packaging
-- `app/tracing/` - trace rendering and quality analysis
-- `app/utils/` - console and display helpers
+- `app/studio/`: showcase and release-facing packaging
+- `docs/demo/`: tracked demo snapshots that ship with the repository
+- `reports/`: runtime outputs generated locally
 
-### Skills and ecosystem
+### Validation
 
-- `app/skills/` - built-in and external skill registry
-- `app/ecosystem/` - marketplace signals, providers, imports
-- `app/skills/interop.py` - OpenAI / Anthropic compatibility export
-
-### Assets and artifacts
-
-- `docs/` - architecture prompts and images
-- `reports/` - generated demos, lab bundles, showcases
-- `tests/` - regression coverage
+- `tests/`: runtime, showcase, planner, and live orchestration tests
 
 ---
 
-## Current Status
+## Honest Status
 
-- `robust_frontier` routing is implemented
-- agent council routing is implemented
-- harness engine and research lab are implemented
-- mission-pack output contract is implemented
-- code mission pack is implemented
-- benchmark adapter + ablation runner is implemented
-- studio showcase and launch demo are implemented
-- OpenAI / Anthropic interop export is implemented
-- current local test result: `91 passed`
+Agent Harness is strongest today when a task benefits from:
 
----
+- a persistent thread
+- artifact-producing execution
+- evidence-aware synthesis
+- inspectable outputs
 
-## Recommended First Experience
+It is not finished.
 
-```bash
-python -m app.main launch-demo --output-dir reports/launch_demo --tag press
-python -m app.main studio-showcase "Design a flagship AI operating plan" --mode deep --lab-preset broad --tag studio
-```
-
-Then open:
-
-- `docs/demo/live/showcase.html`
-- `docs/demo/enterprise/showcase.html`
-- `docs/demo/research/showcase.html`
-
-These communicate the project better than a plain CLI trace.
+The main direction is to keep simplifying the generic runtime so it relies less on task-family templates and more on reusable capability planning plus strong deliverables.
