@@ -603,10 +603,13 @@ def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Pa
     assert packet["summary"]["artifact_count"] >= 3
     assert any("patch-draft.diff" in str(item.get("path", "")) for item in packet["delivered_artifacts"])
     assert any(item.get("kind") == "completion_packet" for item in packet["task_spec"]["artifact_contracts"])
+    assert packet["task_spec"]["primary_artifact_kind"] == "patch_draft"
+    assert str(packet["primary_deliverable"]["path"]).endswith("patch-draft.diff")
     assert "delivery_bundle" not in packet["state_gap"]["missing_artifacts"]
     assert bundle["schema"] == "agent-harness-delivery-bundle/v1"
     assert bundle["artifact_manifest"]
     assert bundle["deliverable_index"]
+    assert str(bundle["primary_deliverable"]["path"]).endswith("patch-draft.diff")
     assert any("patch-draft.diff" in str(item.get("path", "")) for item in bundle["artifact_manifest"])
     assert stream["completion_packet"]["schema"] == "agent-harness-completion-packet/v1"
     assert stream["delivery_bundle"]["schema"] == "agent-harness-delivery-bundle/v1"

@@ -2544,6 +2544,7 @@ class TaskGraphActionMapper:
                 success_criteria=[str(item) for item in payload.get("success_criteria", []) if str(item).strip()],
                 required_channels=[str(item) for item in payload.get("required_channels", []) if str(item).strip()],
                 artifact_contracts=artifact_contracts,
+                primary_artifact_kind=str(payload.get("primary_artifact_kind", "")),
                 risk_policy=str(payload.get("risk_policy", "balanced")),
                 needs_validation=bool(payload.get("needs_validation", False)),
                 needs_command_execution=bool(payload.get("needs_command_execution", False)),
@@ -3517,7 +3518,11 @@ class TaskGraphActionMapper:
             if str(item) not in delivered_kinds
         ]
 
-        primary_deliverable = self._primary_deliverable_from_results(node_results=node_results, delivered_artifacts=delivered_artifacts)
+        primary_deliverable = self._primary_deliverable_from_results(
+            node_results=node_results,
+            delivered_artifacts=delivered_artifacts,
+            primary_artifact_kind=str(task_spec.primary_artifact_kind),
+        )
         baseline_comparison = self._baseline_comparison(
             node_results=node_results,
             primary_deliverable=primary_deliverable,
@@ -3990,8 +3995,16 @@ class TaskGraphActionMapper:
         *,
         node_results: dict[str, Any],
         delivered_artifacts: list[dict[str, Any]],
+        primary_artifact_kind: str = "",
     ) -> dict[str, Any]:
         preferred_paths: list[str] = []
+        if primary_artifact_kind:
+            for item in delivered_artifacts:
+                path = str(item.get("path", ""))
+                if not path:
+                    continue
+                if cls._path_matches_primary_kind(path=path, primary_artifact_kind=primary_artifact_kind):
+                    preferred_paths.append(path)
         for node_id in ["action_custom-memo", "action_custom-executive_memo", "action_custom-decision_memo", "action_custom-launch_memo", "report"]:
             path = cls._node_artifact_path(node_results, node_id)
             if path:
@@ -4020,6 +4033,19 @@ class TaskGraphActionMapper:
             "title": Path(primary_path).name if primary_path else "",
             "excerpt": excerpt[:2000],
         }
+
+    @classmethod
+    def _path_matches_primary_kind(cls, *, path: str, primary_artifact_kind: str) -> bool:
+        normalized_kind = str(primary_artifact_kind or "").strip()
+        normalized_path = str(path or "").replace("\\", "/").lower()
+        if not normalized_kind or not normalized_path:
+            return False
+        if normalized_kind.startswith("custom:"):
+            slug = normalized_kind.replace("custom:", "").replace("_", "-")
+            return "/briefs/" in normalized_path and (slug in normalized_path or slug.replace("-", "_") in normalized_path)
+        if normalized_kind == "deliverable_report":
+            return cls._artifact_kind_from_path(path) == "deliverable_report" or "/reports/" in normalized_path or normalized_path.endswith(".md")
+        return cls._artifact_kind_from_path(path) == normalized_kind
 
     @classmethod
     def _baseline_comparison(

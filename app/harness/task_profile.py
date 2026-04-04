@@ -872,9 +872,8 @@ def _required_channels_from_packages(package_priors: list[dict[str, Any]]) -> li
     return deduped
 
 
-def _query_requests_benchmark_support(query: str) -> bool:
+def _query_requests_benchmark_artifacts(query: str) -> bool:
     markers = [
-        "benchmark",
         "ablation",
         "runner",
         "run config",
@@ -885,7 +884,10 @@ def _query_requests_benchmark_support(query: str) -> bool:
         "swe-bench",
         "webarena",
         "tau-bench",
-        "experimental design",
+        "benchmark manifest",
+        "benchmark config",
+        "evaluation config",
+        "run benchmark",
         "\u57fa\u51c6",
         "\u6d88\u878d",
         "\u8dd1\u5206",
@@ -894,7 +896,7 @@ def _query_requests_benchmark_support(query: str) -> bool:
     return _count_markers(lowered, markers) > 0
 
 
-def _query_requests_data_support(query: str) -> bool:
+def _query_requests_data_artifacts(query: str) -> bool:
     markers = [
         "data analysis",
         "analytics",
@@ -903,8 +905,9 @@ def _query_requests_data_support(query: str) -> bool:
         "table",
         "sql",
         "cohort",
-        "evidence standard",
-        "evidence standards",
+        "dataset pull",
+        "loader template",
+        "data spec",
         "\u6570\u636e\u5206\u6790",
         "\u6570\u636e\u96c6",
         "\u8868\u683c",
@@ -1035,9 +1038,9 @@ def default_artifact_targets(
         targets.append("benchmark_matrix")
     elif output_mode == "runbook":
         targets.append("runbook")
-    if output_mode != "benchmark" and _query_requests_benchmark_support(query):
+    if output_mode != "benchmark" and _query_requests_benchmark_artifacts(query):
         targets.append("benchmark_matrix")
-    if _query_requests_data_support(query):
+    if _query_requests_data_artifacts(query):
         targets.append("data_analysis_spec")
     for mode in requested_output_modes(query=query, output_mode=output_mode):
         targets.extend(
@@ -1180,7 +1183,7 @@ def _default_graph_expansion(
                 "reason": "code-oriented tasks benefit from a concrete draft patch artifact",
             }
         )
-    if execution_intent == "benchmark" or output_mode == "benchmark" or _query_requests_benchmark_support(query):
+    if execution_intent == "benchmark" or output_mode == "benchmark" or _query_requests_benchmark_artifacts(query):
         actions.append(
             {
                 "kind": "benchmark_run_config",
@@ -1198,7 +1201,7 @@ def _default_graph_expansion(
             }
         )
     if execution_intent in {"research", "benchmark", "mixed"} and "web" in selected and (
-        explicit_data_build or output_mode in {"data", "benchmark"} or _query_requests_data_support(query)
+        explicit_data_build or output_mode in {"data", "benchmark"} or _query_requests_data_artifacts(query)
     ):
         actions.append(
             {
@@ -1474,6 +1477,14 @@ def _constrain_live_graph_expansion(
             continue
         node_type = str(item.get("node_type", "")).strip()
         if report_like and node_type in {"tool_call", "subagent"} and not explicit_parallel_agent and not presentation_surface:
+            tool_name = str(item.get("tool_name", "")).strip()
+            research_evidence_query = _count_markers(
+                lowered,
+                ["investigate", "evidence", "latest", "deep-research", "web", "internet", "sources", "citations"],
+            ) > 0
+            if node_type == "tool_call" and tool_name in {"external_resource_hub", "evidence_dossier_builder"} and research_evidence_query:
+                filtered.append(item)
+                continue
             continue
         if node_type != "workspace_action":
             filtered.append(item)

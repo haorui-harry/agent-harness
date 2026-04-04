@@ -83,6 +83,7 @@ def test_task_spec_can_infer_custom_document_contracts() -> None:
     assert "custom:faq" in kinds
     assert "completion_packet" in kinds
     assert "delivery_bundle" in kinds
+    assert spec.primary_artifact_kind == "custom:decision_memo"
 
 
 def test_task_spec_can_infer_risk_register_contract() -> None:
@@ -96,6 +97,7 @@ def test_task_spec_can_infer_risk_register_contract() -> None:
 
     assert "custom:launch_memo" in kinds
     assert "risk_register" in kinds
+    assert spec.primary_artifact_kind == "custom:launch_memo"
 
 
 def test_package_priors_can_expand_channels_and_graph_actions() -> None:

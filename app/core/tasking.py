@@ -43,6 +43,67 @@ def _dedupe_contracts(contracts: list["ArtifactContract"]) -> list["ArtifactCont
     return out
 
 
+def _query_requests_benchmark_artifacts(*, lowered: str, tokens: set[str]) -> bool:
+    markers = [
+        "ablation",
+        "runner",
+        "run config",
+        "run-config",
+        "manifest",
+        "suite",
+        "benchmark manifest",
+        "benchmark config",
+        "evaluation config",
+        "run benchmark",
+        "gaia",
+        "swe-bench",
+        "webarena",
+        "tau-bench",
+    ]
+    return any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in markers)
+
+
+def _query_requests_data_artifacts(*, lowered: str, tokens: set[str]) -> bool:
+    markers = [
+        "data analysis",
+        "analytics",
+        "dataset",
+        "csv",
+        "table",
+        "sql",
+        "cohort",
+        "dataset pull",
+        "loader template",
+        "data spec",
+        "dashboard",
+    ]
+    return any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in markers)
+
+
+def _select_primary_artifact_kind(contracts: list["ArtifactContract"]) -> str:
+    support_kinds = {"completion_packet", "delivery_bundle"}
+    priority = [
+        "patch_draft",
+        "custom:decision_memo",
+        "custom:executive_memo",
+        "custom:launch_memo",
+        "custom:memo",
+        "custom:one_pager",
+        "custom:brief",
+        "benchmark_manifest",
+        "webpage_blueprint",
+        "slide_deck_plan",
+        "chart_pack_spec",
+    ]
+    for preferred in priority:
+        if any(item.kind == preferred for item in contracts):
+            return preferred
+    for item in contracts:
+        if item.kind not in support_kinds:
+            return item.kind
+    return ""
+
+
 def _custom_document_contracts(lowered: str) -> list["ArtifactContract"]:
     contracts: list[ArtifactContract] = []
     memo_specific = False
@@ -137,6 +198,7 @@ class TaskSpec:
     success_criteria: list[str] = field(default_factory=list)
     required_channels: list[str] = field(default_factory=list)
     artifact_contracts: list[ArtifactContract] = field(default_factory=list)
+    primary_artifact_kind: str = ""
     risk_policy: str = "balanced"
     needs_validation: bool = False
     needs_command_execution: bool = False
@@ -151,6 +213,7 @@ class TaskSpec:
             "success_criteria": list(self.success_criteria),
             "required_channels": list(self.required_channels),
             "artifact_contracts": [item.to_dict() for item in self.artifact_contracts],
+            "primary_artifact_kind": self.primary_artifact_kind,
             "risk_policy": self.risk_policy,
             "needs_validation": self.needs_validation,
             "needs_command_execution": self.needs_command_execution,
@@ -304,39 +367,10 @@ def infer_task_spec(
         contracts.append(ArtifactContract(kind="data_analysis_spec", title="Data Analysis Spec", format_hint="json"))
     else:
         contracts.append(ArtifactContract(kind="deliverable_report", title="Deliverable Report", format_hint="markdown"))
-    if output_mode != "benchmark" and any(
-        _has_marker(lowered=lowered, tokens=tokens, marker=marker)
-        for marker in [
-            "benchmark",
-            "ablation",
-            "runner",
-            "run config",
-            "run-config",
-            "manifest",
-            "suite",
-            "gaia",
-            "swe-bench",
-            "webarena",
-            "tau-bench",
-            "experimental design",
-        ]
-    ):
+    if output_mode != "benchmark" and _query_requests_benchmark_artifacts(lowered=lowered, tokens=tokens):
         contracts.append(ArtifactContract(kind="benchmark_manifest", title="Benchmark Manifest", format_hint="json"))
         contracts.append(ArtifactContract(kind="benchmark_run_config", title="Benchmark Run Config", format_hint="json"))
-    if output_mode != "data" and any(
-        _has_marker(lowered=lowered, tokens=tokens, marker=marker)
-        for marker in [
-            "data analysis",
-            "analytics",
-            "dataset",
-            "csv",
-            "table",
-            "sql",
-            "cohort",
-            "evidence standard",
-            "evidence standards",
-        ]
-    ):
+    if output_mode != "data" and _query_requests_data_artifacts(lowered=lowered, tokens=tokens):
         contracts.append(ArtifactContract(kind="data_analysis_spec", title="Data Analysis Spec", format_hint="json"))
     contracts.extend(_custom_document_contracts(lowered))
     contracts.extend(_explicit_artifact_contracts(lowered))
@@ -376,6 +410,7 @@ def infer_task_spec(
         success_criteria=_dedupe(success),
         required_channels=_dedupe(required_channels),
         artifact_contracts=contracts,
+        primary_artifact_kind=_select_primary_artifact_kind(contracts),
         risk_policy="strict" if "risk" in required_channels else "balanced",
         needs_validation=needs_validation,
         needs_command_execution=needs_command_execution,
@@ -705,6 +740,7 @@ def plan_capability_path(
         "steps": steps,
         "required_channels": list(task_spec.required_channels),
         "required_artifacts": [item.kind for item in task_spec.artifact_contracts if item.required],
+        "primary_artifact_kind": task_spec.primary_artifact_kind,
         "gap": gap.to_dict(),
     }
 

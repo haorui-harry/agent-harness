@@ -167,6 +167,26 @@ def test_research_report_with_benchmark_scope_keeps_report_as_primary_deliverabl
 
     assert profile.output_mode == "report"
     assert "deliverable_report" in artifact_kinds
+    assert profile.task_spec.get("primary_artifact_kind") == "deliverable_report"
+    assert "benchmark_manifest" not in artifact_kinds
+    assert "benchmark_run_config" not in artifact_kinds
+    assert "data_analysis_spec" not in artifact_kinds
+
+
+def test_research_report_only_adds_support_artifacts_when_explicitly_requested(tmp_path) -> None:
+    profile = analyze_task_request(
+        "Generate a deep research report, include a benchmark manifest, run config, and dataset pull plan for the evaluation appendix.",
+        target="research",
+        workspace_root=tmp_path,
+    )
+
+    artifact_kinds = {
+        str(item.get("kind", ""))
+        for item in profile.task_spec.get("artifact_contracts", [])
+        if isinstance(item, dict)
+    }
+
+    assert "deliverable_report" in artifact_kinds
     assert {"benchmark_manifest", "benchmark_run_config", "data_analysis_spec"}.issubset(artifact_kinds)
 
 
