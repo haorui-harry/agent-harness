@@ -224,7 +224,6 @@ class HarnessVisualProtocol:
             "enabled": bool(live.get("enabled", False)),
             "configured": bool(live.get("configured", False)),
             "model": str(live.get("model", "")),
-            "base_url": str(live.get("base_url", "")),
             "calls_used": int(live.get("calls_used", 0)),
             "call_budget": int(live.get("call_budget", 0)),
             "success": bool(live.get("success", False)),

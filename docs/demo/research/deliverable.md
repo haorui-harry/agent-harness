@@ -1,13 +1,3 @@
-# Agent Harness Studio
-
-Agent Harness Studio turns one user request into an auditable, benchmarked, and ecosystem-portable agent product.
-
-## Task
-
-Generate a deep research and improvement report for agent-harness as an applied research platform, covering benchmark strategy, experimental design, evidence standards, system gaps, and a concrete 12-week upgrade roadmap.
-
-## Primary Deliverable
-
 **Executive Summary**  
 Agent-harness aims to bridge academic research and production deployment for agent-based AI systems, but currently lacks rigorous experimental design, reproducible benchmarking, and evidence-based validation standards. Key gaps include fragmented benchmark integration (tau-bench, SWE-bench), inconsistent evidence packet implementation, and missing statistical significance frameworks. High-leverage improvements—standardized benchmark manifests, automated run configuration, MCP-based tool interoperability, and promotion criteria enforcement—can address these gaps. This report outlines a concrete 12-week roadmap to achieve 95% reproducibility, sub-4-hour experiment setup, and full evidence compliance, positioning agent-harness as a leading applied research platform.
 
@@ -98,10 +88,6 @@ Agent-harness operates with fragmented evaluation workflows. Internal promotion 
 - LangGraph Overview (https://docs.langchain.com/oss/python/langgraph/overview)  
 - SWE-bench (https://github.com/SWE-bench/SWE-bench)
 
-## Task Context
-
-A research and product organization needs one operating plan that can move experiments into production without losing reproducibility, auditability, or decision quality.
-
 ## Evidence References
 
 - internal://research/experiment-promotion-criteria
@@ -111,64 +97,11 @@ A research and product organization needs one operating plan that can move exper
 - https://docs.langchain.com/oss/python/langgraph/overview
 - https://github.com/SWE-bench/SWE-bench
 
-## Deliverable Package
+## Openable Files
 
-- Type: Strategy Mission Pack
-- Primary deliverable: Launch strategy packet with execution, evidence, and release gate.
-- Deliverable: Decision Memo -> One-page business recommendation with tradeoffs and target wedge.
-- Deliverable: Execution Playbook -> Phased rollout with operators, checkpoints, and fallback path.
-- Deliverable: Evidence Packet -> Citations, policy references, and runtime signals behind the claim.
-- Deliverable: Interop Export -> External skill-compatible bundle for downstream ecosystems.
-
-## Runtime Notes
-
-- Mode: live_api
-- Live agent success: True
-- Model: deepseek-chat
-- Calls used: 4
-
-## Demo Snapshot
-
-- Scenario: research_ops_platform
-- Selected agent: ResearchAgent
-- Skills: evidence_matrix, extract_facts, research_brief, frontend_critique
-- Internal frontier estimate: 0.658
-- Bottleneck axis: orchestration_quality
-- Release decision: go (all_quality_gates_passed)
-- Robust expected utility: 0.378
-- Robust worst case: 0.128
-- Avg uncertainty: 0.210
-- Interop frameworks: 2
-- Exported skill entries: 66
-
-## Why This Is Different
-
-- Concentrated value axis: ecosystem_leverage=1.00, interoperability=1.00, product_readiness=0.93.
-- Internal frontier estimate=0.658 with bottleneck `orchestration_quality`.
-- Ahead of built-in deep-research archetype by +0.134 internal frontier.
-- Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.
-- Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.
-
-## Artifact Bundle
-
-- Deliverable: tmp_live_research_focus\studio_deliverable_research.md
-- JSON payload: tmp_live_research_focus\studio_showcase_research.json
-- HTML showcase: tmp_live_research_focus\studio_showcase_research.html
-- Press brief: tmp_live_research_focus\studio_press_brief_research.md
-- Bundle manifest: tmp_live_research_focus\studio_bundle_manifest_research.json
-- Interop bundle index: tmp_live_research_focus\studio_interop_research\interop_bundle.json
-
-## Appendix
-
-- Agent comparison winner: ResearchAgent
-- Agent score gap: 0.0338
-- Built-in positioning: Ahead of built-in deep-research archetype by +0.134 internal frontier.
-- Fact: tool_success_rate=1.0 (measured_run_execution)
-- Fact: completion_score=1.0 (measured_run_completion)
-- Fact: evidence_records=12 (counted_evidence_bundle)
-- Fact: evidence_citations=6 (counted_citations)
-- Fact: live_agent_success=True (measured_api_run)
-- Heuristic: value_index=86.28 (internal_weighted_heuristic)
-- Heuristic: frontier_score=0.6578 (internal_bottleneck_aware_heuristic)
-- Heuristic: archetype_gap=0.1339 (built_in_archetype_comparison)
-_Generated at 2026-04-04T11:29:32.589142+00:00_
+- Primary Deliverable: studio_deliverable_research.md
+- Showcase HTML: studio_showcase_research.html
+- Showcase JSON: studio_showcase_research.json
+- Press Brief: studio_press_brief_research.md
+- Bundle Manifest: studio_bundle_manifest_research.json
+- Interop Bundle: studio_interop_research/index.json

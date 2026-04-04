@@ -158,12 +158,66 @@ class AgentThreadRuntime:
         for attempt in range(3):
             try:
                 with self._io_lock:
-                    return json.loads(path.read_text(encoding="utf-8"))
+                    payload = json.loads(path.read_text(encoding="utf-8"))
+                payload, changed = self._reconcile_thread_payload(payload)
+                if changed:
+                    self._save_thread_payload(thread_id, payload)
+                return payload
             except json.JSONDecodeError:
                 if attempt >= 2:
                     raise
                 time.sleep(0.01)
         return None
+
+    def _reconcile_thread_payload(self, payload: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+        if not isinstance(payload, dict):
+            return payload, False
+        executions = payload.get("executions", []) if isinstance(payload.get("executions", []), list) else []
+        if not executions:
+            return payload, False
+        latest = executions[-1] if isinstance(executions[-1], dict) else {}
+        execution_id = str(latest.get("execution_id", ""))
+        future_active = False
+        if execution_id:
+            with self._futures_lock:
+                future = self._futures.get(execution_id)
+            future_active = bool(future and not future.done())
+        if future_active:
+            return payload, False
+
+        changed = False
+        control = payload.setdefault("control", {})
+        graph_summary = latest.get("graph", {}).get("summary", {}) if isinstance(latest.get("graph", {}), dict) else {}
+        node_count = int(graph_summary.get("node_count", 0) or 0)
+        completed_nodes = int(graph_summary.get("completed_nodes", 0) or 0)
+        runnable_nodes = graph_summary.get("runnable_nodes", []) if isinstance(graph_summary.get("runnable_nodes", []), list) else []
+        execution_status = str(latest.get("status", ""))
+        thread_status = str(payload.get("status", ""))
+
+        desired_status = thread_status
+        desired_execution_status = execution_status
+        if execution_status == "running":
+            if node_count and completed_nodes >= node_count and not runnable_nodes:
+                desired_execution_status = "completed"
+                desired_status = "completed"
+            elif runnable_nodes or completed_nodes < node_count:
+                desired_execution_status = "paused"
+                desired_status = "paused"
+        elif execution_status in {"completed", "failed", "paused", "interrupted"}:
+            desired_status = execution_status
+
+        if desired_execution_status and desired_execution_status != execution_status:
+            latest["status"] = desired_execution_status
+            latest["updated_at"] = _utc_now()
+            changed = True
+        if desired_status and desired_status != thread_status:
+            payload["status"] = desired_status
+            payload["updated_at"] = _utc_now()
+            changed = True
+        if desired_status in {"completed", "failed", "paused", "interrupted"} and str(control.get("active_execution_id", "")):
+            control["active_execution_id"] = ""
+            changed = True
+        return payload, changed
 
     def get_runtime_context(self, thread_id: str, limit: int = 8) -> dict[str, Any]:
         payload = self.load_thread(thread_id) or self.ensure_thread(thread_id)

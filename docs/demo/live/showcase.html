@@ -3,21 +3,21 @@
 <title>Agent Harness Studio</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap');
-:root{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.92);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}
+:root{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.94);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}
 *{box-sizing:border-box}body{margin:0;font-family:'IBM Plex Sans','Segoe UI',sans-serif;color:var(--ink);background:
 radial-gradient(circle at 10% 10%, rgba(14,165,166,.30), transparent 28%),
 radial-gradient(circle at 90% 8%, rgba(245,158,11,.20), transparent 24%),
 radial-gradient(circle at 78% 78%, rgba(56,189,248,.18), transparent 28%),
 linear-gradient(135deg,var(--bg),var(--bg2));padding:24px}
 .wrap{max-width:1240px;margin:0 auto;display:grid;gap:14px}
-.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(7,17,29,.85),rgba(15,53,76,.78));color:#edf7ff;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:28px;box-shadow:var(--shadow)}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(7,17,29,.88),rgba(15,53,76,.82));color:#edf7ff;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:28px;box-shadow:var(--shadow)}
 .hero:before{content:'';position:absolute;inset:auto -60px -80px auto;width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,.26),transparent 68%)} 
 .hero-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:18px}@media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
 .hero h1{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;font-size:44px;line-height:1.05;margin:0 0 10px}
-.hero p{color:rgba(237,247,255,.82);margin:6px 0}
+.hero p{color:rgba(237,247,255,.84);margin:6px 0}
 .hero-panel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px}
 .card{background:var(--card);border:1px solid rgba(255,255,255,.55);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
-.glass{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(245,249,252,.84))}
+.glass{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(245,249,252,.86))}
 h2,h3{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0 0 10px}p{margin:5px 0;color:var(--muted)}ul{margin:8px 0 0;padding-left:18px}li{margin:6px 0}
 .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}@media(max-width:980px){.grid{grid-template-columns:1fr}}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:980px){.grid3{grid-template-columns:1fr}}
@@ -25,72 +25,137 @@ h2,h3{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0 0 10px}p{m
 .badge{display:inline-block;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);font-size:12px;margin:0 8px 8px 0;color:#edf7ff}
 .signal{padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.55));border:1px solid var(--line)}
 .signal .label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.signal .value{font-size:28px;font-family:'Space Grotesk';margin-top:6px}
-.metric{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.72)}
-.row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);margin-bottom:6px}.bar{height:8px;background:rgba(13,36,56,.10);border-radius:999px;overflow:hidden}
-.fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3),var(--accent2))}
-.phase{position:relative;padding:16px 16px 16px 18px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.90),rgba(246,250,252,.84));border:1px solid var(--line)}
-.phase:before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:999px;background:linear-gradient(180deg,var(--accent),var(--accent2))}
 .kicker{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 pre{margin:0;font-size:12px;white-space:pre-wrap;background:rgba(6,24,38,.96);color:#e7f7ff;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;max-height:320px;overflow:auto}
+.report{white-space:pre-wrap;line-height:1.7;font-size:14px;background:rgba(6,24,38,.96);color:#eef8ff;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;max-height:560px;overflow:auto}
 details{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.7);padding:14px}summary{cursor:pointer;font-weight:600}
 .muted{color:var(--muted)}
 </style></head><body><div class="wrap">
 <section class="hero">
   <div class="hero-grid">
     <div>
-      <div class="kicker">Mission Pack Demo</div>
+      <div class="kicker">Task Deliverable Demo</div>
       <h1>Launch strategy packet with execution, evidence, and release gate.</h1>
       <p><strong>Launching a regulated AI customer-support copilot with revenue pressure, auditability, and research credibility held in one operating model.</strong></p>
-      <p>Business-facing package for launch, rollout, and investment decisions.</p>
+      <p>A fintech launch team needs a 90-day plan that can ship a customer-support copilot, keep a human override path, satisfy model-risk governance, and generate proof strong enough for procurement, compliance, and executive rollout decisions.</p>
       <div style="margin-top:14px">
         <span class="badge">Release GO</span>
         <span class="badge">Generation LIVE_API</span>
         <span class="badge">Model deepseek-chat</span>
-        <span class="badge">Frontier 0.730</span>
+        <span class="badge">Primary Artifact studio_deliverable_live.md</span>
       </div>
       <div style="margin-top:14px" class="hero-panel">
-        <div class="kicker">Primary View</div>
-        <p><strong>Strategy Mission Pack</strong></p>
-        <p>This package turns a risky AI feature launch into a staged operating program with commercial goals, control checkpoints, and evidence for expansion.</p>
+        <div class="kicker">Task</div>
+        <p>Design a 90-day launch plan for a regulated AI customer-support copilot at a fintech, balancing growth targets, auditability, human override policy, and research credibility.</p>
       </div>
     </div>
     <div class="hero-panel">
-      <div class="kicker">Release Decision</div>
-      <div class="signal"><div class="label">Recommendation</div><div class="value">GO</div><p>all_quality_gates_passed</p></div>
+      <div class="kicker">What Comes Out</div>
+      <div class="signal"><div class="label">Primary Output</div><div class="value">LIVE_API</div><p>The 90-day launch plan for a regulated AI customer-support copilot in a fintech must balance growth targets with stringent auditability, human override policies, and research credibility, introducing risks in compliance, operational integrity, and strategic alignment that require robust controls to mitigate.</p></div>
       <div class="grid4" style="margin-top:12px">
-        <div class="signal"><div class="label">Value Index</div><div class="value">86.4</div></div>
-        <div class="signal"><div class="label">Expected</div><div class="value">0.61</div></div>
-        <div class="signal"><div class="label">Worst Case</div><div class="value">0.32</div></div>
-        <div class="signal"><div class="label">Uncertainty</div><div class="value">0.21</div></div>
+        <div class="signal"><div class="label">Files</div><div class="value">6</div></div>
+        <div class="signal"><div class="label">Citations</div><div class="value">6</div></div>
+        <div class="signal"><div class="label">Live Calls</div><div class="value">3</div></div>
+        <div class="signal"><div class="label">Decision</div><div class="value">GO</div></div>
       </div>
     </div>
   </div>
 </section>
 <section class="card glass">
-  <div class="kicker">Mission Summary</div>
+  <div class="kicker">Primary Deliverable</div>
   <div class="grid">
     <article>
-      <h2>Primary Deliverable</h2>
-      <p>Launch strategy packet with execution, evidence, and release gate.</p>
-      <ul><li>product lead</li><li>operations lead</li><li>risk owner</li><li>executive sponsor</li><li>This package turns a risky AI feature launch into a staged operating program with commercial goals, control checkpoints, and evidence for expansion.</li></ul>
+      <h2>Direct Preview</h2>
+      <div class="report">**Executive Memo: 90-Day Launch Plan for Regulated AI Customer-Support Copilot**
+
+---
+
+### **Decision**
+Proceed with a phased 90-day launch plan for the regulated AI customer-support copilot, contingent on implementing the following controls:
+- **Pre-launch compliance audits** aligned with financial regulations.
+- **Human override protocols** with fail-safes and staff training.
+- **Rigorous experiment design** for research credibility.
+- **Portfolio optimization** to balance growth and governance.
+- **Skill dependency mapping** to mitigate integration risks.
+
+This plan balances growth targets with auditability, human oversight, and research integrity, aiming for a 20% reduction in operational costs and a 15% improvement in customer satisfaction within 90 days.
+
+---
+
+### **Control Matrix**
+| Control | Mitigated Risk | Implementation Details |
+|---------|----------------|------------------------|
+| Phased compliance audit schedule | Regulatory non-compliance | Pre-launch, mid-phase, and post-launch audits using `policy_risk_matrix` for continuous monitoring. |
+| Human override protocols with fail-safes | Inadequate human override mechanisms | Escalation paths, real-time monitoring, and staff training validated via simulations. |
+| Rigorous experiment design | Compromised research credibility | Use `code_experiment_design` for reproducible ablation studies and transparent benchmarks. |
+| Portfolio optimization for growth-governance balance | Growth target misalignment | Leverage `api_skill_portfolio_optimizer` to align milestones with risk tolerance. |
+| Skill dependency mapping and contingency planning | Integration and skill dependency failures | Use `api_skill_dependency_graph` to identify critical path dependencies and fallbacks. |
+
+---
+
+### **Residual Risk**
+- **Regulatory non-compliance**: Medium residual risk due to evolving fintech AI regulations; requires ongoing monitoring.
+- **Human override reliability**: Low residual risk if protocols are rigorously tested; potential for human error remains.
+- **Research credibility**: Low residual risk with peer-reviewable metrics; external validation gaps may persist.
+- **Growth-auditability trade-offs**: Medium residual risk if scaling pressures compromise controls.
+- **Tool dependency**: Medium residual risk if critical tools (e.g., `api_skill_portfolio_optimizer`) fail without contingencies.
+
+---
+
+### **Escalation Gates**
+1. **Day 30**: Compliance audit reveals &gt;2 major gaps; escalate to legal and compliance teams.
+2. **Day 60**: Human override failure rate exceeds 5% in simulations; pause launch for protocol redesign.
+3. **Day 75**: Research benchmarks show &lt;80% reproducibility; halt scaling until metrics are validated.
+4. **Any phase**: Critical tool failure (e.g., `api_skill_dependency_graph`); activate fallback plans and notify engineering leadership.
+
+---
+
+### **72h Action Plan**
+- **Hours 0–24**: Finalize and document human override protocols using `evidence_dossier_builder`.
+- **Hours 24–48**: Conduct pre-launch compliance audit with `policy_risk_matrix`; address immediate gaps.
+- **Hours 48–72**: Initiate skill dependency mapping via `api_skill_dependency_graph` and develop contingency plans.
+
+---
+
+### **Confidence**
+**Medium**. The plan is grounded in internal evidence (e.g., human override policies, audit checklists) and leverages structured risk controls. However, external validation gaps (e.g., regulatory benchmarks, third-party research reviews) and tool dependencies introduce uncertainty. Execution success hinges on adherence to escalation gates and continuous monitoring.
+
+[truncated for preview]</div>
     </article>
     <article>
-      <h2>Output Views</h2>
-      <ul><li>proposal</li><li>execution plan</li><li>evidence packet</li><li>benchmark positioning</li></ul>
+      <h2>Key Takeaways</h2>
+      <ul><li>Executive Memo: 90-Day Launch Plan for Regulated AI Customer-Support Copilot**</li><li>Decision**</li><li>Proceed with a phased 90-day launch plan for the regulated AI customer-support copilot, contingent on implementing the following controls:</li><li>Pre-launch compliance audits** aligned with financial regulations.</li><li>Human override protocols** with fail-safes and staff training.</li><li>Rigorous experiment design** for research credibility.</li></ul>
+      <h3 style="margin-top:14px">Openable Files</h3>
+      <table><thead><tr><th>Artifact</th><th>Kind</th><th>Path</th></tr></thead><tbody><tr><td>Primary Deliverable</td><td>deliverable_markdown</td><td><code>studio_deliverable_live.md</code></td></tr><tr><td>Showcase HTML</td><td>showcase_html</td><td><code>studio_showcase_live.html</code></td></tr><tr><td>Showcase JSON</td><td>showcase_json</td><td><code>studio_showcase_live.json</code></td></tr><tr><td>Press Brief</td><td>press_brief</td><td><code>studio_press_brief_live.md</code></td></tr><tr><td>Bundle Manifest</td><td>bundle_manifest</td><td><code>studio_bundle_manifest_live.json</code></td></tr><tr><td>Interop Bundle</td><td>interop_bundle</td><td><code>studio_interop_live/index.json</code></td></tr></tbody></table>
+    </article>
+  </div>
+</section>
+<section class="card glass">
+  <div class="kicker">Evidence And Runtime</div>
+  <div class="grid">
+    <article>
+      <h2>Task Context</h2>
+      <p><strong>Why now:</strong> A fintech launch team needs a 90-day plan that can ship a customer-support copilot, keep a human override path, satisfy model-risk governance, and generate proof strong enough for procurement, compliance, and executive rollout decisions.</p>
+      <p><strong>Audience:</strong> This package turns a risky AI feature launch into a staged operating program with commercial goals, control checkpoints, and evidence for expansion.</p>
+      <h3 style="margin-top:14px">Target Users</h3>
+      <div><span class='badge' style='background:rgba(255,255,255,.10);color:#edf7ff;border-color:rgba(255,255,255,.16)'>product lead</span><span class='badge' style='background:rgba(255,255,255,.10);color:#edf7ff;border-color:rgba(255,255,255,.16)'>operations lead</span><span class='badge' style='background:rgba(255,255,255,.10);color:#edf7ff;border-color:rgba(255,255,255,.16)'>risk owner</span><span class='badge' style='background:rgba(255,255,255,.10);color:#edf7ff;border-color:rgba(255,255,255,.16)'>executive sponsor</span><span class='badge' style='background:rgba(255,255,255,.10);color:#edf7ff;border-color:rgba(255,255,255,.16)'>This package turns a risky AI feature launch into a staged operating program with commercial goals, control checkpoints, and evidence for expansion.</span></div>
+      <h3 style="margin-top:14px">Evidence References</h3>
+      <ul><li>internal://fintech/human-override-policy</li><li>internal://fintech/audit-readiness-checklist</li><li>internal://cross/evidence-packet-template</li><li>https://owasp.org/www-project-top-10-for-large-language-model-applications/</li><li>https://github.com/sierra-research/tau-bench</li><li>https://www.nist.gov/itl/ai-risk-management-framework</li></ul>
+    </article>
+    <article>
+      <h2>Runtime Surface</h2>
+      <div class="grid4">
+        <div class='signal'><div class='label'>Model</div><div class='value'>deepseek-chat</div></div><div class='signal'><div class='label'>Live Calls</div><div class='value'>3</div></div><div class='signal'><div class='label'>Evidence</div><div class='value'>9</div></div><div class='signal'><div class='label'>Interop</div><div class='value'>2</div></div><div class='signal'><div class='label'>Tool Success</div><div class='value'>1.00</div></div><div class='signal'><div class='label'>Completion</div><div class='value'>1.00</div></div>
+      </div>
+      <h3 style="margin-top:14px">Execution Plan</h3>
+      <ul><li>understand goal, constraints, and desired end state</li><li>collect external resources because external evidence is missing for this task</li><li>build evidence dossier because normalize the retrieved evidence into reviewable records</li><li>evaluate risk and governance because risk/governance state is required before execution closes</li><li>discover relevant tools because task is open-ended and should inspect available operators first</li><li>inspect skill priors because skill selection should come from explicit capability inspection</li><li>analyze task because translate goal and constraints into an executable plan</li><li>generate completion packet because artifact gap detected for completion_packet</li><li>generate delivery bundle because artifact gap detected for delivery_bundle</li><li>close the remaining artifact gap and publish a artifact result</li><li>recipe:risk-radar</li></ul>
     </article>
   </div>
 </section>
 <section class="card glass">
   <div class="kicker">Deliverable Package</div>
-  <div class="grid4"><article class='card glass'><div class='kicker'>executive sponsor</div><h2>Decision Memo</h2><p>One-page business recommendation with tradeoffs and target wedge.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> </p></article><article class='card glass'><div class='kicker'>product and operations</div><h2>Execution Playbook</h2><p>Phased rollout with operators, checkpoints, and fallback path.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> 5 execution steps</p></article><article class='card glass'><div class='kicker'>risk and procurement</div><h2>Evidence Packet</h2><p>Citations, policy references, and runtime signals behind the claim.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> 9 records / 6 citations</p></article><article class='card glass'><div class='kicker'>platform team</div><h2>Interop Export</h2><p>External skill-compatible bundle for downstream ecosystems.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> OpenAI + Anthropic exportable</p></article></div>
-</section>
-<section class="grid3">
-  <article class='card glass'><div class='kicker'>Commercial Wedge</div><h2>Commercial Wedge</h2><p>Target one support workflow with visible revenue or retention pressure.</p><p><strong>Integration:</strong> Connect launch scope to the frontline KPI dashboard and ticket-routing path.</p></article><article class='card glass'><div class='kicker'>Control Surface</div><h2>Control Surface</h2><p>Human override, audit logging, and policy escalation stay in the request path.</p><p><strong>Integration:</strong> Bind policy checks to case routing, override capture, and review queues.</p></article><article class='card glass'><div class='kicker'>Proof Engine</div><h2>Proof Engine</h2><p>Every release claim is backed by pilot evidence, replayable traces, and lab gates.</p><p><strong>Integration:</strong> Feed pilot traces and release benchmarks into the same decision packet.</p></article>
-</section>
-<section class="card glass">
-  <div class="kicker">Three-Phase Rollout</div>
-  <div class="grid3"><article class='phase'><div class='kicker'>Phase 1 - Scope And Control Setup</div><h3>Phase 1 - Scope And Control Setup</h3><ul><li>Limit the first release to one support motion with stable documentation and bounded risk.</li><li>Define override ownership, escalation path, and audit log schema before model exposure grows.</li><li>understand intent</li></ul><p><strong>Success:</strong> baseline metrics captured, override policy signed off, audit schema wired into launch logs</p></article><article class='phase'><div class='kicker'>Phase 2 - Pilot And Evidence Collection</div><h3>Phase 2 - Pilot And Evidence Collection</h3><ul><li>Run the copilot in shadow or assisted mode with sampled human review.</li><li>Track response quality, override frequency, and policy exceptions in one operating dashboard.</li><li>collect supporting signals</li></ul><p><strong>Success:</strong> quality threshold sustained, override load within staffing plan, evidence packet complete</p></article><article class='phase'><div class='kicker'>Phase 3 - Controlled Expansion</div><h3>Phase 3 - Controlled Expansion</h3><ul><li>Open the copilot to more queues only after gates pass on quality, safety, and operator adoption.</li><li>Separate fast rollback levers from growth levers so expansion does not compromise containment.</li><li>run verification-oriented tools</li></ul><p><strong>Success:</strong> gates passed for next queue, rollback tested, expansion case approved</p></article></div>
+  <div class="grid4"><article class='card glass'><div class='kicker'>executive sponsor</div><h2>Decision Memo</h2><p>One-page business recommendation with tradeoffs and target wedge.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> **Executive Memo: 90-Day Launch Plan for Regulated AI Customer-Support Copilot** --- ### **Decision** Proceed with a pha</p></article><article class='card glass'><div class='kicker'>product and operations</div><h2>Execution Playbook</h2><p>Phased rollout with operators, checkpoints, and fallback path.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> 10 execution steps</p></article><article class='card glass'><div class='kicker'>risk and procurement</div><h2>Evidence Packet</h2><p>Citations, policy references, and runtime signals behind the claim.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> 9 records / 6 citations</p></article><article class='card glass'><div class='kicker'>platform team</div><h2>Interop Export</h2><p>External skill-compatible bundle for downstream ecosystems.</p><p><strong>Status:</strong> ready</p><p><strong>Signal:</strong> </p></article></div>
 </section>
 <section class="card glass">
   <div class="kicker">Execution Tracks</div>
@@ -99,118 +164,114 @@ details{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,
 <section class="grid">
   <article class="card glass">
     <div class="kicker">Expected Impact</div>
-    <div class='metric'><div class='row'><span>Pilot throughput lift</span></div><strong>value index 86.4 and band platinum</strong></div><div class='metric'><div class='row'><span>Audit readiness</span></div><strong>release decision go with reason all_quality_gates_passed</strong></div><div class='metric'><div class='row'><span>Operator adoption</span></div><strong>completion score 1.00 and tool success 1.00</strong></div><div class='metric'><div class='row'><span>Expansion readiness</span></div><strong>stakeholder packet ready for product, operations, and governance review</strong></div>
+    <div class='metric'><div class='row'><span>Pilot throughput lift</span></div><strong>Successful launch of a compliant, high-growth AI copilot that enhances customer support efficiency while maintaining audit trails, human oversight, and credible research foundations, projected to reduce operational costs by 20% and improve customer satisfaction scores by 15% within 90 days, contingent on effective risk mitigation.</strong></div>
   </article>
   <article class="card glass">
-    <div class="kicker">Critical Risks To Watch</div>
-    <ul><li>75% confidence level claimed without supporting quantitative validation</li><li>Vague &#x27;evidence packet template&#x27; referenced without content specification</li><li>No legal counsel review mentioned in approval process</li></ul>
+    <div class="kicker">Critical Risks</div>
+    <ul><li>Vague &#x27;medium confidence&#x27; rating without quantitative backing</li><li>Tool dependencies treated as implementation details rather than critical risks</li><li>Human override failure threshold of 5% is dangerously high for financial services</li></ul>
   </article>
-</section>
-<section class="card glass">
-  <div class="kicker">Evidence And Scores</div>
-  <div class="grid">
-    <article>
-      <h2>Evidence Bundle</h2>
-      <ul><li>Release decision: go (all_quality_gates_passed)</li><li>Frontier score: 0.730; bottleneck axis: orchestration_quality</li><li>Routing confidence: 1.000</li><li>Value index: 86.36 (platinum)</li><li>Safety score: 0.72; reliability score: 1.00</li><li>Evidence packet: 9 records / 6 citations</li><li>Interop export: 2 frameworks / 36 skill entries</li></ul>
-      <h3 style="margin-top:14px">Execution Plan</h3>
-      <ul><li>understand intent</li><li>collect supporting signals</li><li>run verification-oriented tools</li><li>synthesize and evaluate</li><li>recipe:risk-radar</li></ul>
-    </article>
-    <article>
-      <h2>Capability Vector</h2>
-      <div class='metric'><div class='row'><span>Orchestration Quality</span><strong>53.7%</strong></div><div class='bar'><div class='fill' style='width:53.7%'></div></div></div><div class='metric'><div class='row'><span>Research Rigor</span><strong>90.0%</strong></div><div class='bar'><div class='fill' style='width:90.0%'></div></div></div><div class='metric'><div class='row'><span>Ecosystem Leverage</span><strong>100.0%</strong></div><div class='bar'><div class='fill' style='width:100.0%'></div></div></div><div class='metric'><div class='row'><span>Governance Safety</span><strong>81.8%</strong></div><div class='bar'><div class='fill' style='width:81.8%'></div></div></div><div class='metric'><div class='row'><span>Product Readiness</span><strong>94.6%</strong></div><div class='bar'><div class='fill' style='width:94.6%'></div></div></div><div class='metric'><div class='row'><span>Interoperability</span><strong>100.0%</strong></div><div class='bar'><div class='fill' style='width:100.0%'></div></div></div>
-    </article>
-  </div>
-</section>
-<section class="card glass">
-  <div class="kicker">External Evidence</div>
-  <div class="grid">
-    <article>
-      <h2>Evidence Packet</h2>
-      <p>9 records and 6 citations injected into the run.</p>
-      <ul><li>internal://fintech/human-override-policy</li><li>internal://fintech/audit-readiness-checklist</li><li>internal://cross/evidence-packet-template</li><li>https://owasp.org/www-project-top-10-for-large-language-model-applications/</li><li>https://modelcontextprotocol.io/specification/2025-06-18/architecture/index</li><li>https://www.nist.gov/itl/ai-risk-management-framework</li></ul>
-    </article>
-    <article>
-      <h2>Evidence Sources</h2>
-      <table><thead><tr><th>Source</th><th>Records</th></tr></thead><tbody><tr><td>built_in_catalog</td><td>3</td></tr><tr><td>repo_dossiers</td><td>6</td></tr></tbody></table>
-    </article>
-  </div>
-</section>
-<section class="card glass">
-  <div class="kicker">Benchmark Fit</div>
-  <div class="grid">
-    <article>
-      <h2>Relevant Benchmark Families</h2>
-      <table><thead><tr><th>Benchmark</th><th>Fit</th><th>Strength</th><th>Gap</th></tr></thead><tbody><tr><td>GAIA</td><td>medium</td><td>Good match for evidence-backed multi-step reasoning.</td><td>Needs stronger open-web retrieval verification.</td></tr><tr><td>TAU-bench</td><td>high</td><td>Strong fit for enterprise workflow planning and tool orchestration.</td><td>Needs deeper real connector coverage.</td></tr><tr><td>TheAgentCompany</td><td>medium</td><td>Good fit for knowledge-work packaging and operating decisions.</td><td>Needs richer long-horizon workplace state.</td></tr></tbody></table>
-    </article>
-    <article>
-      <h2>Honest Boundary</h2>
-      <p>Current strength is evidence-backed planning, governance framing, and packaged delivery. It is not yet a leaderboard winner on web navigation or code-fix benchmarks because the repo still lacks full browser-actuation loops and code-task specific execution traces.</p>
-      <h3 style="margin-top:14px">Review Questions</h3>
-      <ul><li>Is the chosen wedge narrow enough to execute and large enough to matter?</li><li>Which release gate blocks expansion first?</li><li>What evidence is still missing for executive sign-off?</li><li>all_quality_gates_passed</li><li>Does the evidence packet support expansion beyond regulated_copilot_launch?</li><li>Is AnalysisAgent still the right owner if constraints tighten?</li></ul>
-    </article>
-  </div>
-</section>
-<section class="grid">
-  <article class="card glass">
-    <div class="kicker">Framework Comparison</div>
-    <h2>Ahead of deep-research by +0.206 frontier score.</h2>
-    <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody><tr><td>deep-research</td><td>+0.2065</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>data-flow</td><td>+0.1625</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>skill-hub</td><td>+0.1508</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr></tbody></table>
-  </article>
-  <article class="card glass">
-    <div class="kicker">Agent Comparison</div>
-    <h2>AnalysisAgent won the route</h2>
-    <p class="muted">Runner-up: ResearchAgent | score gap 0.0442</p>
-    <table><thead><tr><th>Agent</th><th>Score</th><th>Reason</th></tr></thead><tbody><tr><td>AnalysisAgent</td><td>0.3288</td><td>selected (score=0.329, complexity=complex): best domain+intent match</td></tr><tr><td>ResearchAgent</td><td>0.2846</td><td>rejected (score=0.285): lower relevance</td></tr><tr><td>DebugAgent</td><td>0.2725</td><td>rejected (score=0.273): lower relevance</td></tr><tr><td>PlannerAgent</td><td>0.2176</td><td>rejected (score=0.218): lower relevance</td></tr><tr><td>AdvisorAgent</td><td>0.2041</td><td>rejected (score=0.204): lower relevance</td></tr><tr><td>SummaryAgent</td><td>0.1956</td><td>rejected (score=0.196): lower relevance</td></tr></tbody></table>
-  </article>
-</section>
-<section class="card glass">
-  <div class="kicker">Research Lab Leaderboard</div>
-  <table><thead><tr><th>Candidate</th><th>Composite</th><th>Value</th><th>Pass</th><th>Safety</th><th>Pareto</th></tr></thead><tbody>
-  <tr><td>balanced-auto</td><td>0.8325</td><td>72.13</td><td>0.800</td><td>1.000</td><td>yes</td></tr><tr><td>daily-operator</td><td>0.7824</td><td>70.69</td><td>0.800</td><td>1.000</td><td>yes</td></tr><tr><td>enterprise-ops</td><td>0.7732</td><td>72.35</td><td>0.800</td><td>1.000</td><td>no</td></tr><tr><td>creative-studio</td><td>0.7703</td><td>72.94</td><td>0.800</td><td>1.000</td><td>yes</td></tr><tr><td>research-rig</td><td>0.7565</td><td>71.86</td><td>0.800</td><td>1.000</td><td>no</td></tr></tbody></table>
 </section>
 <section class="card glass">
   <div class="kicker">Why This System Wins</div>
-  <ul><li>Concentrated value axis: ecosystem_leverage=1.00, interoperability=1.00, product_readiness=0.95.</li><li>Frontier score=0.730 with bottleneck `orchestration_quality`.</li><li>Ahead of deep-research by +0.206 frontier score.</li><li>Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.</li><li>Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.</li></ul>
+  <ul><li>Concentrated value axis: ecosystem_leverage=1.00, interoperability=1.00, product_readiness=0.93.</li><li>Internal frontier estimate=0.659 with bottleneck `orchestration_quality`.</li><li>Ahead of built-in deep-research archetype by +0.135 internal frontier.</li><li>Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.</li><li>Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.</li></ul>
 </section>
 <section class="card glass">
   <div class="kicker">Appendix</div>
   <details>
-    <summary>Generated Business Brief</summary>
-    <pre>90-Day Launch Plan for a Regulated AI Support Copilot
-Scenario: Launching a regulated AI customer-support copilot with revenue pressure, auditability, and research credibility held in one operating model.
-Decision: go (all_quality_gates_passed)
-Request: Design a 90-day launch plan for a regulated AI customer-support copilot at a fintech, balancing growth targets, auditability, human override policy, and research credibility.
-Operating Thesis:
-- This package turns a risky AI feature launch into a staged operating program with commercial goals, control checkpoints, and evidence for expansion.
-Business Summary:
-- Start with a narrow customer-support workflow where response time and auditability matter enough to measure.
-- Use human override, evidence logging, and gated rollout as first-class launch features rather than afterthoughts.
-- Expand only after the pilot proves containment, operator adoption, and measurable service uplift.
-- Evidence base: 9 records and 6 citations were injected into the launch packet.
-Phased Rollout:
-- Phase 1 - Scope And Control Setup: Limit the first release to one support motion with stable documentation and bounded risk., Define override ownership, escalation path, and audit log schema before model exposure grows., understand intent
-- Phase 2 - Pilot And Evidence Collection: Run the copilot in shadow or assisted mode with sampled human review., Track response quality, override frequency, and policy exceptions in one operating dashboard., collect supporting signals
-- Phase 3 - Controlled Expansion: Open the copilot to more queues only after gates pass on quality, safety, and operator adoption., Separate fast rollback levers from growth levers so expansion does not compromise containment., run verification-oriented tools
-Expected Impact:
-- Pilot throughput lift: value index 86.4 and band platinum
-- Audit readiness: release decision go with reason all_quality_gates_passed
-- Operator adoption: completion score 1.00 and tool success 1.00
-- Expansion readiness: stakeholder packet ready for product, operations, and governance review
-Critical Risks:
-- 75% confidence level claimed without supporting quantitative validation
-- Vague &#x27;evidence packet template&#x27; referenced without content specification
-- No legal counsel review mentioned in approval process
-Evidence Citations:
-- internal://fintech/human-override-policy
-- internal://fintech/audit-readiness-checklist
-- internal://cross/evidence-packet-template
-- https://owasp.org/www-project-top-10-for-large-language-model-applications/
-Execution Backbone:
-- understand intent
-- collect supporting signals
-- run verification-oriented tools
-- synthesize and evaluate
-- recipe:risk-radar</pre>
+    <summary>Primary Deliverable Raw Text</summary>
+    <pre>**Executive Memo: 90-Day Launch Plan for Regulated AI Customer-Support Copilot**
+
+---
+
+### **Decision**
+Proceed with a phased 90-day launch plan for the regulated AI customer-support copilot, contingent on implementing the following controls:
+- **Pre-launch compliance audits** aligned with financial regulations.
+- **Human override protocols** with fail-safes and staff training.
+- **Rigorous experiment design** for research credibility.
+- **Portfolio optimization** to balance growth and governance.
+- **Skill dependency mapping** to mitigate integration risks.
+
+This plan balances growth targets with auditability, human oversight, and research integrity, aiming for a 20% reduction in operational costs and a 15% improvement in customer satisfaction within 90 days.
+
+---
+
+### **Control Matrix**
+| Control | Mitigated Risk | Implementation Details |
+|---------|----------------|------------------------|
+| Phased compliance audit schedule | Regulatory non-compliance | Pre-launch, mid-phase, and post-launch audits using `policy_risk_matrix` for continuous monitoring. |
+| Human override protocols with fail-safes | Inadequate human override mechanisms | Escalation paths, real-time monitoring, and staff training validated via simulations. |
+| Rigorous experiment design | Compromised research credibility | Use `code_experiment_design` for reproducible ablation studies and transparent benchmarks. |
+| Portfolio optimization for growth-governance balance | Growth target misalignment | Leverage `api_skill_portfolio_optimizer` to align milestones with risk tolerance. |
+| Skill dependency mapping and contingency planning | Integration and skill dependency failures | Use `api_skill_dependency_graph` to identify critical path dependencies and fallbacks. |
+
+---
+
+### **Residual Risk**
+- **Regulatory non-compliance**: Medium residual risk due to evolving fintech AI regulations; requires ongoing monitoring.
+- **Human override reliability**: Low residual risk if protocols are rigorously tested; potential for human error remains.
+- **Research credibility**: Low residual risk with peer-reviewable metrics; external validation gaps may persist.
+- **Growth-auditability trade-offs**: Medium residual risk if scaling pressures compromise controls.
+- **Tool dependency**: Medium residual risk if critical tools (e.g., `api_skill_portfolio_optimizer`) fail without contingencies.
+
+---
+
+### **Escalation Gates**
+1. **Day 30**: Compliance audit reveals &gt;2 major gaps; escalate to legal and compliance teams.
+2. **Day 60**: Human override failure rate exceeds 5% in simulations; pause launch for protocol redesign.
+3. **Day 75**: Research benchmarks show &lt;80% reproducibility; halt scaling until metrics are validated.
+4. **Any phase**: Critical tool failure (e.g., `api_skill_dependency_graph`); activate fallback plans and notify engineering leadership.
+
+---
+
+### **72h Action Plan**
+- **Hours 0–24**: Finalize and document human override protocols using `evidence_dossier_builder`.
+- **Hours 24–48**: Conduct pre-launch compliance audit with `policy_risk_matrix`; address immediate gaps.
+- **Hours 48–72**: Initiate skill dependency mapping via `api_skill_dependency_graph` and develop contingency plans.
+
+---
+
+### **Confidence**
+**Medium**. The plan is grounded in internal evidence (e.g., human override policies, audit checklists) and leverages structured risk controls. However, external validation gaps (e.g., regulatory benchmarks, third-party research reviews) and tool dependencies introduce uncertainty. Execution success hinges on adherence to escalation gates and continuous monitoring.
+
+--- 
+
+**Approval**: Recommended for execution with weekly risk reviews.  
+**Prepared by**: AI Strategy Unit  
+**Date**: [Current Date]</pre>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Scenario Scaffolding</summary>
+    <div class="grid3"><article class='card glass'><div class='kicker'>Commercial Wedge</div><h2>Commercial Wedge</h2><p>Target one support workflow with visible revenue or retention pressure.</p><p><strong>Integration:</strong> Connect launch scope to the frontline KPI dashboard and ticket-routing path.</p></article><article class='card glass'><div class='kicker'>Control Surface</div><h2>Control Surface</h2><p>Human override, audit logging, and policy escalation stay in the request path.</p><p><strong>Integration:</strong> Bind policy checks to case routing, override capture, and review queues.</p></article><article class='card glass'><div class='kicker'>Proof Engine</div><h2>Proof Engine</h2><p>Every release claim is backed by pilot evidence, replayable traces, and lab gates.</p><p><strong>Integration:</strong> Feed pilot traces and release benchmarks into the same decision packet.</p></article></div>
+    <div class="grid3" style="margin-top:12px"><article class='phase'><div class='kicker'>Phase 1 - Scope And Control Setup</div><h3>Phase 1 - Scope And Control Setup</h3><ul><li>Limit the first release to one support motion with stable documentation and bounded risk.</li><li>Define override ownership, escalation path, and audit log schema before model exposure grows.</li><li>understand goal, constraints, and desired end state</li></ul><p><strong>Success:</strong> baseline metrics captured, override policy signed off, audit schema wired into launch logs</p></article><article class='phase'><div class='kicker'>Phase 2 - Pilot And Evidence Collection</div><h3>Phase 2 - Pilot And Evidence Collection</h3><ul><li>Run the copilot in shadow or assisted mode with sampled human review.</li><li>Track response quality, override frequency, and policy exceptions in one operating dashboard.</li><li>collect external resources because external evidence is missing for this task</li></ul><p><strong>Success:</strong> quality threshold sustained, override load within staffing plan, evidence packet complete</p></article><article class='phase'><div class='kicker'>Phase 3 - Controlled Expansion</div><h3>Phase 3 - Controlled Expansion</h3><ul><li>Open the copilot to more queues only after gates pass on quality, safety, and operator adoption.</li><li>Separate fast rollback levers from growth levers so expansion does not compromise containment.</li><li>build evidence dossier because normalize the retrieved evidence into reviewable records</li></ul><p><strong>Success:</strong> gates passed for next queue, rollback tested, expansion case approved</p></article></div>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Benchmark Fit And Boundary</summary>
+    <table><thead><tr><th>Benchmark</th><th>Fit</th><th>Strength</th><th>Gap</th></tr></thead><tbody><tr><td>GAIA</td><td>medium</td><td>Good match for evidence-backed multi-step reasoning.</td><td>Needs stronger open-web retrieval verification.</td></tr><tr><td>TAU-bench</td><td>high</td><td>Strong fit for enterprise workflow planning and tool orchestration.</td><td>Needs deeper real connector coverage.</td></tr><tr><td>TheAgentCompany</td><td>medium</td><td>Good fit for knowledge-work packaging and operating decisions.</td><td>Needs richer long-horizon workplace state.</td></tr></tbody></table>
+    <p style="margin-top:12px">Current strength is evidence-backed planning, governance framing, and packaged delivery. It is not yet a leaderboard winner on web navigation or code-fix benchmarks because the repo still lacks full browser-actuation loops and code-task specific execution traces.</p>
+    <ul><li>Is the chosen wedge narrow enough to execute and large enough to matter?</li><li>Which release gate blocks expansion first?</li><li>What evidence is still missing for executive sign-off?</li><li>What evidence would invalidate the current strategy mission pack recommendation?</li><li>Which deliverable is ready for stakeholder review today?</li><li>Which benchmark family is the right proof target for this mission?</li></ul>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Comparisons And Leaderboard</summary>
+    <h3>Built-in Archetype Comparison</h3>
+    <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody><tr><td>deep-research</td><td>+0.1348</td><td>0.67</td><td>ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>data-flow</td><td>+0.0908</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr><tr><td>skill-hub</td><td>+0.0791</td><td>0.83</td><td>research_rigor, ecosystem_leverage, governance_safety, product_readiness, interoperability</td></tr></tbody></table>
+    <h3 style="margin-top:12px">Agent Comparison</h3>
+    <table><thead><tr><th>Agent</th><th>Score</th><th>Reason</th></tr></thead><tbody><tr><td>AnalysisAgent</td><td>0.3288</td><td>selected (score=0.329, complexity=complex): best domain+intent match</td></tr><tr><td>ResearchAgent</td><td>0.2846</td><td>rejected (score=0.285): lower relevance</td></tr><tr><td>DebugAgent</td><td>0.2725</td><td>rejected (score=0.273): lower relevance</td></tr><tr><td>PlannerAgent</td><td>0.2176</td><td>rejected (score=0.218): lower relevance</td></tr><tr><td>AdvisorAgent</td><td>0.2041</td><td>rejected (score=0.204): lower relevance</td></tr><tr><td>SummaryAgent</td><td>0.1956</td><td>rejected (score=0.196): lower relevance</td></tr></tbody></table>
+    <h3 style="margin-top:12px">Research Lab Leaderboard</h3>
+    <table><thead><tr><th>Candidate</th><th>Composite</th><th>Value</th><th>Pass</th><th>Safety</th><th>Pareto</th></tr></thead><tbody><tr><td>enterprise-ops</td><td>0.9379</td><td>82.26</td><td>1.000</td><td>1.000</td><td>yes</td></tr><tr><td>balanced-auto</td><td>0.9276</td><td>79.31</td><td>1.000</td><td>1.000</td><td>yes</td></tr><tr><td>daily-operator</td><td>0.9276</td><td>79.31</td><td>1.000</td><td>1.000</td><td>no</td></tr><tr><td>creative-studio</td><td>0.8313</td><td>80.37</td><td>1.000</td><td>1.000</td><td>yes</td></tr><tr><td>research-rig</td><td>0.7705</td><td>77.28</td><td>1.000</td><td>1.000</td><td>no</td></tr></tbody></table>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Score Provenance</summary>
+    <div class="grid">
+      <article>
+        <h3>Measured Signals</h3>
+        <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody><tr><td>tool_success_rate</td><td>1.0000</td><td>measured_run_execution</td></tr><tr><td>completion_score</td><td>1.0000</td><td>measured_run_completion</td></tr><tr><td>evidence_records</td><td>9</td><td>counted_evidence_bundle</td></tr><tr><td>evidence_citations</td><td>6</td><td>counted_citations</td></tr><tr><td>live_agent_success</td><td>True</td><td>measured_api_run</td></tr></tbody></table>
+      </article>
+      <article>
+        <h3>Internal Heuristics</h3>
+        <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody><tr><td>value_index</td><td>84.6100</td><td>internal_weighted_heuristic</td></tr><tr><td>frontier_score</td><td>0.6587</td><td>internal_bottleneck_aware_heuristic</td></tr><tr><td>archetype_gap</td><td>0.1348</td><td>built_in_archetype_comparison</td></tr></tbody></table>
+        <ul><li>Value index, frontier score, and archetype gap are internal heuristics, not public benchmark results.</li><li>Archetype comparison uses built-in baseline vectors and should not be presented as a measured win over external repositories.</li></ul>
+      </article>
+    </div>
   </details>
   <details style="margin-top:12px">
     <summary>Mission Pack JSON</summary>
@@ -239,37 +300,41 @@ Execution Backbone:
       &quot;description&quot;: &quot;One-page business recommendation with tradeoffs and target wedge.&quot;,
       &quot;audience&quot;: &quot;executive sponsor&quot;,
       &quot;status&quot;: &quot;ready&quot;,
-      &quot;evidence_hint&quot;: &quot;&quot;
+      &quot;evidence_hint&quot;: &quot;**Executive Memo: 90-Day Launch Plan for Regulated AI Customer-Support Copilot** --- ### **Decision** Proceed with a pha&quot;,
+      &quot;live_backed&quot;: true
     },
     {
       &quot;title&quot;: &quot;Execution Playbook&quot;,
       &quot;description&quot;: &quot;Phased rollout with operators, checkpoints, and fallback path.&quot;,
       &quot;audience&quot;: &quot;product and operations&quot;,
       &quot;status&quot;: &quot;ready&quot;,
-      &quot;evidence_hint&quot;: &quot;5 execution steps&quot;
+      &quot;evidence_hint&quot;: &quot;10 execution steps&quot;,
+      &quot;live_backed&quot;: true
     },
     {
       &quot;title&quot;: &quot;Evidence Packet&quot;,
       &quot;description&quot;: &quot;Citations, policy references, and runtime signals behind the claim.&quot;,
       &quot;audience&quot;: &quot;risk and procurement&quot;,
       &quot;status&quot;: &quot;ready&quot;,
-      &quot;evidence_hint&quot;: &quot;9 records / 6 citations&quot;
+      &quot;evidence_hint&quot;: &quot;9 records / 6 citations&quot;,
+      &quot;live_backed&quot;: true
     },
     {
       &quot;title&quot;: &quot;Interop Export&quot;,
       &quot;description&quot;: &quot;External skill-compatible bundle for downstream ecosystems.&quot;,
       &quot;audience&quot;: &quot;platform team&quot;,
       &quot;status&quot;: &quot;ready&quot;,
-      &quot;evidence_hint&quot;: &quot;OpenAI + Anthropic exportable&quot;
+      &quot;evidence_hint&quot;: &quot;&quot;,
+      &quot;live_backed&quot;: true
     }
   ],
   &quot;review_questions&quot;: [
     &quot;Is the chosen wedge narrow enough to execute and large enough to matter?&quot;,
     &quot;Which release gate blocks expansion first?&quot;,
     &quot;What evidence is still missing for executive sign-off?&quot;,
-    &quot;all_quality_gates_passed&quot;,
-    &quot;Does the evidence packet support expansion beyond regulated_copilot_launch?&quot;,
-    &quot;Is AnalysisAgent still the right owner if constraints tighten?&quot;
+    &quot;What evidence would invalidate the current strategy mission pack recommendation?&quot;,
+    &quot;Which deliverable is ready for stakeholder review today?&quot;,
+    &quot;Which benchmark family is the right proof target for this mission?&quot;
   ],
   &quot;execution_tracks&quot;: [
     {
@@ -295,7 +360,7 @@ Execution Backbone:
       &quot;strength&quot;: &quot;Good match for evidence-backed multi-step reasoning.&quot;,
       &quot;gap&quot;: &quot;Needs stronger open-web retrieval verification.&quot;,
       &quot;current_status&quot;: &quot;mapped&quot;,
-      &quot;current_signal&quot;: &quot;release-gated with evidence&quot;
+      &quot;current_signal&quot;: &quot;release-gated with evidence; release=go&quot;
     },
     {
       &quot;name&quot;: &quot;TAU-bench&quot;,
@@ -303,7 +368,7 @@ Execution Backbone:
       &quot;strength&quot;: &quot;Strong fit for enterprise workflow planning and tool orchestration.&quot;,
       &quot;gap&quot;: &quot;Needs deeper real connector coverage.&quot;,
       &quot;current_status&quot;: &quot;mapped&quot;,
-      &quot;current_signal&quot;: &quot;release-gated with evidence&quot;
+      &quot;current_signal&quot;: &quot;release-gated with evidence; release=go&quot;
     },
     {
       &quot;name&quot;: &quot;TheAgentCompany&quot;,
@@ -311,7 +376,7 @@ Execution Backbone:
       &quot;strength&quot;: &quot;Good fit for knowledge-work packaging and operating decisions.&quot;,
       &quot;gap&quot;: &quot;Needs richer long-horizon workplace state.&quot;,
       &quot;current_status&quot;: &quot;mapped&quot;,
-      &quot;current_signal&quot;: &quot;release-gated with evidence&quot;
+      &quot;current_signal&quot;: &quot;release-gated with evidence; release=go&quot;
     }
   ],
   &quot;evidence_snapshot&quot;: {
@@ -322,22 +387,290 @@ Execution Backbone:
       &quot;internal://fintech/audit-readiness-checklist&quot;,
       &quot;internal://cross/evidence-packet-template&quot;,
       &quot;https://owasp.org/www-project-top-10-for-large-language-model-applications/&quot;,
-      &quot;https://modelcontextprotocol.io/specification/2025-06-18/architecture/index&quot;,
+      &quot;https://github.com/sierra-research/tau-bench&quot;,
       &quot;https://www.nist.gov/itl/ai-risk-management-framework&quot;
     ]
+  },
+  &quot;runtime_state&quot;: {
+    &quot;completed&quot;: true,
+    &quot;selected_agent&quot;: &quot;AnalysisAgent&quot;,
+    &quot;selected_skills&quot;: [
+      &quot;research_brief&quot;,
+      &quot;build_timeline&quot;
+    ],
+    &quot;recipe&quot;: {
+      &quot;name&quot;: &quot;risk-radar&quot;,
+      &quot;executed_steps&quot;: 4,
+      &quot;total_steps&quot;: 5
+    },
+    &quot;value_index&quot;: 84.61,
+    &quot;band&quot;: &quot;gold&quot;,
+    &quot;mode&quot;: &quot;deep&quot;,
+    &quot;risk_level&quot;: &quot;critical&quot;
   },
   &quot;decision&quot;: {
     &quot;status&quot;: &quot;go&quot;,
     &quot;reason&quot;: &quot;all_quality_gates_passed&quot;,
-    &quot;selected_candidate&quot;: &quot;balanced-auto&quot;,
-    &quot;value_index&quot;: 86.36
+    &quot;selected_candidate&quot;: &quot;enterprise-ops&quot;,
+    &quot;value_index&quot;: 84.61
   },
-  &quot;honest_boundary&quot;: &quot;Current strength is evidence-backed planning, governance framing, and packaged delivery. It is not yet a leaderboard winner on web navigation or code-fix benchmarks because the repo still lacks full browser-actuation loops and code-task specific execution traces.&quot;
+  &quot;honest_boundary&quot;: &quot;Current strength is evidence-backed planning, governance framing, and packaged delivery. It is not yet a leaderboard winner on web navigation or code-fix benchmarks because the repo still lacks full browser-actuation loops and code-task specific execution traces.&quot;,
+  &quot;task_graph&quot;: {
+    &quot;schema&quot;: &quot;agent-harness-executable-task-graph/v1&quot;,
+    &quot;graph_id&quot;: &quot;strategy_pack-release-graph&quot;,
+    &quot;mission_type&quot;: &quot;strategy_pack_release&quot;,
+    &quot;query&quot;: &quot;Design a 90-day launch plan for a regulated AI customer-support copilot at a fintech, balancing growth targets, auditability, human override policy, and research credibility.&quot;,
+    &quot;nodes&quot;: [
+      {
+        &quot;node_id&quot;: &quot;frame_release&quot;,
+        &quot;title&quot;: &quot;Frame release narrative and scenario boundary&quot;,
+        &quot;node_type&quot;: &quot;framing&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;depends_on&quot;: [],
+        &quot;commands&quot;: [],
+        &quot;notes&quot;: [
+          &quot;scenario=regulated_copilot_launch&quot;,
+          &quot;theme=Launching a regulated AI customer-support copilot with revenue pressure, auditability, and research credibility held in one operating model.&quot;,
+          &quot;headline=90-Day Launch Plan for a Regulated AI Support Copilot&quot;
+        ],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;release_context&quot;,
+            &quot;label&quot;: &quot;Release framing&quot;,
+            &quot;status&quot;: &quot;completed&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;90-Day Launch Plan for a Regulated AI Support Copilot&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;phase_count&quot;: 3
+        }
+      },
+      {
+        &quot;node_id&quot;: &quot;collect_evidence&quot;,
+        &quot;title&quot;: &quot;Collect release-grade evidence bundle&quot;,
+        &quot;node_type&quot;: &quot;evidence&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;depends_on&quot;: [
+          &quot;frame_release&quot;
+        ],
+        &quot;commands&quot;: [],
+        &quot;notes&quot;: [
+          &quot;records=9&quot;,
+          &quot;citations=6&quot;
+        ],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;evidence_packet&quot;,
+            &quot;label&quot;: &quot;Evidence bundle&quot;,
+            &quot;status&quot;: &quot;completed&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;9 records / 6 citations&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;record_count&quot;: 9,
+          &quot;citation_count&quot;: 6
+        }
+      },
+      {
+        &quot;node_id&quot;: &quot;orchestrate_tracks&quot;,
+        &quot;title&quot;: &quot;Orchestrate multi-track execution&quot;,
+        &quot;node_type&quot;: &quot;execution_plan&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;depends_on&quot;: [
+          &quot;frame_release&quot;
+        ],
+        &quot;commands&quot;: [
+          &quot;understand goal, constraints, and desired end state&quot;,
+          &quot;collect external resources because external evidence is missing for this task&quot;,
+          &quot;build evidence dossier because normalize the retrieved evidence into reviewable records&quot;,
+          &quot;evaluate risk and governance because risk/governance state is required before execution closes&quot;
+        ],
+        &quot;notes&quot;: [
+          &quot;Phase 1 - Scope And Control Setup: Limit the first release to one support motion with stable documentation and bounded risk., Define override ownership, escalation path, and audit log schema before model exposure grows.&quot;,
+          &quot;Phase 2 - Pilot And Evidence Collection: Run the copilot in shadow or assisted mode with sampled human review., Track response quality, override frequency, and policy exceptions in one operating dashboard.&quot;,
+          &quot;Phase 3 - Controlled Expansion: Open the copilot to more queues only after gates pass on quality, safety, and operator adoption., Separate fast rollback levers from growth levers so expansion does not compromise containment.&quot;
+        ],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;execution_tracks&quot;,
+            &quot;label&quot;: &quot;Execution tracks&quot;,
+            &quot;status&quot;: &quot;completed&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;3 tracks prepared&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;track_count&quot;: 3,
+          &quot;plan_steps&quot;: 10
+        }
+      },
+      {
+        &quot;node_id&quot;: &quot;package_release&quot;,
+        &quot;title&quot;: &quot;Package release deliverables&quot;,
+        &quot;node_type&quot;: &quot;packaging&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;depends_on&quot;: [
+          &quot;collect_evidence&quot;,
+          &quot;orchestrate_tracks&quot;
+        ],
+        &quot;commands&quot;: [],
+        &quot;notes&quot;: [],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;deliverable&quot;,
+            &quot;label&quot;: &quot;Decision Memo&quot;,
+            &quot;status&quot;: &quot;ready&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;One-page business recommendation with tradeoffs and target wedge.&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;deliverable&quot;,
+            &quot;label&quot;: &quot;Execution Playbook&quot;,
+            &quot;status&quot;: &quot;ready&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;Phased rollout with operators, checkpoints, and fallback path.&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;deliverable&quot;,
+            &quot;label&quot;: &quot;Evidence Packet&quot;,
+            &quot;status&quot;: &quot;ready&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;Citations, policy references, and runtime signals behind the claim.&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;deliverable&quot;,
+            &quot;label&quot;: &quot;Interop Export&quot;,
+            &quot;status&quot;: &quot;ready&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;External skill-compatible bundle for downstream ecosystems.&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;deliverable_count&quot;: 4
+        }
+      },
+      {
+        &quot;node_id&quot;: &quot;evaluate_benchmarks&quot;,
+        &quot;title&quot;: &quot;Evaluate benchmark positioning and release gate&quot;,
+        &quot;node_type&quot;: &quot;evaluation&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;depends_on&quot;: [
+          &quot;package_release&quot;
+        ],
+        &quot;commands&quot;: [],
+        &quot;notes&quot;: [
+          &quot;release-gated with evidence; release=go&quot;,
+          &quot;release-gated with evidence; release=go&quot;,
+          &quot;release-gated with evidence; release=go&quot;
+        ],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;benchmark_target&quot;,
+            &quot;label&quot;: &quot;GAIA&quot;,
+            &quot;status&quot;: &quot;mapped&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;release-gated with evidence; release=go&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;benchmark_target&quot;,
+            &quot;label&quot;: &quot;TAU-bench&quot;,
+            &quot;status&quot;: &quot;mapped&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;release-gated with evidence; release=go&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;benchmark_target&quot;,
+            &quot;label&quot;: &quot;TheAgentCompany&quot;,
+            &quot;status&quot;: &quot;mapped&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;release-gated with evidence; release=go&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;benchmark_targets&quot;: 3
+        }
+      },
+      {
+        &quot;node_id&quot;: &quot;release_decision&quot;,
+        &quot;title&quot;: &quot;Finalize promotion or block decision&quot;,
+        &quot;node_type&quot;: &quot;review&quot;,
+        &quot;status&quot;: &quot;ready&quot;,
+        &quot;depends_on&quot;: [
+          &quot;evaluate_benchmarks&quot;
+        ],
+        &quot;commands&quot;: [],
+        &quot;notes&quot;: [
+          &quot;decision=go&quot;,
+          &quot;reason=all_quality_gates_passed&quot;
+        ],
+        &quot;artifacts&quot;: [
+          {
+            &quot;kind&quot;: &quot;release_decision&quot;,
+            &quot;label&quot;: &quot;Release decision&quot;,
+            &quot;status&quot;: &quot;ready&quot;,
+            &quot;path&quot;: &quot;&quot;,
+            &quot;summary&quot;: &quot;go: all_quality_gates_passed&quot;
+          }
+        ],
+        &quot;metrics&quot;: {
+          &quot;phases&quot;: 3
+        }
+      }
+    ],
+    &quot;edges&quot;: [
+      {
+        &quot;from&quot;: &quot;frame_release&quot;,
+        &quot;to&quot;: &quot;collect_evidence&quot;
+      },
+      {
+        &quot;from&quot;: &quot;frame_release&quot;,
+        &quot;to&quot;: &quot;orchestrate_tracks&quot;
+      },
+      {
+        &quot;from&quot;: &quot;collect_evidence&quot;,
+        &quot;to&quot;: &quot;package_release&quot;
+      },
+      {
+        &quot;from&quot;: &quot;orchestrate_tracks&quot;,
+        &quot;to&quot;: &quot;package_release&quot;
+      },
+      {
+        &quot;from&quot;: &quot;package_release&quot;,
+        &quot;to&quot;: &quot;evaluate_benchmarks&quot;
+      },
+      {
+        &quot;from&quot;: &quot;evaluate_benchmarks&quot;,
+        &quot;to&quot;: &quot;release_decision&quot;
+      }
+    ],
+    &quot;summary&quot;: {
+      &quot;node_count&quot;: 6,
+      &quot;completed_nodes&quot;: 5,
+      &quot;completion_ratio&quot;: 0.8333,
+      &quot;runnable_nodes&quot;: [
+        &quot;release_decision&quot;
+      ],
+      &quot;critical_path&quot;: [
+        &quot;frame_release&quot;,
+        &quot;collect_evidence&quot;,
+        &quot;package_release&quot;,
+        &quot;evaluate_benchmarks&quot;,
+        &quot;release_decision&quot;
+      ]
+    }
+  },
+  &quot;release_context&quot;: {
+    &quot;scenario_name&quot;: &quot;regulated_copilot_launch&quot;,
+    &quot;theme&quot;: &quot;Launching a regulated AI customer-support copilot with revenue pressure, auditability, and research credibility held in one operating model.&quot;,
+    &quot;headline&quot;: &quot;90-Day Launch Plan for a Regulated AI Support Copilot&quot;
+  }
 }</pre>
   </details>
   <details style="margin-top:12px">
     <summary>Internal Skills And Tools</summary>
-    <table><thead><tr><th>Type</th><th>Name</th><th>Purpose</th></tr></thead><tbody><tr><td>Skill</td><td>build_timeline</td><td>timeline planning</td></tr><tr><td>Skill</td><td>risk_heatmap</td><td>risk heatmap</td></tr><tr><td>Skill</td><td>synthesize_perspectives</td><td>perspective synthesis</td></tr><tr><td>Discovery</td><td>api_skill_portfolio_optimizer</td><td>intent_match:research,planning, mode_boost:deep_analysis</td></tr><tr><td>Discovery</td><td>code_experiment_design</td><td>intent_match:research,design, token_overlap:design,research</td></tr><tr><td>Discovery</td><td>external_resource_hub</td><td>intent_match:research,design</td></tr><tr><td>Discovery</td><td>evidence_dossier_builder</td><td>intent_match:research,planning</td></tr><tr><td>Discovery</td><td>policy_risk_matrix</td><td>intent_match:risk, token_overlap:policy</td></tr><tr><td>Executed Tool</td><td>api_market_discover</td><td>api market discover</td></tr><tr><td>Executed Tool</td><td>evidence_dossier_builder</td><td>evidence dossier builder</td></tr><tr><td>Executed Tool</td><td>policy_risk_matrix</td><td>policy risk matrix</td></tr><tr><td>Executed Tool</td><td>api_skill_dependency_graph</td><td>dependency graph</td></tr></tbody></table>
+    <table><thead><tr><th>Type</th><th>Name</th><th>Purpose</th></tr></thead><tbody><tr><td>Skill</td><td>research_brief</td><td>research brief</td></tr><tr><td>Skill</td><td>build_timeline</td><td>timeline planning</td></tr><tr><td>Discovery</td><td>api_skill_portfolio_optimizer</td><td>intent_match:research,planning, mode_boost:deep_analysis</td></tr><tr><td>Discovery</td><td>code_experiment_design</td><td>intent_match:research,design, token_overlap:design,research</td></tr><tr><td>Discovery</td><td>task_graph_builder</td><td>intent_match:planning,design, token_overlap:design</td></tr><tr><td>Discovery</td><td>external_resource_hub</td><td>intent_match:research,design</td></tr><tr><td>Discovery</td><td>evidence_dossier_builder</td><td>intent_match:research,planning</td></tr><tr><td>Executed Tool</td><td>api_market_discover</td><td>api market discover</td></tr><tr><td>Executed Tool</td><td>evidence_dossier_builder</td><td>evidence dossier builder</td></tr><tr><td>Executed Tool</td><td>policy_risk_matrix</td><td>policy risk matrix</td></tr><tr><td>Executed Tool</td><td>api_skill_dependency_graph</td><td>dependency graph</td></tr></tbody></table>
   </details>
   <details style="margin-top:12px">
     <summary>Trace Snapshot</summary>
@@ -347,7 +680,7 @@ Query
   -&gt; Agent Candidates: AnalysisAgent, ResearchAgent, DebugAgent, PlannerAgent, AdvisorAgent, SummaryAgent
   -&gt; Selected Agent: AnalysisAgent
   -&gt; Skill Candidates: identify_risks, compare_options, extract_facts, detect_anomalies, validate_claims, synthesize_perspectives, build_timeline, executive_summary
-  -&gt; Selected Skills: build_timeline, risk_heatmap, synthesize_perspectives
+  -&gt; Selected Skills: research_brief, build_timeline
 
 Skill Matrix
 ========================================
@@ -360,25 +693,24 @@ extract_facts &lt;-&gt; validate_claims: 0.810
 extract_facts &lt;-&gt; synthesize_perspectives: 0.810
 extract_facts &lt;-&gt; build_timeline: 0.810
 extract_facts &lt;-&gt; executive_summary: 0.810
-extract_facts &lt;-&gt; dependency_mapper: 0.810
-detect_anomalies &lt;-&gt; validate_claims: 0.810
-synthesize_perspectives &lt;-&gt; brainstorm_ideas: 0.810
+extract_facts &lt;-&gt; artifact_synthesis: 0.810
+extract_facts &lt;-&gt; codebase_triage: 0.810
+extract_facts &lt;-&gt; research_brief: 0.810
 
 Execution Gantt
 ========================================
+research_brief         |####################|     0.3ms
 build_timeline         |#-------------------|     0.0ms
-risk_heatmap           |####################|     1.2ms
-synthesize_perspectives |#-------------------|     0.0ms
 
 Confidence Breakdown
 ========================================
-routing_confidence              1.00  |####################|
-portfolio_confidence            0.33  |#######-------------|
+routing_confidence              0.69  |##############------|
+portfolio_confidence            0.54  |###########---------|
 evidence_confidence             1.00  |####################|
 consistency_confidence          1.00  |####################|
-verification_confidence         0.60  |############--------|
+verification_confidence         1.00  |####################|
 calibration_adjusted_confidence  0.96  |###################-|
-robustness_confidence           0.26  |#####---------------|
+robustness_confidence           0.10  |##------------------|
 
 Robustness Profile
 ========================================
@@ -386,10 +718,10 @@ enabled: True
 risk_aversion: 0.750
 reliability_floor: 0.675
 uncertainty_tolerance: 0.415
-robust_expected_utility: 0.609
-robust_worst_case_utility: 0.324
+robust_expected_utility: 0.391
+robust_worst_case_utility: 0.133
 avg_uncertainty: 0.210</pre>
   </details>
 </section>
-<section class="card"><small>Generated at 2026-04-02T17:13:39.103475+00:00 | schema agent-harness-studio/v1 | query Design a 90-day launch plan for a regulated AI customer-support copilot at a fintech, balancing growth targets, auditability, human override policy, and research credibility.</small></section>
+<section class="card"><small>Generated at 2026-04-04T11:10:48.216746+00:00 | schema agent-harness-studio/v1 | query Design a 90-day launch plan for a regulated AI customer-support copilot at a fintech, balancing growth targets, auditability, human override policy, and research credibility.</small></section>
 </div></body></html>

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib import error
 
 from app.demo import PRESS_DEMO_QUERY
+from app.harness import HarnessConstraints
 from app.harness.engine import HarnessEngine
 from app.studio.flagship import FLAGSHIP_ONE_LINER, StudioShowcaseBuilder
 
@@ -79,8 +81,10 @@ def test_write_showcase_with_interop_bundle(tmp_path: Path) -> None:
 
     json_path = Path(paths["json"])
     html_path = Path(paths["html"])
+    deliverable_path = Path(paths["deliverable"])
     assert json_path.exists()
     assert html_path.exists()
+    assert deliverable_path.exists()
 
     interop = paths.get("interop", {})
     assert isinstance(interop, dict)
@@ -88,18 +92,16 @@ def test_write_showcase_with_interop_bundle(tmp_path: Path) -> None:
 
     written = json.loads(json_path.read_text(encoding="utf-8"))
     assert "catalog" not in written.get("interop", {})
+    assert written.get("handoff", {}).get("primary_artifact", {}).get("path", "").endswith(".md")
     html_content = html_path.read_text(encoding="utf-8")
     assert "Agent Harness Studio" in html_content
     assert "Primary Deliverable" in html_content
-    assert "Case Study And Runtime" in html_content
-    assert "Artifact Explorer" in html_content
+    assert "Evidence And Runtime" in html_content
     assert "Deliverable Package" in html_content
-    assert "Three-Phase Rollout" in html_content
-    assert "Benchmark Fit" in html_content
-    assert "Agent Comparison" in html_content
-    assert "Score Provenance" in html_content
+    assert "Openable Files" in html_content
     assert "Appendix" in html_content
-    assert "Generated Business Brief" in html_content
+    assert "Primary Deliverable Raw Text" in html_content
+    assert "Research Lab Leaderboard" in html_content
 
 
 def test_fintech_demo_query_maps_to_regulated_scenario_with_evidence() -> None:
@@ -121,3 +123,83 @@ def test_fintech_demo_query_maps_to_regulated_scenario_with_evidence() -> None:
     assert payload["mission"]["name"] == "strategy_pack"
     assert payload["harness"]["run_summary"]["evidence"]["record_count"] >= 1
     assert payload["mission"].get("task_graph", {}).get("nodes")
+
+
+def test_enterprise_query_maps_to_enterprise_rollout_scenario() -> None:
+    builder = StudioShowcaseBuilder(harness=HarnessEngine())
+    payload = builder.build_showcase(
+        query="Create an enterprise workflow platform rollout and deployment plan for an internal AI operating layer with security checkpoints and business operations adoption.",
+        mode="deep",
+        lab_preset="daily",
+        lab_repeats=1,
+        scenario_ids=["enterprise-001"],
+        include_marketplace=False,
+        include_external=False,
+        include_harness_tools=False,
+        include_interop_catalog=False,
+    )
+
+    assert payload["scenario"]["name"] == "enterprise_ai_rollout"
+    assert payload["proposal"]["headline"] == "Enterprise AI Operating Layer Rollout Plan"
+
+
+def test_research_query_maps_to_research_ops_scenario() -> None:
+    builder = StudioShowcaseBuilder(harness=HarnessEngine())
+    payload = builder.build_showcase(
+        query="Build an applied research lab operating plan with benchmark experiments, paper-grade evidence, and release promotion criteria.",
+        mode="deep",
+        lab_preset="research",
+        lab_repeats=1,
+        scenario_ids=["research-001"],
+        include_marketplace=False,
+        include_external=False,
+        include_harness_tools=False,
+        include_interop_catalog=False,
+    )
+
+    assert payload["scenario"]["name"] == "research_ops_platform"
+    assert payload["proposal"]["headline"] == "Applied Research Delivery Operating Plan"
+
+
+def test_research_improvement_report_prefers_research_scenario() -> None:
+    builder = StudioShowcaseBuilder(harness=HarnessEngine())
+    payload = builder.build_showcase(
+        query="Generate a deep research and improvement report for agent-harness as an applied research platform, covering benchmark strategy, evidence standards, system gaps, and a 12-week upgrade roadmap.",
+        mode="deep",
+        lab_preset="research",
+        lab_repeats=1,
+        scenario_ids=["research-001"],
+        include_marketplace=False,
+        include_external=False,
+        include_harness_tools=False,
+        include_interop_catalog=False,
+    )
+
+    assert payload["scenario"]["name"] == "research_ops_platform"
+
+
+def test_live_showcase_sanitizes_endpoint_details(monkeypatch) -> None:
+    builder = StudioShowcaseBuilder(harness=HarnessEngine())
+
+    def fake_urlopen(req, timeout=0):  # type: ignore[no-untyped-def]
+        raise error.URLError("temporary ssl eof")
+
+    monkeypatch.setattr("app.harness.live_agent.request.urlopen", fake_urlopen)
+
+    payload = builder.build_showcase(
+        query="Create a launch plan with live model refinement.",
+        mode="deep",
+        lab_preset="daily",
+        lab_repeats=1,
+        scenario_ids=["daily-001"],
+        include_marketplace=False,
+        include_external=False,
+        include_harness_tools=False,
+        include_interop_catalog=False,
+        constraints=HarnessConstraints(enable_live_agent=True, max_live_agent_calls=4),
+        live_model={"base_url": "https://example.com/v1", "api_key": "secret", "model_name": "demo-model"},
+    )
+
+    serialized = json.dumps(payload, ensure_ascii=False)
+    assert "example.com" not in serialized
+    assert "/chat/completions" not in serialized

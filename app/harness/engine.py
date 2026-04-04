@@ -884,6 +884,7 @@ class HarnessEngine:
             plan=plan,
             steps=[self._step_to_dict(item) for item in steps],
             discovery=discovery_trace,
+            evidence=evidence_summary,
             max_calls=max(0, int(constraints.max_live_agent_calls)),
             temperature=constraints.live_agent_temperature,
             live_model_overrides=live_overrides,

@@ -73,6 +73,7 @@ class LiveStrategyRegistry:
         text = query.lower().strip()
         rule_map = [
             ("redteam_mirror", r"(jailbreak|prompt injection|exploit|attack|adversarial)"),
+            ("research_analyst", r"(deep research|research report|benchmark|gap analysis|comparative analysis|literature|survey|investigate|improvement report)"),
             ("risk_sentinel", r"(risk|audit|compliance|policy|governance|security|control)"),
             ("decision_theater", r"(launch|rollout|strategy|operating plan|board|decision|tradeoff|option|priorit)"),
             ("systems_architect", r"(architecture|blueprint|system design|refactor|roadmap|migration|integration)"),
@@ -92,6 +93,29 @@ class LiveStrategyRegistry:
     @staticmethod
     def _defaults() -> list[LiveStrategyProfile]:
         return [
+            LiveStrategyProfile(
+                name="research_analyst",
+                title="Research Analyst",
+                summary="Long-form research and gap-analysis strategy for deep reports, benchmarks, and improvement studies.",
+                analysis_system=(
+                    "You are a principal research analyst. Return JSON only with keys: thesis, key_questions, findings, "
+                    "competitor_map, system_gaps, benchmark_targets, evidence_needs, improvement_roadmap."
+                ),
+                synthesis_system=(
+                    "Write a deep research deliverable between 900 and 1600 words. "
+                    "If the task asks for a memo, brief, or report, follow that requested surface instead of forcing a generic template. "
+                    "When no document shape is requested, default to sections such as Executive Summary, Current System Assessment, Comparative Analysis, "
+                    "Failure Modes, High-Leverage Improvements, Benchmark Plan, and Open Questions. "
+                    "Be concrete, comparative, technically specific, and explicit about evidence limits."
+                ),
+                critique_system=(
+                    "Act as a harsh research review committee. Return JSON only with keys: confidence, blind_spots, "
+                    "red_flags, improve, missing_controls, benchmark_gaps."
+                ),
+                temperature_bias=0.01,
+                max_tokens_bias=320,
+                tags=["research", "benchmark", "report"],
+            ),
             LiveStrategyProfile(
                 name="balanced_orchestrator",
                 title="Balanced Orchestrator",

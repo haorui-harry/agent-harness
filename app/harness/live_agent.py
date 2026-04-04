@@ -15,6 +15,33 @@ from urllib import error, request
 from app.harness.live_strategy import LiveStrategyProfile, LiveStrategyRegistry
 
 
+def _redact_endpoint_text(value: object) -> str:
+    text = str(value or "")
+    if not text:
+        return ""
+    text = re.sub(r"https?://[^\s|)]+", "<redacted-endpoint>", text)
+    text = re.sub(r"<redacted-endpoint>(?:/v\d+)?/chat/completions", "<redacted-endpoint>", text)
+    return text
+
+
+def _sanitize_transport_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    cleaned: dict[str, Any] = {}
+    for key, value in payload.items():
+        if key == "endpoint":
+            continue
+        if key == "retry_errors" and isinstance(value, list):
+            cleaned[key] = [_redact_endpoint_text(item) for item in value]
+            continue
+        if isinstance(value, str):
+            cleaned[key] = _redact_endpoint_text(value)
+            continue
+        if isinstance(value, list):
+            cleaned[key] = [_redact_endpoint_text(item) if isinstance(item, str) else item for item in value]
+            continue
+        cleaned[key] = value
+    return cleaned
+
+
 @dataclass
 class LiveModelConfig:
     """Runtime configuration for OpenAI-compatible model endpoints."""
@@ -169,15 +196,17 @@ class LiveAgentResult:
             "calls_used": self.calls_used,
             "call_budget": self.call_budget,
             "model": self.model,
-            "base_url": self.base_url,
             "success": self.success,
             "latency_ms": round(self.latency_ms, 2),
             "analysis": self.analysis,
             "critique": self.critique,
             "strategy": self.strategy,
-            "transport": self.transport,
+            "transport": {
+                key: _sanitize_transport_payload(value) if isinstance(value, dict) else value
+                for key, value in self.transport.items()
+            },
             "notes": self.notes,
-            "errors": self.errors,
+            "errors": [_redact_endpoint_text(item) for item in self.errors],
         }
 
 
@@ -236,14 +265,13 @@ class LiveModelGateway:
                         "usage": parsed.get("usage", {}),
                         "attempts": attempt,
                         "retries": max(0, attempt - 1),
-                        "endpoint": endpoint,
                     }
                     if retry_errors:
-                        meta["retry_errors"] = list(retry_errors)
+                        meta["retry_errors"] = [_redact_endpoint_text(item) for item in retry_errors]
                     return content, meta
                 except error.HTTPError as exc:
                     text = exc.read().decode("utf-8", errors="replace")
-                    descriptor = f"http_error:{exc.code}:{endpoint}:{text[:500]}"
+                    descriptor = f"http_error:{exc.code}:{_redact_endpoint_text(text[:500])}"
                     if endpoint_index < len(endpoints) - 1:
                         retry_errors.append(descriptor)
                         continue
@@ -253,7 +281,7 @@ class LiveModelGateway:
                         continue
                     raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
                 except (error.URLError, TimeoutError, socket.timeout, ssl.SSLError, OSError) as exc:
-                    descriptor = f"{self._format_network_error(exc)}:{endpoint}"
+                    descriptor = self._format_network_error(exc)
                     if endpoint_index < len(endpoints) - 1:
                         retry_errors.append(descriptor)
                         continue
@@ -263,13 +291,13 @@ class LiveModelGateway:
                         continue
                     raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
                 except json.JSONDecodeError as exc:
-                    descriptor = f"json_decode_error:{endpoint}:{str(exc)}"
+                    descriptor = f"json_decode_error:{str(exc)}"
                     if endpoint_index < len(endpoints) - 1:
                         retry_errors.append(descriptor)
                         continue
                     raise RuntimeError(self._finalize_error(descriptor, retry_errors, attempt)) from exc
                 except Exception as exc:  # pragma: no cover - defensive
-                    descriptor = f"live_gateway_error:{endpoint}:{exc}"
+                    descriptor = f"live_gateway_error:{_redact_endpoint_text(exc)}"
                     if endpoint_index < len(endpoints) - 1:
                         retry_errors.append(descriptor)
                         continue
@@ -397,11 +425,13 @@ class LiveAgentOrchestrator:
         plan: list[str],
         steps: list[dict[str, Any]],
         discovery: list[dict[str, Any]],
+        evidence: dict[str, Any] | None = None,
         max_calls: int = 8,
         temperature: float = 0.15,
         live_model_overrides: dict[str, Any] | None = None,
         strategy: str = "",
         champion: dict[str, Any] | None = None,
+        surface_guidance: str = "",
     ) -> LiveAgentResult:
         config = LiveModelConfig.resolve(live_model_overrides)
         profile, source, reason = self.strategies.resolve(
@@ -434,7 +464,16 @@ class LiveAgentOrchestrator:
         start = time.time()
         try:
             analysis_text, analysis_meta = gateway.chat(
-                messages=self._analysis_messages(query, mode, plan, steps, discovery, profile=profile),
+                messages=self._analysis_messages(
+                    query,
+                    mode,
+                    plan,
+                    steps,
+                    discovery,
+                    evidence or {},
+                    profile=profile,
+                    surface_guidance=surface_guidance,
+                ),
                 budget=budget,
                 temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
                 require_json=True,
@@ -456,7 +495,9 @@ class LiveAgentOrchestrator:
                         plan,
                         steps,
                         result.analysis,
+                        evidence or {},
                         profile=profile,
+                        surface_guidance=surface_guidance,
                     ),
                     budget=budget,
                     temperature=max(0.0, min(1.5, temperature + profile.temperature_bias)),
@@ -473,7 +514,13 @@ class LiveAgentOrchestrator:
             critique_payload: dict[str, Any] = {}
             if budget.remaining >= 1:
                 critique_text, critique_meta = gateway.chat(
-                    messages=self._critique_messages(query, synth_text, profile=profile),
+                    messages=self._critique_messages(
+                        query,
+                        synth_text,
+                        evidence or {},
+                        profile=profile,
+                        surface_guidance=surface_guidance,
+                    ),
                     budget=budget,
                     temperature=max(0.0, min(1.5, temperature + profile.temperature_bias - 0.05)),
                     require_json=True,
@@ -485,8 +532,32 @@ class LiveAgentOrchestrator:
                 if int(critique_meta.get("retries", 0)) > 0:
                     result.notes.append(f"critique_retries:{critique_meta['retries']}")
 
+            revised_text = synth_text
+            if budget.remaining >= 1:
+                revised_text, revision_meta = gateway.chat(
+                    messages=self._revision_messages(
+                        query=query,
+                        synthesized=synth_text,
+                        analysis=result.analysis,
+                        critique=critique_payload,
+                        evidence=evidence or {},
+                        profile=profile,
+                        surface_guidance=surface_guidance,
+                    ),
+                    budget=budget,
+                    temperature=max(0.0, min(1.5, temperature + profile.temperature_bias - 0.02)),
+                    require_json=False,
+                )
+                result.transport["revision"] = revision_meta
+                if revision_meta.get("finish_reason"):
+                    result.notes.append(f"revision_finish:{revision_meta['finish_reason']}")
+                if int(revision_meta.get("retries", 0)) > 0:
+                    result.notes.append(f"revision_retries:{revision_meta['retries']}")
+            else:
+                result.notes.append("revision_skipped_budget")
+
             result.critique = critique_payload
-            result.enhanced_answer = synth_text.strip() or base_answer
+            result.enhanced_answer = revised_text.strip() or synth_text.strip() or base_answer
             result.success = bool(result.enhanced_answer)
         except Exception as exc:
             result.errors.append(str(exc))
@@ -504,7 +575,9 @@ class LiveAgentOrchestrator:
         plan: list[str],
         steps: list[dict[str, Any]],
         discovery: list[dict[str, Any]],
+        evidence: dict[str, Any],
         profile: LiveStrategyProfile,
+        surface_guidance: str = "",
     ) -> list[dict[str, str]]:
         step_digest = []
         for item in steps[:8]:
@@ -521,11 +594,17 @@ class LiveAgentOrchestrator:
             "plan": plan,
             "step_digest": step_digest,
             "top_discovery": discovery[:6],
+            "evidence_digest": LiveAgentOrchestrator._evidence_digest(evidence),
         }
         return [
             {
                 "role": "system",
-                "content": profile.analysis_system,
+                "content": (
+                    f"{profile.analysis_system} "
+                    "Use the evidence_digest as the boundary of what is actually supported. "
+                    "If the evidence_digest does not contain a quantitative claim, do not infer one. "
+                    + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
+                ),
             },
             {"role": "user", "content": json.dumps(prompt, ensure_ascii=True)},
         ]
@@ -538,7 +617,9 @@ class LiveAgentOrchestrator:
         plan: list[str],
         steps: list[dict[str, Any]],
         analysis: dict[str, Any],
+        evidence: dict[str, Any],
         profile: LiveStrategyProfile,
+        surface_guidance: str = "",
     ) -> list[dict[str, str]]:
         payload = {
             "query": query,
@@ -546,29 +627,109 @@ class LiveAgentOrchestrator:
             "plan": plan,
             "analysis": analysis,
             "tool_steps": steps[:8],
+            "evidence_digest": LiveAgentOrchestrator._evidence_digest(evidence),
             "base_answer": base_answer[:6000],
         }
         return [
             {
                 "role": "system",
-                "content": profile.synthesis_system,
+                "content": (
+                    f"{profile.synthesis_system} "
+                    "Use the evidence_digest to ground concrete claims. "
+                    "Prefer specific benchmark names, architectural gaps, and implementation actions over generic phases. "
+                    "When evidence sources are present, end with a short 'Sources' section. "
+                    "Do not invent numbers, benchmark scores, or study results unless they appear in evidence_digest or base_answer. "
+                    "If the evidence is qualitative, write qualitative claims and explicitly state evidence limits. "
+                    + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
+                ),
             },
             {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
         ]
 
     @staticmethod
-    def _critique_messages(query: str, synthesized: str, profile: LiveStrategyProfile) -> list[dict[str, str]]:
+    def _critique_messages(
+        query: str,
+        synthesized: str,
+        evidence: dict[str, Any],
+        profile: LiveStrategyProfile,
+        surface_guidance: str = "",
+    ) -> list[dict[str, str]]:
         payload = {
             "query": query,
             "candidate_answer": synthesized[:5000],
+            "evidence_digest": LiveAgentOrchestrator._evidence_digest(evidence),
         }
         return [
             {
                 "role": "system",
-                "content": profile.critique_system,
+                "content": (
+                    f"{profile.critique_system} "
+                    "Flag unsupported quantitative claims, invented benchmark results, and source references not present in evidence_digest. "
+                    + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
+                ),
             },
             {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
         ]
+
+    @staticmethod
+    def _revision_messages(
+        query: str,
+        synthesized: str,
+        analysis: dict[str, Any],
+        critique: dict[str, Any],
+        evidence: dict[str, Any],
+        profile: LiveStrategyProfile,
+        surface_guidance: str = "",
+    ) -> list[dict[str, str]]:
+        payload = {
+            "query": query,
+            "candidate_answer": synthesized[:9000],
+            "analysis": analysis,
+            "critique": critique,
+            "evidence_digest": LiveAgentOrchestrator._evidence_digest(evidence),
+        }
+        return [
+            {
+                "role": "system",
+                "content": (
+                    f"{profile.synthesis_system} "
+                    "You are revising an existing answer after critique. "
+                    "Fix blind spots, remove generic filler, and make the output materially better than a one-shot answer. "
+                    "Preserve strong sections, but sharpen technical specificity and ground claims in the evidence_digest. "
+                    "If evidence_digest includes sources, include a concise 'Sources' section. "
+                    "Delete any unsupported metrics, counts, or benchmark claims that are not grounded in evidence_digest. "
+                    + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
+                ),
+            },
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+        ]
+
+    @staticmethod
+    def _evidence_digest(evidence: dict[str, Any]) -> dict[str, Any]:
+        records = evidence.get("records", []) if isinstance(evidence.get("records", []), list) else []
+        citations = evidence.get("citations", []) if isinstance(evidence.get("citations", []), list) else []
+        sources = evidence.get("sources", []) if isinstance(evidence.get("sources", []), list) else []
+        digest_rows: list[dict[str, Any]] = []
+        for item in records[:6]:
+            if not isinstance(item, dict):
+                continue
+            digest_rows.append(
+                {
+                    "title": str(item.get("title", "")),
+                    "summary": str(item.get("summary", "")),
+                    "content": str(item.get("content", ""))[:300],
+                    "source_id": str(item.get("source_id", "")),
+                    "url": str(item.get("url", item.get("path", ""))),
+                }
+            )
+        return {
+            "record_count": int(evidence.get("record_count", len(records))) if isinstance(evidence, dict) else len(records),
+            "citation_count": int(evidence.get("citation_count", len(citations))) if isinstance(evidence, dict) else len(citations),
+            "top_records": digest_rows,
+            "source_titles": [str(item.get("title", "")) for item in digest_rows if str(item.get("title", ""))],
+            "citations": [str(item) for item in citations[:8]],
+            "sources": sources[:6],
+        }
 
 
 def _coerce_json(text: str) -> dict[str, Any]:

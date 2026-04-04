@@ -62,7 +62,7 @@ class HarnessReportBuilder:
                 "preflight_findings": security.get("preflight_findings", []),
             },
             "recipe": recipe,
-            "live_agent": live_agent if isinstance(live_agent, dict) else {},
+            "live_agent": self._sanitize_live_agent(live_agent if isinstance(live_agent, dict) else {}),
             "evidence": evidence if isinstance(evidence, dict) else {},
             "top_discovery": top_discovery,
             "steps": step_rows,
@@ -210,3 +210,21 @@ class HarnessReportBuilder:
             ]
         )
         return "\n".join(lines).strip() + "\n"
+
+    @staticmethod
+    def _sanitize_live_agent(payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {}
+        cleaned = dict(payload)
+        cleaned.pop("base_url", None)
+        cleaned.pop("transport", None)
+        strategy = cleaned.get("strategy")
+        analysis = cleaned.get("analysis")
+        critique = cleaned.get("critique")
+        if isinstance(strategy, dict):
+            cleaned["strategy"] = dict(strategy)
+        if isinstance(analysis, dict):
+            cleaned["analysis"] = dict(analysis)
+        if isinstance(critique, dict):
+            cleaned["critique"] = dict(critique)
+        return cleaned

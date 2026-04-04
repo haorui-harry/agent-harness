@@ -344,11 +344,14 @@ class StudioShowcaseBuilder:
         json_path = root / f"studio_showcase_{run_tag}.json"
         html_path = root / f"studio_showcase_{run_tag}.html"
         brief_path = root / f"studio_press_brief_{run_tag}.md"
+        deliverable_path = root / f"studio_deliverable_{run_tag}.md"
         manifest_path = root / f"studio_bundle_manifest_{run_tag}.json"
 
         serialized = json.loads(json.dumps(payload, default=str))
         interop = serialized.get("interop", {})
         catalog = interop.pop("catalog", None) if isinstance(interop, dict) else None
+        serialized["handoff"] = self._handoff_manifest(run_tag=run_tag)
+        deliverable_path.write_text(self.render_primary_deliverable_markdown(serialized), encoding="utf-8")
         json_path.write_text(json.dumps(serialized, indent=2, default=str), encoding="utf-8")
         html_path.write_text(self.render_showcase_html(serialized), encoding="utf-8")
 
@@ -357,6 +360,7 @@ class StudioShowcaseBuilder:
             "json": str(json_path),
             "html": str(html_path),
             "brief": str(brief_path),
+            "deliverable": str(deliverable_path),
             "manifest": str(manifest_path),
         }
         if export_interop:
@@ -605,11 +609,14 @@ class StudioShowcaseBuilder:
             "live_agent_configured": live_configured,
             "live_agent_success": live_success,
             "model": str(live.get("model", "")),
-            "base_url": str(live.get("base_url", "")),
             "calls_used": int(live.get("calls_used", 0)),
             "call_budget": int(live.get("call_budget", 0)),
             "notes": list(live.get("notes", [])) if isinstance(live.get("notes", []), list) else [],
-            "errors": list(live.get("errors", [])) if isinstance(live.get("errors", []), list) else [],
+            "errors": [
+                _sanitize_business_text(item) for item in live.get("errors", [])
+            ]
+            if isinstance(live.get("errors", []), list)
+            else [],
         }
 
     @staticmethod
@@ -953,14 +960,127 @@ class StudioShowcaseBuilder:
             include_harness_tools=bool(config.get("include_harness_tools", True)),
         )
 
+    @staticmethod
+    def _handoff_manifest(run_tag: str) -> dict[str, Any]:
+        return {
+            "primary_artifact": {
+                "label": "Primary Deliverable",
+                "path": f"studio_deliverable_{run_tag}.md",
+                "kind": "deliverable_markdown",
+            },
+            "artifacts": [
+                {"label": "Primary Deliverable", "path": f"studio_deliverable_{run_tag}.md", "kind": "deliverable_markdown"},
+                {"label": "Showcase HTML", "path": f"studio_showcase_{run_tag}.html", "kind": "showcase_html"},
+                {"label": "Showcase JSON", "path": f"studio_showcase_{run_tag}.json", "kind": "showcase_json"},
+                {"label": "Press Brief", "path": f"studio_press_brief_{run_tag}.md", "kind": "press_brief"},
+                {"label": "Bundle Manifest", "path": f"studio_bundle_manifest_{run_tag}.json", "kind": "bundle_manifest"},
+                {"label": "Interop Bundle", "path": f"studio_interop_{run_tag}/index.json", "kind": "interop_bundle"},
+            ],
+        }
+
+    @staticmethod
+    def _primary_output_text(payload: dict[str, Any]) -> str:
+        delivery = payload.get("harness", {}) if isinstance(payload.get("harness", {}), dict) else {}
+        proposal = payload.get("proposal", {}) if isinstance(payload.get("proposal", {}), dict) else {}
+        final_answer = str(delivery.get("final_answer", "")).strip()
+        if final_answer:
+            return final_answer
+        brief = str(delivery.get("delivery_brief_excerpt", "")).strip()
+        if brief:
+            return brief
+        subheadline = str(proposal.get("subheadline", "")).strip()
+        if subheadline:
+            return subheadline
+        return "No primary deliverable content was generated."
+
+    @staticmethod
+    def _preview_text(text: str, limit: int = 3200) -> str:
+        value = str(text or "").strip()
+        if len(value) <= limit:
+            return value
+        cutoff = value[:limit].rstrip()
+        return cutoff + "\n\n[truncated for preview]"
+
+    @staticmethod
+    def _key_lines(text: str, limit: int = 6) -> list[str]:
+        rows: list[str] = []
+        for raw in str(text or "").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            if line.startswith(("#", "-", "*")):
+                cleaned = line.lstrip("#*- ").strip()
+                if cleaned:
+                    rows.append(cleaned)
+            elif ":" in line and len(line) <= 140:
+                rows.append(line)
+            if len(rows) >= limit:
+                break
+        if rows:
+            return rows
+        paragraphs = [chunk.strip() for chunk in str(text or "").split("\n\n") if chunk.strip()]
+        return paragraphs[:limit]
+
+    def render_primary_deliverable_markdown(self, payload: dict[str, Any]) -> str:
+        identity = payload.get("identity", {})
+        query = payload.get("query", {})
+        mission = payload.get("mission", {})
+        story = payload.get("story", {})
+        delivery = payload.get("harness", {}) if isinstance(payload.get("harness", {}), dict) else {}
+        evidence = delivery.get("run_summary", {}).get("evidence", {}) if isinstance(delivery.get("run_summary", {}), dict) else {}
+        handoff = payload.get("handoff", {}) if isinstance(payload.get("handoff", {}), dict) else {}
+        primary_text = self._primary_output_text(payload)
+        artifact_rows = handoff.get("artifacts", []) if isinstance(handoff.get("artifacts", []), list) else []
+        cleaned_primary = str(primary_text).strip()
+        structured_markers = ("#", "## ", "**Executive Summary**", "**Decision**", "**MEMORANDUM**")
+        if cleaned_primary.startswith(structured_markers) or len(cleaned_primary) >= 1600:
+            lines = [cleaned_primary]
+        else:
+            title = str(mission.get("primary_deliverable", "")) or str(payload.get("proposal", {}).get("headline", "")) or "Primary Deliverable"
+            lines = [
+                f"# {title}",
+                "",
+                f"_Generated by {identity.get('name', 'Agent Harness Studio')}_",
+                "",
+                "## Task",
+                "",
+                str(query.get("text", "")),
+                "",
+                "## Context",
+                "",
+                str(story.get("release_need", "")),
+                "",
+                "## Main Deliverable",
+                "",
+                cleaned_primary,
+            ]
+        citations = evidence.get("citations", []) if isinstance(evidence.get("citations", []), list) else []
+        if citations:
+            lines.extend(
+                [
+                    "",
+                    "## Evidence References",
+                    "",
+                    *(f"- {item}" for item in citations[:8]),
+                ]
+            )
+        if artifact_rows:
+            lines.extend(
+                [
+                    "",
+                    "## Openable Files",
+                    "",
+                    *(f"- {item.get('label', '')}: {item.get('path', '')}" for item in artifact_rows),
+                ]
+            )
+        return "\n".join(lines).strip() + "\n"
+
     def render_showcase_html(self, payload: dict[str, Any]) -> str:
         """Render standalone HTML for showcase delivery."""
 
         identity = payload.get("identity", {})
         query = payload.get("query", {})
         mission = payload.get("mission", {})
-        frontier = payload.get("frontier", {})
-        capability = payload.get("capability_vector", {})
         lab = payload.get("lab", {})
         comparison = payload.get("comparison", {})
         score_provenance = payload.get("score_provenance", {})
@@ -973,10 +1093,11 @@ class StudioShowcaseBuilder:
         generation = delivery.get("generation", {}) if isinstance(delivery, dict) else {}
         evidence = delivery.get("run_summary", {}).get("evidence", {}) if isinstance(delivery, dict) else {}
         run_summary = delivery.get("run_summary", {}) if isinstance(delivery, dict) else {}
-        router_quality = payload.get("router", {}).get("analysis", {}).get("quality", {})
-        robust_expected = _safe_float(router_quality.get("robust_expected_utility", 0.0))
-        robust_worst_case = _safe_float(router_quality.get("robust_worst_case_utility", 0.0))
-        avg_uncertainty = _safe_float(router_quality.get("avg_uncertainty", 0.0))
+        handoff = payload.get("handoff", {}) if isinstance(payload.get("handoff", {}), dict) else {}
+        primary_output = self._primary_output_text(payload)
+        primary_preview = self._preview_text(primary_output, limit=3600)
+        primary_points = self._key_lines(primary_output, limit=6)
+        handoff_rows = handoff.get("artifacts", []) if isinstance(handoff.get("artifacts", []), list) else []
         release = lab.get("release_decision", {})
 
         return f"""<!doctype html>
@@ -984,21 +1105,21 @@ class StudioShowcaseBuilder:
 <title>Agent Harness Studio</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap');
-:root{{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.92);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}}
+:root{{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.94);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}}
 *{{box-sizing:border-box}}body{{margin:0;font-family:'IBM Plex Sans','Segoe UI',sans-serif;color:var(--ink);background:
 radial-gradient(circle at 10% 10%, rgba(14,165,166,.30), transparent 28%),
 radial-gradient(circle at 90% 8%, rgba(245,158,11,.20), transparent 24%),
 radial-gradient(circle at 78% 78%, rgba(56,189,248,.18), transparent 28%),
 linear-gradient(135deg,var(--bg),var(--bg2));padding:24px}}
 .wrap{{max-width:1240px;margin:0 auto;display:grid;gap:14px}}
-.hero{{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(7,17,29,.85),rgba(15,53,76,.78));color:#edf7ff;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:28px;box-shadow:var(--shadow)}}
+.hero{{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(7,17,29,.88),rgba(15,53,76,.82));color:#edf7ff;border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:28px;box-shadow:var(--shadow)}}
 .hero:before{{content:'';position:absolute;inset:auto -60px -80px auto;width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,.26),transparent 68%)}} 
 .hero-grid{{display:grid;grid-template-columns:1.35fr .95fr;gap:18px}}@media(max-width:980px){{.hero-grid{{grid-template-columns:1fr}}}}
 .hero h1{{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;font-size:44px;line-height:1.05;margin:0 0 10px}}
-.hero p{{color:rgba(237,247,255,.82);margin:6px 0}}
+.hero p{{color:rgba(237,247,255,.84);margin:6px 0}}
 .hero-panel{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px}}
 .card{{background:var(--card);border:1px solid rgba(255,255,255,.55);border-radius:20px;padding:18px;box-shadow:var(--shadow)}}
-.glass{{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(245,249,252,.84))}}
+.glass{{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(245,249,252,.86))}}
 h2,h3{{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0 0 10px}}p{{margin:5px 0;color:var(--muted)}}ul{{margin:8px 0 0;padding-left:18px}}li{{margin:6px 0}}
 .grid{{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}}@media(max-width:980px){{.grid{{grid-template-columns:1fr}}}}
 .grid3{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}}@media(max-width:980px){{.grid3{{grid-template-columns:1fr}}}}
@@ -1006,75 +1127,72 @@ h2,h3{{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0 0 10px}}p
 .badge{{display:inline-block;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);font-size:12px;margin:0 8px 8px 0;color:#edf7ff}}
 .signal{{padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.55));border:1px solid var(--line)}}
 .signal .label{{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}}.signal .value{{font-size:28px;font-family:'Space Grotesk';margin-top:6px}}
-.metric{{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.72)}}
-.row{{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);margin-bottom:6px}}.bar{{height:8px;background:rgba(13,36,56,.10);border-radius:999px;overflow:hidden}}
-.fill{{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3),var(--accent2))}}
-.phase{{position:relative;padding:16px 16px 16px 18px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.90),rgba(246,250,252,.84));border:1px solid var(--line)}}
-.phase:before{{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:999px;background:linear-gradient(180deg,var(--accent),var(--accent2))}}
 .kicker{{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}}
 table{{width:100%;border-collapse:collapse;font-size:13px}}th,td{{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}}
 pre{{margin:0;font-size:12px;white-space:pre-wrap;background:rgba(6,24,38,.96);color:#e7f7ff;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;max-height:320px;overflow:auto}}
+.report{{white-space:pre-wrap;line-height:1.7;font-size:14px;background:rgba(6,24,38,.96);color:#eef8ff;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;max-height:560px;overflow:auto}}
 details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.7);padding:14px}}summary{{cursor:pointer;font-weight:600}}
 .muted{{color:var(--muted)}}
 </style></head><body><div class="wrap">
 <section class="hero">
   <div class="hero-grid">
     <div>
-      <div class="kicker">Mission Pack Demo</div>
-      <h1>{html.escape(str(mission.get("primary_deliverable", proposal.get("headline", "Flagship AI Product Pack"))))}</h1>
+      <div class="kicker">Task Deliverable Demo</div>
+      <h1>{html.escape(str(mission.get("primary_deliverable", proposal.get("headline", "Agent Deliverable"))))}</h1>
       <p><strong>{html.escape(str(story.get("theme", "")))}</strong></p>
-      <p>{html.escape(str(mission.get("summary", story.get("release_need", ""))))}</p>
+      <p>{html.escape(str(story.get("release_need", "")) or str(mission.get("summary", "")))}</p>
       <div style="margin-top:14px">
         <span class="badge">Release {html.escape(str(release.get("decision", "block"))).upper()}</span>
         <span class="badge">Generation {html.escape(str(generation.get("mode", "baseline"))).upper()}</span>
         <span class="badge">Model {html.escape(str(generation.get("model", "")) or "-")}</span>
-        <span class="badge">Capability Estimate {float(frontier.get("score", 0.0)):.3f}</span>
+        <span class="badge">Primary Artifact {html.escape(str(handoff.get("primary_artifact", {}).get("path", "studio_deliverable.md")))}</span>
       </div>
       <div style="margin-top:14px" class="hero-panel">
-        <div class="kicker">Primary View</div>
-        <p><strong>{html.escape(str(mission.get("title", "Mission Pack")))}</strong></p>
-        <p>{html.escape(str(proposal.get("subheadline", "")))}</p>
+        <div class="kicker">Task</div>
+        <p>{html.escape(str(query.get("text", "")))}</p>
       </div>
     </div>
     <div class="hero-panel">
-      <div class="kicker">Release Decision</div>
-      <div class="signal"><div class="label">Recommendation</div><div class="value">{html.escape(str(proposal.get("decision", {}).get("status", "block"))).upper()}</div><p>{html.escape(str(proposal.get("decision", {}).get("reason", "")))}</p></div>
+      <div class="kicker">What Comes Out</div>
+      <div class="signal"><div class="label">Primary Output</div><div class="value">{html.escape(str(generation.get("mode", "baseline"))).upper()}</div><p>{html.escape(str(proposal.get("subheadline", "")) or str(identity.get("differentiator", "")))}</p></div>
       <div class="grid4" style="margin-top:12px">
-        <div class="signal"><div class="label">Internal Value</div><div class="value">{_safe_float(delivery.get("value_card", {}).get("value_index", 0.0)):.1f}</div></div>
-        <div class="signal"><div class="label">Expected</div><div class="value">{robust_expected:.2f}</div></div>
-        <div class="signal"><div class="label">Worst Case</div><div class="value">{robust_worst_case:.2f}</div></div>
-        <div class="signal"><div class="label">Uncertainty</div><div class="value">{avg_uncertainty:.2f}</div></div>
+        <div class="signal"><div class="label">Files</div><div class="value">{len(handoff_rows)}</div></div>
+        <div class="signal"><div class="label">Citations</div><div class="value">{int(evidence.get("citation_count", 0))}</div></div>
+        <div class="signal"><div class="label">Live Calls</div><div class="value">{int(generation.get("calls_used", 0))}</div></div>
+        <div class="signal"><div class="label">Decision</div><div class="value">{html.escape(str(proposal.get("decision", {}).get("status", "block"))).upper()}</div></div>
       </div>
     </div>
   </div>
 </section>
 <section class="card glass">
-  <div class="kicker">Mission Summary</div>
+  <div class="kicker">Primary Deliverable</div>
   <div class="grid">
     <article>
-      <h2>Primary Deliverable</h2>
-      <p>{html.escape(str(mission.get("primary_deliverable", "")))}</p>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in mission.get("target_users", []))}</ul>
+      <h2>Direct Preview</h2>
+      <div class="report">{html.escape(primary_preview)}</div>
     </article>
     <article>
-      <h2>Output Views</h2>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in mission.get("output_views", []))}</ul>
+      <h2>Key Takeaways</h2>
+      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in primary_points)}</ul>
+      <h3 style="margin-top:14px">Openable Files</h3>
+      <table><thead><tr><th>Artifact</th><th>Kind</th><th>Path</th></tr></thead><tbody>{"".join(f"<tr><td>{html.escape(str(item.get('label','')))}</td><td>{html.escape(str(item.get('kind','')))}</td><td><code>{html.escape(str(item.get('path','')))}</code></td></tr>" for item in handoff_rows) or "<tr><td colspan='3'>No handoff artifacts.</td></tr>"}</tbody></table>
     </article>
   </div>
 </section>
 <section class="card glass">
-  <div class="kicker">Case Study And Runtime</div>
+  <div class="kicker">Evidence And Runtime</div>
   <div class="grid">
     <article>
-      <h2>Case Study</h2>
-      <p><strong>Request:</strong> {html.escape(str(query.get("text", "")))}</p>
+      <h2>Task Context</h2>
       <p><strong>Why now:</strong> {html.escape(str(story.get("release_need", "")))}</p>
-      <p><strong>Audience takeaway:</strong> {html.escape(str(story.get("audience_takeaway", "")))}</p>
-      <h3 style="margin-top:14px">Output Modes</h3>
-      <div>{self._chip_cloud(mission.get("output_views", []), tone="bright")}</div>
+      <p><strong>Audience:</strong> {html.escape(str(story.get("audience_takeaway", "")))}</p>
+      <h3 style="margin-top:14px">Target Users</h3>
+      <div>{self._chip_cloud(mission.get("target_users", []), tone="bright")}</div>
+      <h3 style="margin-top:14px">Evidence References</h3>
+      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in evidence.get("citations", [])[:6]) or "<li>No injected citations.</li>"}</ul>
     </article>
     <article>
-      <h2>Runtime Computer</h2>
+      <h2>Runtime Surface</h2>
       <div class="grid4">
         {self._runtime_signal_cards(
             run_summary=run_summary,
@@ -1083,34 +1201,14 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
             evidence=evidence,
         )}
       </div>
-      <h3 style="margin-top:14px">Selected Skills</h3>
-      <div>{self._chip_cloud(query.get("selected_skills", []), tone="muted")}</div>
+      <h3 style="margin-top:14px">Execution Plan</h3>
+      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in delivery.get("plan", []))}</ul>
     </article>
   </div>
 </section>
 <section class="card glass">
   <div class="kicker">Deliverable Package</div>
   <div class="grid4">{self._deliverable_cards(mission.get("deliverables", []))}</div>
-</section>
-<section class="card glass">
-  <div class="kicker">Artifact Explorer</div>
-  <div class="grid">
-    <article>
-      <h2>What Opens For The User</h2>
-      <table><thead><tr><th>Artifact</th><th>Purpose</th></tr></thead><tbody>{self._artifact_family_rows(mission, interop)}</tbody></table>
-    </article>
-    <article>
-      <h2>Execution Backbone</h2>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in delivery.get("plan", []))}</ul>
-    </article>
-  </div>
-</section>
-<section class="grid3">
-  {self._pillar_cards(proposal.get("pillars", []))}
-</section>
-<section class="card glass">
-  <div class="kicker">Three-Phase Rollout</div>
-  <div class="grid3">{self._phase_cards(proposal.get("phases", []))}</div>
 </section>
 <section class="card glass">
   <div class="kicker">Execution Tracks</div>
@@ -1122,86 +1220,9 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
     {self._impact_rows(proposal.get("expected_impact", []))}
   </article>
   <article class="card glass">
-    <div class="kicker">Critical Risks To Watch</div>
+    <div class="kicker">Critical Risks</div>
     <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in proposal.get("critical_risks", []))}</ul>
   </article>
-</section>
-<section class="card glass">
-  <div class="kicker">Facts And Estimates</div>
-  <div class="grid">
-    <article>
-      <h2>Measured Facts</h2>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in story.get("evidence_bundle", []))}</ul>
-      <h3 style="margin-top:14px">Execution Plan</h3>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in delivery.get("plan", []))}</ul>
-    </article>
-    <article>
-      <h2>Internal Capability Estimate</h2>
-      {self._metric_rows(capability)}
-    </article>
-  </div>
-</section>
-<section class="card glass">
-  <div class="kicker">Score Provenance</div>
-  <div class="grid">
-    <article>
-      <h2>Measured Signals</h2>
-      <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("facts", []))}</tbody></table>
-    </article>
-    <article>
-      <h2>Internal Heuristics</h2>
-      <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("heuristics", []))}</tbody></table>
-      <h3 style="margin-top:14px">Warnings</h3>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in score_provenance.get("warnings", []))}</ul>
-    </article>
-  </div>
-</section>
-<section class="card glass">
-  <div class="kicker">External Evidence</div>
-  <div class="grid">
-    <article>
-      <h2>Evidence Packet</h2>
-      <p>{int(evidence.get("record_count", 0))} records and {int(evidence.get("citation_count", 0))} citations injected into the run.</p>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in evidence.get("citations", [])[:6])}</ul>
-    </article>
-    <article>
-      <h2>Evidence Sources</h2>
-      <table><thead><tr><th>Source</th><th>Records</th></tr></thead><tbody>{"".join(f"<tr><td>{html.escape(str(row.get('source_id', '')))}</td><td>{int(row.get('records', 0))}</td></tr>" for row in evidence.get('sources', [])[:6]) or '<tr><td colspan=2>No evidence sources.</td></tr>'}</tbody></table>
-    </article>
-  </div>
-</section>
-<section class="card glass">
-  <div class="kicker">Benchmark Fit</div>
-  <div class="grid">
-    <article>
-      <h2>Relevant Benchmark Families</h2>
-      <table><thead><tr><th>Benchmark</th><th>Fit</th><th>Strength</th><th>Gap</th></tr></thead><tbody>{self._benchmark_rows(mission.get("benchmark_targets", []))}</tbody></table>
-    </article>
-    <article>
-      <h2>Honest Boundary</h2>
-      <p>{html.escape(str(mission.get("honest_boundary", "")))}</p>
-      <h3 style="margin-top:14px">Review Questions</h3>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in mission.get("review_questions", []))}</ul>
-    </article>
-  </div>
-</section>
-<section class="grid">
-  <article class="card glass">
-    <div class="kicker">Built-in Archetype Comparison</div>
-    <h2>{html.escape(str(comparison.get("positioning", {}).get("headline", "")))}</h2>
-    <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody>{self._compare_rows(comparison.get("archetypes", []), compact=True)}</tbody></table>
-  </article>
-  <article class="card glass">
-    <div class="kicker">Agent Comparison</div>
-    <h2>{html.escape(str(agent_comparison.get("winner", "")))} won the route</h2>
-    <p class="muted">Runner-up: {html.escape(str(agent_comparison.get("runner_up", "-")))} | score gap {float(agent_comparison.get("score_gap", 0.0)):.4f}</p>
-    <table><thead><tr><th>Agent</th><th>Score</th><th>Reason</th></tr></thead><tbody>{self._agent_rows(agent_comparison.get("rows", []))}</tbody></table>
-  </article>
-</section>
-<section class="card glass">
-  <div class="kicker">Research Lab Leaderboard</div>
-  <table><thead><tr><th>Candidate</th><th>Composite</th><th>Value</th><th>Pass</th><th>Safety</th><th>Pareto</th></tr></thead><tbody>
-  {self._leaderboard_rows(lab.get("leaderboard", []))}</tbody></table>
 </section>
 <section class="card glass">
   <div class="kicker">Why This System Wins</div>
@@ -1210,8 +1231,42 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
 <section class="card glass">
   <div class="kicker">Appendix</div>
   <details>
-    <summary>Generated Business Brief</summary>
-    <pre>{html.escape(str(delivery.get("delivery_brief_excerpt", "")) or str(delivery.get("final_answer_excerpt", "")))}</pre>
+    <summary>Primary Deliverable Raw Text</summary>
+    <pre>{html.escape(primary_output)}</pre>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Scenario Scaffolding</summary>
+    <div class="grid3">{self._pillar_cards(proposal.get("pillars", []))}</div>
+    <div class="grid3" style="margin-top:12px">{self._phase_cards(proposal.get("phases", []))}</div>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Benchmark Fit And Boundary</summary>
+    <table><thead><tr><th>Benchmark</th><th>Fit</th><th>Strength</th><th>Gap</th></tr></thead><tbody>{self._benchmark_rows(mission.get("benchmark_targets", []))}</tbody></table>
+    <p style="margin-top:12px">{html.escape(str(mission.get("honest_boundary", "")))}</p>
+    <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in mission.get("review_questions", []))}</ul>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Comparisons And Leaderboard</summary>
+    <h3>Built-in Archetype Comparison</h3>
+    <table><thead><tr><th>Archetype</th><th>Gap</th><th>Advantage</th><th>Wins</th></tr></thead><tbody>{self._compare_rows(comparison.get("archetypes", []), compact=True)}</tbody></table>
+    <h3 style="margin-top:12px">Agent Comparison</h3>
+    <table><thead><tr><th>Agent</th><th>Score</th><th>Reason</th></tr></thead><tbody>{self._agent_rows(agent_comparison.get("rows", []))}</tbody></table>
+    <h3 style="margin-top:12px">Research Lab Leaderboard</h3>
+    <table><thead><tr><th>Candidate</th><th>Composite</th><th>Value</th><th>Pass</th><th>Safety</th><th>Pareto</th></tr></thead><tbody>{self._leaderboard_rows(lab.get("leaderboard", []))}</tbody></table>
+  </details>
+  <details style="margin-top:12px">
+    <summary>Score Provenance</summary>
+    <div class="grid">
+      <article>
+        <h3>Measured Signals</h3>
+        <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("facts", []))}</tbody></table>
+      </article>
+      <article>
+        <h3>Internal Heuristics</h3>
+        <table><thead><tr><th>Name</th><th>Value</th><th>Basis</th></tr></thead><tbody>{self._score_rows(score_provenance.get("heuristics", []))}</tbody></table>
+        <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in score_provenance.get("warnings", []))}</ul>
+      </article>
+    </div>
   </details>
   <details style="margin-top:12px">
     <summary>Mission Pack JSON</summary>
@@ -1248,6 +1303,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
         delivery = payload.get("harness", {})
         generation = delivery.get("generation", {}) if isinstance(delivery, dict) else {}
         evidence = delivery.get("run_summary", {}).get("evidence", {}) if isinstance(delivery, dict) else {}
+        primary_output = StudioShowcaseBuilder._primary_output_text(payload)
         why_use = payload.get("why_use_this", [])
         score_provenance = payload.get("score_provenance", {})
         return "\n".join(
@@ -1256,61 +1312,38 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 "",
                 str(identity.get("one_liner", "")),
                 "",
-                "## Demo Theme",
+                "## Task",
                 "",
-                str(story.get("theme", "")),
+                str(query.get("text", "")),
                 "",
-                "## Mission Pack",
+                "## Primary Deliverable",
                 "",
-                f"- Type: {mission.get('title', '')}",
-                f"- Primary deliverable: {mission.get('primary_deliverable', '')}",
-                f"- Output views: {', '.join(mission.get('output_views', []))}",
-                *(f"- Deliverable: {item.get('title', '')} -> {item.get('description', '')}" for item in mission.get("deliverables", [])[:4]),
+                primary_output,
                 "",
-                "## Proposal Headline",
-                "",
-                str(proposal.get("headline", "")),
-                "",
-                str(proposal.get("subheadline", "")),
-                "",
-                "## Release Need",
+                "## Task Context",
                 "",
                 str(story.get("release_need", "")),
                 "",
-                "## Strategy Plan",
+                "## Evidence References",
                 "",
-                *(f"- {item}" for item in story.get("strategy_plan", [])),
+                *(f"- {item}" for item in evidence.get("citations", [])[:8]),
                 "",
-                "## Evidence Bundle",
+                "## Deliverable Package",
                 "",
-                *(f"- {item}" for item in story.get("evidence_bundle", [])),
-                *(f"- Citation: {item}" for item in evidence.get("citations", [])[:4]),
+                f"- Type: {mission.get('title', '')}",
+                f"- Primary deliverable: {mission.get('primary_deliverable', '')}",
+                *(f"- Deliverable: {item.get('title', '')} -> {item.get('description', '')}" for item in mission.get("deliverables", [])[:6]),
                 "",
-                "## Execution Plan",
-                "",
-                *(f"- {item}" for item in delivery.get("plan", [])),
-                "",
-                "## Proposal Summary",
-                "",
-                *(f"- {item}" for item in proposal.get("business_summary", [])),
-                "",
-                "## Generation Mode",
+                "## Runtime Notes",
                 "",
                 f"- Mode: {generation.get('mode', 'baseline')}",
-                f"- Live agent enabled: {generation.get('live_agent_enabled', False)}",
-                f"- Live agent configured: {generation.get('live_agent_configured', False)}",
                 f"- Live agent success: {generation.get('live_agent_success', False)}",
                 f"- Model: {generation.get('model', '') or '-'}",
-                "",
-                "## Launch Claim",
-                "",
-                str(identity.get("differentiator", "")),
+                f"- Calls used: {generation.get('calls_used', 0)}",
                 "",
                 "## Demo Snapshot",
                 "",
-                f"- Query: {query.get('text', '')}",
                 f"- Scenario: {payload.get('scenario', {}).get('name', '-')}",
-                f"- Mode: {query.get('mode', 'balanced')}",
                 f"- Selected agent: {query.get('selected_agent', '-')}",
                 f"- Skills: {', '.join(query.get('selected_skills', [])) or '-'}",
                 f"- Internal frontier estimate: {float(frontier.get('score', 0.0)):.3f}",
@@ -1322,50 +1355,26 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
                 f"- Interop frameworks: {int(interop.get('framework_count', 0))}",
                 f"- Exported skill entries: {int(interop.get('total_skill_entries', 0))}",
                 "",
-                "## Agent Comparison",
-                "",
-                f"- Winner: {agent_comparison.get('winner', '-')}",
-                f"- Runner-up: {agent_comparison.get('runner_up', '-')}",
-                f"- Score gap: {_safe_float(agent_comparison.get('score_gap', 0.0)):.4f}",
-                "",
-                "## Generated Business Brief",
-                "",
-                "```text",
-                str(delivery.get("delivery_brief_excerpt", "")) or str(delivery.get("final_answer_excerpt", "")),
-                "```",
-                "",
                 "## Why This Is Different",
                 "",
                 *(f"- {item}" for item in why_use),
                 "",
-                "## Score Provenance",
-                "",
-                *(f"- Fact: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("facts", [])[:6]),
-                *(f"- Heuristic: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("heuristics", [])[:6]),
-                *(f"- Warning: {item}" for item in score_provenance.get("warnings", [])[:4]),
-                "",
-                "## Benchmark Fit",
-                "",
-                *(f"- {item.get('name', '')}: fit={item.get('fit', '')}; strength={item.get('strength', '')}; gap={item.get('gap', '')}" for item in mission.get("benchmark_targets", [])[:6]),
-                "",
-                "## Honest Boundary",
-                "",
-                str(mission.get("honest_boundary", "")),
-                "",
-                "## Built-in Archetype Positioning",
-                "",
-                f"- Headline: {comparison.get('headline', '')}",
-                f"- Best-vs archetype: {comparison.get('best_vs_name', '-')}",
-                f"- Internal frontier gap: {_safe_float(comparison.get('best_vs_gap', 0.0)):+.3f}",
-                "",
                 "## Artifact Bundle",
                 "",
+                f"- Deliverable: {paths.get('deliverable', '')}",
                 f"- JSON payload: {paths.get('json', '')}",
                 f"- HTML showcase: {paths.get('html', '')}",
                 f"- Press brief: {paths.get('brief', '')}",
                 f"- Bundle manifest: {paths.get('manifest', '')}",
                 f"- Interop bundle index: {paths.get('interop', {}).get('index', '-') if isinstance(paths.get('interop'), dict) else '-'}",
                 "",
+                "## Appendix",
+                "",
+                f"- Agent comparison winner: {agent_comparison.get('winner', '-')}",
+                f"- Agent score gap: {_safe_float(agent_comparison.get('score_gap', 0.0)):.4f}",
+                f"- Built-in positioning: {comparison.get('headline', '')}",
+                *(f"- Fact: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("facts", [])[:6]),
+                *(f"- Heuristic: {item.get('name', '')}={item.get('value', '')} ({item.get('basis', '')})" for item in score_provenance.get("heuristics", [])[:6]),
                 f"_Generated at {payload.get('generated_at', '')}_",
                 "",
             ]

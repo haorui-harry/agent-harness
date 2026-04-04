@@ -226,7 +226,11 @@ class ProposalRegistry:
                     "Experimental branches proliferate faster than governance can review them.",
                 ],
                 impact_labels=["Experiment throughput", "Evidence quality", "Release confidence", "Stakeholder trust"],
-                keyword_patterns=[r"(research|lab|experiment|benchmark|study|paper)"],
+                keyword_patterns=[
+                    r"(research|lab|experiment|benchmark|study|paper)",
+                    r"(researcher|researchers|promotion criteria|release promotion|paper-grade)",
+                    r"(improvement|upgrade|roadmap|system gaps|evidence standards|deep research)",
+                ],
                 pillars=[
                     ProposalPillarBlueprint("Research Throughput", "Increase experiment velocity without breaking comparability.", "Route candidate ideas into benchmark-ready release packets.", "growth_pillar"),
                     ProposalPillarBlueprint("Governed Promotion", "Promote only the candidates that pass quality and safety gates.", "Tie release promotion to the same benchmark trail.", "governance_pillar"),
@@ -265,7 +269,10 @@ class ProposalRegistry:
                     "Governance review happens after integration choices are already expensive to reverse.",
                 ],
                 impact_labels=["Workflow time saved", "Deployment readiness", "Governance coverage", "Ecosystem leverage"],
-                keyword_patterns=[r"(enterprise|workflow|operations|rollout|deployment|platform)"],
+                keyword_patterns=[
+                    r"(enterprise|workflow|operations|rollout|deployment|platform)",
+                    r"(operating layer|business ops|security|cio)",
+                ],
                 pillars=[
                     ProposalPillarBlueprint("Workflow Wedge", "Start with one workflow that benefits from orchestration and evidence capture.", "Wire the wedge directly into the rollout scorecard.", "growth_pillar"),
                     ProposalPillarBlueprint("Governance By Default", "Move security and policy checks into the operating loop.", "Attach controls to runtime routing and release decisions.", "governance_pillar"),
