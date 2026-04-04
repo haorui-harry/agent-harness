@@ -19,6 +19,7 @@ class ThreadWorkspaceStreamBuilder:
         messages = thread_payload.get("messages", []) if isinstance(thread_payload.get("messages", []), list) else []
         events = thread_payload.get("events", []) if isinstance(thread_payload.get("events", []), list) else []
         completion_packet = self._read_completion_packet(artifacts)
+        delivery_bundle = self._read_delivery_bundle(artifacts)
         showcase = self._build_showcase(thread_payload, executions, artifacts)
         timeline = self._build_timeline(events)
         return {
@@ -38,6 +39,7 @@ class ThreadWorkspaceStreamBuilder:
                 "event_count": len(events),
             },
             "completion_packet": completion_packet,
+            "delivery_bundle": delivery_bundle,
             "showcase": showcase,
             "messages": messages[-8:],
             "artifacts": artifacts[-12:],
@@ -60,12 +62,15 @@ class ThreadWorkspaceStreamBuilder:
         header = payload.get("header", {}) if isinstance(payload.get("header", {}), dict) else {}
         metrics = payload.get("metrics", {}) if isinstance(payload.get("metrics", {}), dict) else {}
         showcase = payload.get("showcase", {}) if isinstance(payload.get("showcase", {}), dict) else {}
+        delivery_bundle = payload.get("delivery_bundle", {}) if isinstance(payload.get("delivery_bundle", {}), dict) else {}
         messages = payload.get("messages", []) if isinstance(payload.get("messages", []), list) else []
         artifacts = payload.get("artifacts", []) if isinstance(payload.get("artifacts", []), list) else []
         executions = payload.get("executions", []) if isinstance(payload.get("executions", []), list) else []
         timeline = payload.get("timeline", []) if isinstance(payload.get("timeline", []), list) else []
         events = payload.get("stream_events", []) if isinstance(payload.get("stream_events", []), list) else []
         workspace = payload.get("workspace", {}) if isinstance(payload.get("workspace", {}), dict) else {}
+        deliverable_index = delivery_bundle.get("deliverable_index", []) if isinstance(delivery_bundle.get("deliverable_index", []), list) else []
+        artifact_manifest = delivery_bundle.get("artifact_manifest", []) if isinstance(delivery_bundle.get("artifact_manifest", []), list) else []
         return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -133,16 +138,26 @@ class ThreadWorkspaceStreamBuilder:
       </div>
       <div class="hero-grid">
         <div class="mini-panel">
-          <div class="title">Artifact Focus</div>
+          <div class="title">Delivery Index</div>
           <ul>{"".join(f"<li>{html.escape(item)}</li>" for item in showcase.get("deliverables", [])) or "<li>No deliverables summarized.</li>"}</ul>
         </div>
         <div class="mini-panel">
-          <div class="title">Why It Matters</div>
+          <div class="title">Closure Signals</div>
           <ul>{"".join(f"<li>{html.escape(item)}</li>" for item in showcase.get("value_points", [])) or "<li>No value points summarized.</li>"}</ul>
         </div>
       </div>
     </section>
     <section class="grid">
+      <div class="card span-5">
+        <div class="title">Delivery Bundle</div>
+        <h3 class="section-title">Deliverable Index</h3>
+        <table><thead><tr><th>Family</th><th>Count</th><th>Representative Outputs</th></tr></thead><tbody>{"".join(f"<tr><td>{html.escape(str(item.get('family','')))}</td><td>{int(item.get('count',0))}</td><td>{html.escape(', '.join(str(path).split('/')[-1] for path in item.get('paths', [])[:3]))}</td></tr>" for item in deliverable_index) or "<tr><td colspan='3'>No delivery bundle index.</td></tr>"}</tbody></table>
+      </div>
+      <div class="card span-7">
+        <div class="title">Manifest</div>
+        <h3 class="section-title">Openable Artifact Manifest</h3>
+        <table><thead><tr><th>Artifact</th><th>Family</th><th>Kind</th><th>Summary</th></tr></thead><tbody>{"".join(f"<tr><td><code>{html.escape(str(item.get('path','')).replace('\\\\','/').split('/')[-1])}</code></td><td>{html.escape(str(item.get('family','')))}</td><td>{html.escape(str(item.get('kind','')))}</td><td>{html.escape(str(item.get('summary','')))}</td></tr>" for item in artifact_manifest[:10]) or "<tr><td colspan='4'>No artifact manifest.</td></tr>"}</tbody></table>
+      </div>
       <div class="card span-6">
         <div class="title">Agent Computer</div>
         <h3 class="section-title">Workspace Environment</h3>
@@ -204,6 +219,7 @@ class ThreadWorkspaceStreamBuilder:
         graph = latest_execution.get("graph", {}) if isinstance(latest_execution.get("graph", {}), dict) else {}
         task = str(graph.get("query", "") or thread_payload.get("latest_query", "")).strip()
         completion_packet = self._read_completion_packet(artifacts)
+        delivery_bundle = self._read_delivery_bundle(artifacts)
         report_text = self._read_text_artifact(artifacts, preferred_kind="file_artifact")
         plan_payload = self._read_json_artifact(artifacts, preferred_kind="skill_result")
         workspace_payload = self._read_json_artifact(artifacts, preferred_kind="workspace_snapshot")
@@ -218,26 +234,57 @@ class ThreadWorkspaceStreamBuilder:
             f"It grounded on local files, generated reviewable artifacts, and exposed the execution computer "
             f"through workspace paths, event history, and artifact outputs."
         )
+        if delivery_bundle:
+            bundle_summary = delivery_bundle.get("bundle_summary", {}) if isinstance(delivery_bundle.get("bundle_summary", {}), dict) else {}
+            bundle_index = delivery_bundle.get("deliverable_index", []) if isinstance(delivery_bundle.get("deliverable_index", []), list) else []
+            manifest = delivery_bundle.get("artifact_manifest", []) if isinstance(delivery_bundle.get("artifact_manifest", []), list) else []
+            primary = delivery_bundle.get("primary_deliverable", {}) if isinstance(delivery_bundle.get("primary_deliverable", {}), dict) else {}
+            baseline = delivery_bundle.get("baseline_comparison", {}) if isinstance(delivery_bundle.get("baseline_comparison", {}), dict) else {}
+            primary_name = Path(str(primary.get("path", ""))).name if str(primary.get("path", "")).strip() else ""
+            deliverables.append(
+                f"Published a delivery bundle with a primary deliverable and {int(bundle_summary.get('artifact_count', len(manifest)))} tracked supporting artifacts."
+            )
+            if primary_name:
+                deliverables.append(f"Primary deliverable: {primary_name}.")
+            for item in bundle_index[:3]:
+                if not isinstance(item, dict):
+                    continue
+                deliverables.append(
+                    f"{str(item.get('family', '')).title()} bundle: {', '.join(str(path).replace('\\\\','/').split('/')[-1] for path in item.get('paths', [])[:2])}."
+                )
+            value_points.append(
+                f"Bundle validation status: {str(bundle_summary.get('validation_status', 'unknown')).replace('_', ' ')}."
+            )
+            if isinstance(baseline.get("harness_additions", []), list) and baseline.get("harness_additions", []):
+                value_points.append(str(baseline.get("harness_additions", [])[0]))
+            else:
+                value_points.append(
+                    f"Bundle evidence count: {int(bundle_summary.get('evidence_count', 0))}; risk items: {int(bundle_summary.get('risk_count', 0))}."
+                )
+            preview_title = Path(str(primary.get("path", ""))).name if str(primary.get("path", "")).strip() else "Delivery Bundle"
+            preview_body = str(primary.get("excerpt", "")).strip() or self._format_delivery_bundle_preview(delivery_bundle)
+            if primary_name:
+                summary = (
+                    f"This thread culminates in {primary_name} as the main result, with the delivery bundle acting as the inspection rail behind it. "
+                    f"The first screen prioritizes the actual deliverable first, then the evidence and artifact manifest needed to verify it."
+                )
+            else:
+                summary = (
+                    f"This thread ends in a delivery bundle with one primary deliverable and a support manifest behind it. "
+                    f"The first screen now prioritizes the actual result, then the evidence and artifact rail needed to inspect it."
+                )
         if completion_packet:
             packet_summary = completion_packet.get("summary", {}) if isinstance(completion_packet.get("summary", {}), dict) else {}
             delivered = completion_packet.get("delivered_artifacts", []) if isinstance(completion_packet.get("delivered_artifacts", []), list) else []
             state_gap = completion_packet.get("state_gap", {}) if isinstance(completion_packet.get("state_gap", {}), dict) else {}
             validation = completion_packet.get("validation", {}) if isinstance(completion_packet.get("validation", {}), dict) else {}
             evidence = completion_packet.get("evidence", {}) if isinstance(completion_packet.get("evidence", {}), dict) else {}
+            primary = completion_packet.get("primary_deliverable", {}) if isinstance(completion_packet.get("primary_deliverable", {}), dict) else {}
             deliverables.append(
-                f"Closed the run into a completion packet with {int(packet_summary.get('artifact_count', len(delivered)))} artifact(s)."
-            )
-            if delivered:
-                deliverables.extend(
-                    f"Delivered {Path(str(item.get('path', 'artifact'))).name}."
-                    for item in delivered[:3]
-                    if isinstance(item, dict)
-                )
-            value_points.append(
-                f"Validation status: {str(validation.get('status', 'unknown')).replace('_', ' ')}."
+                f"Closed execution into a completion packet with {int(packet_summary.get('artifact_count', len(delivered)))} tracked artifacts."
             )
             value_points.append(
-                f"Evidence count: {int(evidence.get('record_count', 0))}, citations: {int(evidence.get('citation_count', 0))}."
+                f"Packet evidence count: {int(evidence.get('record_count', 0))}, citations: {int(evidence.get('citation_count', 0))}."
             )
             open_gap_count = (
                 len(state_gap.get("missing_channels", [])) if isinstance(state_gap.get("missing_channels", []), list) else 0
@@ -247,13 +294,13 @@ class ThreadWorkspaceStreamBuilder:
                 len(state_gap.get("failure_types", [])) if isinstance(state_gap.get("failure_types", []), list) else 0
             ) + (1 if state_gap.get("missing_validation") else 0)
             value_points.append(f"Open execution gaps: {open_gap_count}.")
-            preview_title = "Completion Packet"
-            preview_body = self._format_completion_packet_preview(completion_packet)
-            summary = (
-                f"This thread produced a unified completion packet for the task, making the result auditable as a task closure "
-                f"instead of leaving the user with disconnected node logs. It records delivered artifacts, evidence, validation, "
-                f"risk, and remaining gaps in one inspectable object."
-            )
+            if not delivery_bundle:
+                preview_title = Path(str(primary.get("path", ""))).name if str(primary.get("path", "")).strip() else "Completion Packet"
+                preview_body = str(primary.get("excerpt", "")).strip() or self._format_completion_packet_preview(completion_packet)
+                summary = (
+                    f"This thread produced a unified completion packet that centers the final deliverable and records the evidence, "
+                    f"validation state, risk notes, and remaining gaps around it."
+                )
         if workspace_payload:
             deliverables.append(
                 f"Scanned workspace and found {int(workspace_payload.get('file_count', 0))} relevant file(s)."
@@ -293,6 +340,24 @@ class ThreadWorkspaceStreamBuilder:
         prioritized_deliverables = list(
             dict.fromkeys([item["deliverable"] for item in artifact_family_notes] + deliverables)
         )
+        primary_artifact_kind = ""
+        primary_artifact_path = ""
+        if delivery_bundle:
+            primary = delivery_bundle.get("primary_deliverable", {}) if isinstance(delivery_bundle.get("primary_deliverable", {}), dict) else {}
+            primary_artifact_path = str(primary.get("path", "")).strip()
+            normalized_primary = primary_artifact_path.replace("\\", "/").lower()
+            if "/reports/" in normalized_primary or normalized_primary.endswith(".md"):
+                primary_artifact_kind = "report"
+            elif "/briefs/" in normalized_primary:
+                primary_artifact_kind = "brief"
+            elif primary_artifact_path:
+                primary_artifact_kind = "deliverable"
+            else:
+                primary_artifact_kind = "delivery_bundle"
+                primary_artifact_path = str(delivery_bundle.get("_artifact_path", ""))
+        elif completion_packet:
+            primary_artifact_kind = "completion_packet"
+            primary_artifact_path = str(completion_packet.get("_artifact_path", ""))
         return {
             "title": str(thread_payload.get("title", "") or "Agent Result"),
             "task": task or "No task captured.",
@@ -302,8 +367,8 @@ class ThreadWorkspaceStreamBuilder:
             "result_title": preview_title,
             "result_body": result_body,
             "primary_artifact": {
-                "kind": "completion_packet" if completion_packet else "",
-                "path": str(completion_packet.get("_artifact_path", "")) if completion_packet else "",
+                "kind": primary_artifact_kind,
+                "path": primary_artifact_path,
             },
         }
 
@@ -375,6 +440,25 @@ class ThreadWorkspaceStreamBuilder:
         return {}
 
     @staticmethod
+    def _read_delivery_bundle(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
+        for artifact in reversed(artifacts):
+            rel = str(artifact.get("relative_path", artifact.get("name", ""))).replace("\\", "/").lower()
+            if "bundles/delivery-bundle.json" not in rel:
+                continue
+            path = Path(str(artifact.get("path", "")))
+            if not path.exists():
+                continue
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            payload["_artifact_path"] = str(path)
+            return payload
+        return {}
+
+    @staticmethod
     def _format_completion_packet_preview(packet: dict[str, Any]) -> str:
         summary = packet.get("summary", {}) if isinstance(packet.get("summary", {}), dict) else {}
         validation = packet.get("validation", {}) if isinstance(packet.get("validation", {}), dict) else {}
@@ -382,6 +466,7 @@ class ThreadWorkspaceStreamBuilder:
         risk = packet.get("risk", {}) if isinstance(packet.get("risk", {}), dict) else {}
         next_steps = packet.get("next_steps", []) if isinstance(packet.get("next_steps", []), list) else []
         delivered = packet.get("delivered_artifacts", []) if isinstance(packet.get("delivered_artifacts", []), list) else []
+        primary = packet.get("primary_deliverable", {}) if isinstance(packet.get("primary_deliverable", {}), dict) else {}
         lines = [
             f"Task: {packet.get('query', '')}",
             f"Artifacts: {int(summary.get('artifact_count', len(delivered)))}",
@@ -389,8 +474,17 @@ class ThreadWorkspaceStreamBuilder:
             f"Evidence records: {int(evidence.get('record_count', 0))}",
             f"Risk items: {int(risk.get('count', 0))}",
             "",
-            "Delivered artifacts:",
+            "Primary deliverable:",
+            f"- {Path(str(primary.get('path', 'deliverable'))).name if str(primary.get('path', '')).strip() else 'No primary deliverable path'}",
         ]
+        excerpt = str(primary.get("excerpt", "")).strip()
+        if excerpt:
+            lines.extend(["", excerpt[:600], ""])
+        else:
+            lines.append("")
+        lines.extend([
+            "Delivered artifacts:",
+        ])
         for item in delivered[:5]:
             if not isinstance(item, dict):
                 continue
@@ -399,6 +493,50 @@ class ThreadWorkspaceStreamBuilder:
             lines.append("")
             lines.append("Next steps:")
             for item in next_steps[:4]:
+                lines.append(f"- {item}")
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _format_delivery_bundle_preview(bundle: dict[str, Any]) -> str:
+        summary = bundle.get("bundle_summary", {}) if isinstance(bundle.get("bundle_summary", {}), dict) else {}
+        deliverable_index = bundle.get("deliverable_index", []) if isinstance(bundle.get("deliverable_index", []), list) else []
+        manifest = bundle.get("artifact_manifest", []) if isinstance(bundle.get("artifact_manifest", []), list) else []
+        checklist = bundle.get("reviewer_checklist", []) if isinstance(bundle.get("reviewer_checklist", []), list) else []
+        primary = bundle.get("primary_deliverable", {}) if isinstance(bundle.get("primary_deliverable", {}), dict) else {}
+        baseline = bundle.get("baseline_comparison", {}) if isinstance(bundle.get("baseline_comparison", {}), dict) else {}
+        lines = [
+            f"Task: {bundle.get('query', '')}",
+            f"Artifact count: {int(summary.get('artifact_count', len(manifest)))}",
+            f"Deliverable families: {int(summary.get('family_count', len(deliverable_index)))}",
+            f"Validation: {summary.get('validation_status', 'unknown')}",
+            "",
+            "Primary deliverable:",
+            f"- {Path(str(primary.get('path', 'deliverable'))).name if str(primary.get('path', '')).strip() else 'No primary deliverable path'}",
+        ]
+        excerpt = str(primary.get("excerpt", "")).strip()
+        if excerpt:
+            lines.extend(["", excerpt[:700], ""])
+        else:
+            lines.append("")
+        lines.extend([
+            "Deliverable index:",
+        ])
+        for item in deliverable_index[:5]:
+            if not isinstance(item, dict):
+                continue
+            family = str(item.get("family", "")).title()
+            paths = ", ".join(str(path).replace("\\", "/").split("/")[-1] for path in item.get("paths", [])[:3])
+            lines.append(f"- {family}: {paths}")
+        additions = baseline.get("harness_additions", []) if isinstance(baseline.get("harness_additions", []), list) else []
+        if additions:
+            lines.append("")
+            lines.append("What harness added beyond a direct answer:")
+            for item in additions[:3]:
+                lines.append(f"- {item}")
+        if checklist:
+            lines.append("")
+            lines.append("Reviewer checklist:")
+            for item in checklist[:4]:
                 lines.append(f"- {item}")
         return "\n".join(lines).strip()
 

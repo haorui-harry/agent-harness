@@ -286,22 +286,58 @@ def infer_task_spec(
         contracts.append(ArtifactContract(kind="image_prompt_pack", title="Image Prompt Pack", format_hint="markdown"))
     elif output_mode == "data":
         contracts.append(ArtifactContract(kind="data_analysis_spec", title="Data Analysis Spec", format_hint="json"))
-    elif any(marker in lowered for marker in ["webpage", "website", "landing", "frontend", "html"]):
+    elif output_mode == "report":
+        contracts.append(ArtifactContract(kind="deliverable_report", title="Deliverable Report", format_hint="markdown"))
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["webpage", "website", "landing", "frontend", "html"]):
         contracts.append(ArtifactContract(kind="webpage_blueprint", title="Webpage Blueprint", format_hint="markdown"))
-    elif any(marker in lowered for marker in ["slides", "slide", "deck", "presentation", "ppt"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["slides", "slide", "deck", "presentation", "ppt"]):
         contracts.append(ArtifactContract(kind="slide_deck_plan", title="Slide Deck Plan", format_hint="markdown"))
-    elif any(marker in lowered for marker in ["chart", "visualization", "plot", "graph"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["chart", "visualization", "plot", "graph"]):
         contracts.append(ArtifactContract(kind="chart_pack_spec", title="Chart Pack Spec", format_hint="json"))
-    elif any(marker in lowered for marker in ["podcast", "episode", "audio"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["podcast", "episode", "audio"]):
         contracts.append(ArtifactContract(kind="podcast_episode_plan", title="Podcast Episode Plan", format_hint="markdown"))
-    elif any(marker in lowered for marker in ["video", "storyboard", "trailer"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["video", "storyboard", "trailer"]):
         contracts.append(ArtifactContract(kind="video_storyboard", title="Video Storyboard", format_hint="markdown"))
-    elif any(marker in lowered for marker in ["image", "poster", "illustration", "thumbnail"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["image", "poster", "illustration", "thumbnail"]):
         contracts.append(ArtifactContract(kind="image_prompt_pack", title="Image Prompt Pack", format_hint="markdown"))
-    elif any(marker in lowered for marker in ["data", "dataset", "analytics", "dashboard", "sql", "csv"]):
+    elif any(_has_marker(lowered=lowered, tokens=tokens, marker=marker) for marker in ["data", "dataset", "analytics", "dashboard", "sql", "csv"]):
         contracts.append(ArtifactContract(kind="data_analysis_spec", title="Data Analysis Spec", format_hint="json"))
     else:
         contracts.append(ArtifactContract(kind="deliverable_report", title="Deliverable Report", format_hint="markdown"))
+    if output_mode != "benchmark" and any(
+        _has_marker(lowered=lowered, tokens=tokens, marker=marker)
+        for marker in [
+            "benchmark",
+            "ablation",
+            "runner",
+            "run config",
+            "run-config",
+            "manifest",
+            "suite",
+            "gaia",
+            "swe-bench",
+            "webarena",
+            "tau-bench",
+            "experimental design",
+        ]
+    ):
+        contracts.append(ArtifactContract(kind="benchmark_manifest", title="Benchmark Manifest", format_hint="json"))
+        contracts.append(ArtifactContract(kind="benchmark_run_config", title="Benchmark Run Config", format_hint="json"))
+    if output_mode != "data" and any(
+        _has_marker(lowered=lowered, tokens=tokens, marker=marker)
+        for marker in [
+            "data analysis",
+            "analytics",
+            "dataset",
+            "csv",
+            "table",
+            "sql",
+            "cohort",
+            "evidence standard",
+            "evidence standards",
+        ]
+    ):
+        contracts.append(ArtifactContract(kind="data_analysis_spec", title="Data Analysis Spec", format_hint="json"))
     contracts.extend(_custom_document_contracts(lowered))
     contracts.extend(_explicit_artifact_contracts(lowered))
     contracts.append(ArtifactContract(kind="completion_packet", title="Completion Packet", format_hint="json"))

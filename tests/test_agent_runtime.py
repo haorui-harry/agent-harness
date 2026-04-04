@@ -261,6 +261,246 @@ def test_scheduler_recovers_interrupted_execution(tmp_path: Path) -> None:
     assert recovered["status"] == "completed"
 
 
+def test_ground_live_document_output_removes_unsupported_quant_claims() -> None:
+    mapper = TaskGraphActionMapper()
+    local_output = "General agent frameworks need stronger evidence wiring and better final deliverables."
+    live_output = """
+# Memo
+
+## Summary
+
+General agent frameworks often lose to direct answers because they add orchestration layers without reliably improving the final user-facing result. The biggest gap is not the existence of planning or tool calls, but whether the runtime can turn those steps into a denser, more grounded final artifact that a reviewer would actually prefer to use.
+
+## Evidence
+
+The captured evidence in this run is qualitative and focuses on workflow overhead, weak closure artifacts, and the need for stronger synthesis. Benchmarks and external references matter when they are directly tied to the delivered result rather than left as detached support material. Framework quality rises when evidence enters the main answer instead of being trapped in side artifacts.
+
+Benchmarks show 3-10x latency overhead and 200-500ms direct response times.
+
+## Recommendation
+
+Promote one primary deliverable, keep support artifacts subordinate, and treat evidence linkage as part of answer writing rather than as a parallel reporting lane.
+"""
+    grounded = mapper._ground_live_document_output(
+        surface_kind="custom:memo",
+        prompt="Write a memo.",
+        source_text="Citation: https://example.com/qualitative-study\nFramework value appears only when evidence improves the final answer.",
+        local_output=local_output,
+        live_output=live_output,
+    )
+
+    assert "3-10x latency overhead" not in grounded
+    assert "200-500ms direct response times" not in grounded
+    assert "## Evidence Limits" in grounded
+    assert "Promote one primary deliverable" in grounded
+
+
+def test_live_workspace_action_generation_prefers_local_for_support_artifacts() -> None:
+    mapper = TaskGraphActionMapper()
+
+    result = mapper._live_workspace_action_generation(
+        action_kind="custom:source_matrix",
+        prompt="Write a source matrix.",
+        source_text="Citation: https://example.com/source",
+        workspace_summary={},
+        local_relative_path="research/source-matrix.md",
+        local_body={"node_id": "source-matrix"},
+        local_content="# Local Source Matrix\n",
+        content_type="text/markdown",
+        context={"live_model": {"base_url": "https://example.com/v1", "api_key": "secret", "model_name": "demo-model"}},
+    )
+
+    assert result is None
+
+
+def test_source_matrix_uses_evidence_records_before_keyword_heuristics() -> None:
+    mapper = TaskGraphActionMapper()
+    source_text = json.dumps(
+        {
+            "output": {
+                "records": [
+                    {
+                        "title": "SWE-bench",
+                        "summary": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                        "url": "https://github.com/SWE-bench/SWE-bench",
+                        "source_id": "built_in_catalog",
+                        "trust_score": 0.92,
+                    }
+                ],
+                "citations": ["https://github.com/SWE-bench/SWE-bench"],
+            }
+        }
+    ) + "\n\nBenchmark-Reality Gap: Many frameworks optimize for synthetic benchmarks."
+
+    document = mapper._build_source_matrix_document(
+        prompt="Write a deep research memo.",
+        source_text=source_text,
+        title="Build Source Matrix",
+    )
+
+    assert "| SWE-bench |" in document
+    assert "| **Benchmark-Reality Gap** |" not in document
+
+
+def test_source_prompt_block_embeds_structured_evidence_payload() -> None:
+    context = {
+        "node_results": {
+            "evidence": {
+                "result": {
+                    "title": "Build Evidence Dossier",
+                    "output": {
+                        "records": [
+                            {
+                                "title": "SWE-bench",
+                                "summary": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                                "url": "https://github.com/SWE-bench/SWE-bench",
+                                "source_id": "built_in_catalog",
+                                "trust_score": 0.92,
+                            }
+                        ],
+                        "citations": ["https://github.com/SWE-bench/SWE-bench"],
+                    },
+                },
+                "artifact": {},
+            }
+        }
+    }
+
+    block = TaskGraphActionMapper._source_prompt_block("evidence", context)
+
+    assert "Structured Output JSON:" in block
+    assert '"records"' in block
+    assert "SWE-bench" in block
+
+
+def test_research_evidence_payload_reads_direct_structured_json_records() -> None:
+    source_text = """
+[evidence] Build Evidence Dossier
+Structured Output JSON:
+{"records":[{"title":"SWE-bench","summary":"Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.","url":"https://github.com/SWE-bench/SWE-bench","source_id":"built_in_catalog","trust_score":0.92}],"citations":["https://github.com/SWE-bench/SWE-bench"]}
+"""
+    payload = TaskGraphActionMapper._research_evidence_payload(source_text)
+
+    assert payload["records"]
+    assert payload["records"][0]["title"] == "SWE-bench"
+    assert "https://github.com/SWE-bench/SWE-bench" in payload["citations"]
+
+
+def test_source_rows_use_source_specific_claim_bundles() -> None:
+    source_text = json.dumps(
+        {
+            "output": {
+                "records": [
+                    {
+                        "title": "Model Context Protocol Architecture",
+                        "summary": "Reference for interoperable agent-tool integration and external capability composition.",
+                        "url": "https://modelcontextprotocol.io/specification/2025-06-18/architecture/index",
+                        "source_id": "built_in_catalog",
+                        "trust_score": 0.88,
+                    },
+                    {
+                        "title": "SWE-bench",
+                        "summary": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                        "url": "https://github.com/SWE-bench/SWE-bench",
+                        "source_id": "built_in_catalog",
+                        "trust_score": 0.92,
+                    },
+                ]
+            }
+        }
+    )
+    payload = TaskGraphActionMapper._research_evidence_payload(source_text)
+    row_map = {row["source"]: row for row in payload["source_rows"]}
+
+    assert "tool integration" in row_map["Model Context Protocol Architecture"]["claim"].lower()
+    assert "code-task closure" in row_map["SWE-bench"]["gap"].lower()
+
+
+def test_append_grounded_sources_section_falls_back_to_source_rows() -> None:
+    text = TaskGraphActionMapper._append_grounded_sources_section(
+        "# Memo\n\nMain body.\n",
+        evidence={
+            "records": [],
+            "citations": [],
+            "source_rows": [
+                {
+                    "source": "SWE-bench",
+                    "claim": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                }
+            ],
+            "benchmark_focus": [],
+        },
+    )
+
+    assert "## Sources" in text
+    assert "SWE-bench" in text
+
+
+def test_append_grounded_sources_section_does_not_duplicate_existing_sources_block() -> None:
+    body = (
+        "# Memo\n\n"
+        "## Sources\n\n"
+        "- SWE-bench: benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes\n"
+        "- tau-bench: enterprise-oriented benchmark for realistic tool-using agent tasks\n"
+    )
+    text = TaskGraphActionMapper._append_grounded_sources_section(
+        body,
+        evidence={
+            "records": [
+                {"title": "SWE-bench", "summary": "Benchmark suite", "url": "https://github.com/SWE-bench/SWE-bench"},
+                {"title": "tau-bench", "summary": "Enterprise benchmark", "url": "https://github.com/sierra-research/tau-bench"},
+            ],
+            "citations": [],
+            "source_rows": [],
+            "benchmark_focus": [],
+        },
+    )
+
+    assert text.count("## Sources") == 1
+
+
+def test_ground_live_document_output_rejects_false_zero_evidence_claims() -> None:
+    mapper = TaskGraphActionMapper()
+    local_output = (
+        "# Memo\n\n"
+        "## Summary\n\n"
+        "The available evidence is qualitative but non-empty, with benchmark and architecture references that constrain what can be claimed.\n"
+    )
+    live_output = (
+        "# Memo\n\n"
+        "## Summary\n\n"
+        "Our evidence base contains zero records and no citations, so no analysis is possible.\n"
+    )
+    source_text = json.dumps(
+        {
+            "output": {
+                "records": [
+                    {
+                        "title": "SWE-bench",
+                        "summary": "Benchmark suite for measuring whether agents can resolve real GitHub issues with verifiable code changes.",
+                        "url": "https://github.com/SWE-bench/SWE-bench",
+                        "source_id": "built_in_catalog",
+                        "trust_score": 0.92,
+                    }
+                ],
+                "citations": ["https://github.com/SWE-bench/SWE-bench"],
+            }
+        }
+    )
+
+    grounded = mapper._ground_live_document_output(
+        surface_kind="custom:memo",
+        prompt="Write a memo.",
+        source_text=source_text,
+        local_output=local_output,
+        live_output=live_output,
+    )
+
+    assert "zero records" not in grounded.lower()
+    assert "no citations" not in grounded.lower()
+    assert "SWE-bench" in grounded
+
+
 def test_remote_thread_sandbox_provider_uses_http_contract(monkeypatch, tmp_path: Path) -> None:
     config = RemoteSandboxConfig(base_url="https://sandbox.example.com", api_key="secret", timeout_seconds=5)
     provider = RemoteThreadSandboxProvider(config)
@@ -294,7 +534,7 @@ def test_remote_thread_sandbox_provider_uses_http_contract(monkeypatch, tmp_path
             return _FakeResponse({"files": ["a.txt", "b.txt"]})
         return _FakeResponse({"command": "echo hi", "exit_code": 0, "stdout": "hi", "stderr": "", "duration_ms": 1.0})
 
-    monkeypatch.setattr(request, "urlopen", fake_urlopen)
+    monkeypatch.setattr("app.harness.live_agent.request.urlopen", fake_urlopen)
 
     assert sandbox.workspace_paths()["workspace"] == "/remote/workspace"
     assert sandbox.write_text("demo.txt", "hello", area="outputs").as_posix() == "/remote/outputs/demo.txt"
@@ -343,6 +583,7 @@ def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Pa
     )
     persisted = engine.get_thread(thread["thread_id"])
     stream = engine.build_thread_workspace_stream(thread["thread_id"])
+    html = engine.render_thread_workspace_html(thread["thread_id"])
 
     assert payload["execution"]["status"] == "completed"
     assert payload["graph"]["summary"]["node_count"] >= 5
@@ -368,8 +609,12 @@ def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Pa
     assert bundle["deliverable_index"]
     assert any("patch-draft.diff" in str(item.get("path", "")) for item in bundle["artifact_manifest"])
     assert stream["completion_packet"]["schema"] == "agent-harness-completion-packet/v1"
-    assert stream["showcase"]["primary_artifact"]["kind"] == "completion_packet"
-    assert "completion packet" in stream["showcase"]["summary"].lower()
+    assert stream["delivery_bundle"]["schema"] == "agent-harness-delivery-bundle/v1"
+    assert stream["showcase"]["primary_artifact"]["kind"] in {"report", "delivery_bundle", "deliverable"}
+    assert "delivery bundle" in stream["showcase"]["summary"].lower()
+    assert stream["delivery_bundle"]["deliverable_index"]
+    assert "Deliverable Index" in html
+    assert "Openable Artifact Manifest" in html
 
 
 def test_engine_executes_benchmark_actions_and_dataset_spec(tmp_path: Path) -> None:
@@ -424,6 +669,8 @@ def test_engine_executes_creative_artifact_actions_inside_thread_workspace(tmp_p
     assert any(item["relative_path"].endswith("storyboard.md") for item in persisted["artifacts"])
     assert any(item["relative_path"].endswith("prompt-pack.md") for item in persisted["artifacts"])
     assert any("landing page" in item.lower() or "slide deck" in item.lower() for item in stream["showcase"]["deliverables"])
+    assert stream["showcase"]["primary_artifact"]["kind"] in {"report", "delivery_bundle", "deliverable"}
+    assert any(str(item.get("family", "")) in {"web", "slides"} for item in stream["delivery_bundle"]["deliverable_index"])
 
 
 def test_engine_executes_custom_document_artifacts_for_business_query(tmp_path: Path) -> None:
@@ -547,7 +794,7 @@ def test_live_model_initial_graph_expansion_can_add_tool_and_subagent_nodes(monk
             }
         )
 
-    monkeypatch.setattr(request, "urlopen", fake_urlopen)
+    monkeypatch.setattr("app.harness.live_agent.request.urlopen", fake_urlopen)
 
     payload = engine.execute_thread_generic_task(
         thread["thread_id"],
@@ -633,6 +880,74 @@ def test_workspace_action_can_use_live_model_generated_content(monkeypatch, tmp_
     assert "Hero claim from live model." in output_path.read_text(encoding="utf-8")
 
 
+def test_skill_call_can_use_live_model_generated_content(monkeypatch, tmp_path: Path) -> None:
+    runtime = AgentThreadRuntime(tmp_path / "threads")
+    thread = runtime.create_thread(title="Live Skill Thread")
+
+    class _FakeResponse:
+        def __init__(self, payload: dict[str, object]) -> None:
+            self.payload = json.dumps(payload).encode("utf-8")
+
+        def read(self) -> bytes:
+            return self.payload
+
+        def __enter__(self) -> "_FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    def fake_urlopen(req, timeout=0):  # type: ignore[no-untyped-def]
+        content = {
+            "content_text": (
+                "Live-generated research brief with cited benchmark direction. The result explains that agent quality improves only when evidence is "
+                "connected directly to the final answer, when benchmark references are explicit, and when the runtime suppresses support artifacts that "
+                "do not strengthen the deliverable. It also recommends a primary-output-first policy so users can review the memo before any packet, "
+                "bundle, or other orchestration metadata."
+            ),
+            "rationale": ["upgrade the skill output from local heuristic to model-backed synthesis"],
+        }
+        return _FakeResponse(
+            {
+                "model": "demo-model",
+                "choices": [{"message": {"content": json.dumps(content)}, "finish_reason": "stop"}],
+            }
+        )
+
+    monkeypatch.setattr(request, "urlopen", fake_urlopen)
+
+    graph = {
+        "graph_id": "live-skill",
+        "nodes": [
+            {"node_id": "scope", "title": "Scope", "node_type": "routing", "status": "ready", "depends_on": [], "commands": [], "notes": [], "artifacts": [], "metrics": {}},
+            {
+                "node_id": "synthesis",
+                "title": "Research Brief",
+                "node_type": "skill_call",
+                "status": "ready",
+                "depends_on": ["scope"],
+                "commands": [],
+                "notes": [],
+                "artifacts": [],
+                "metrics": {"skill_name": "research_brief", "prompt": "Write a benchmark-focused research brief", "source_node_ids": ["scope"]},
+            },
+        ],
+    }
+
+    execution = runtime.execute_task_graph(
+        thread["thread_id"],
+        graph=graph,
+        execution_label="live-skill",
+        context={"query": "Write a benchmark-focused research brief", "live_model": {"base_url": "https://example.com/v1", "api_key": "secret", "model_name": "demo-model"}},
+    )
+
+    result = execution["context"]["node_results"]["synthesis"]["result"]
+
+    assert execution["status"] == "completed"
+    assert result["generation_source"] == "live_model"
+    assert "Live-generated research brief" in result["output"]
+
+
 def test_custom_workspace_action_contract_executes_without_builtin_kind(tmp_path: Path) -> None:
     runtime = AgentThreadRuntime(tmp_path / "threads")
     thread = runtime.create_thread(title="Custom Artifact Thread")
@@ -679,6 +994,124 @@ def test_custom_workspace_action_contract_executes_without_builtin_kind(tmp_path
     assert "Decision Memo" in text
     assert "## Decision" in text
     assert "## Next Step" in text
+
+
+def test_research_document_local_fallback_is_paragraph_grade() -> None:
+    source_text = """
+{"output": {"records": [
+  {"title": "SWE-bench", "summary": "Measures whether agents resolve real GitHub issues with verifiable patches.", "url": "https://github.com/SWE-bench/SWE-bench"},
+  {"title": "GAIA Benchmark", "summary": "Evaluates general assistants on multi-step reasoning tasks.", "url": "https://gaia-benchmark.example"}
+], "citations": ["https://github.com/SWE-bench/SWE-bench"]}}
+"""
+    text = TaskGraphActionMapper._build_research_style_document(
+        prompt="Write a deep research memo on why agent frameworks often fail to beat a direct model answer.",
+        source_text=source_text,
+        workspace_summary={"languages": ["python"], "frameworks": ["pytest"]},
+        title="Memo",
+        kind="custom:memo",
+        sections=["Context", "Evidence", "Recommendation", "Implications", "Next Step"],
+    )
+
+    assert "The core question is not whether frameworks can orchestrate more steps" in text
+    assert "SWE-bench" in text
+    assert "## Recommendation" in text
+    assert "## Workspace Context" in text
+
+
+def test_source_matrix_document_uses_richer_columns() -> None:
+    source_text = """
+{"output": {"records": [
+  {"title": "tau-bench", "summary": "Enterprise-oriented benchmark for realistic tool-using agents.", "url": "https://github.com/sierra-research/tau-bench"}
+], "citations": ["https://github.com/sierra-research/tau-bench"]}}
+"""
+    text = TaskGraphActionMapper._build_source_matrix_document(
+        prompt="Prepare a research memo on what makes an agent framework valuable in real tasks.",
+        source_text=source_text,
+        title="Build Source Matrix",
+    )
+
+    assert "| What It Proves | Why It Matters | Remaining Uncertainty |" in text
+    assert "tau-bench" in text
+    assert "## Reading Notes" in text
+
+
+def test_meaningful_lines_filters_markdown_tables_and_short_headings() -> None:
+    lines = TaskGraphActionMapper._meaningful_lines(
+        "## Baseline Answer\n| Question | Source |\n| --- | --- |\nUseful sentence about evidence.\n",
+        limit=5,
+    )
+
+    assert "## Baseline Answer" not in lines
+    assert not any(line.startswith("|") for line in lines)
+    assert "Useful sentence about evidence." in lines
+
+
+def test_custom_workspace_action_can_use_live_revision_loop(monkeypatch, tmp_path: Path) -> None:
+    class _FakeResponse:
+        def __init__(self, payload: dict[str, object]) -> None:
+            self.payload = json.dumps(payload).encode("utf-8")
+
+        def read(self) -> bytes:
+            return self.payload
+
+        def __enter__(self) -> "_FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    responses = [
+        {"thesis": "Frameworks only win when they improve grounded closure.", "findings": ["Evidence must shape the final answer."]},
+        "Draft memo that is still too generic.",
+        {"confidence": 0.61, "blind_spots": ["needs more evidence"], "red_flags": ["too generic"], "improve": ["cite benchmarks and sharpen the recommendation"]},
+        (
+            "## Decision\n\n"
+            "Adopt a primary-deliverable-first runtime. Ground the memo in SWE-bench and tau-bench evidence, then remove orchestration steps that do not improve "
+            "the final result. The framework should collect benchmark context, connect that evidence directly to the recommendation, and keep support artifacts in "
+            "a secondary role so the reviewer can inspect the main memo first. This makes the runtime more defensible than a direct answer because the evidence and "
+            "the conclusion stay coupled instead of drifting apart across intermediate steps.\n"
+        ),
+    ]
+
+    def fake_urlopen(req, timeout=0):  # type: ignore[no-untyped-def]
+        payload = responses.pop(0)
+        content = json.dumps(payload) if isinstance(payload, dict) else str(payload)
+        return _FakeResponse({"model": "demo-model", "choices": [{"message": {"content": content}, "finish_reason": "stop"}]})
+
+    monkeypatch.setattr("app.harness.live_agent.request.urlopen", fake_urlopen)
+    mapper = TaskGraphActionMapper()
+    result = mapper._live_workspace_action_generation(
+        action_kind="custom:decision_memo",
+        prompt="Write a decision memo on why the framework must beat direct model answers on real tasks.",
+        source_text="SWE-bench highlights verifiable software-engineering evaluation. tau-bench focuses on task execution reliability.",
+        workspace_summary={},
+        local_relative_path="briefs/decision-memo.md",
+        local_body={"node_id": "memo"},
+        local_content="# Decision Memo\n\nLocal draft.\n",
+        content_type="text/markdown",
+        context={"live_model": {"base_url": "https://example.com/v1", "api_key": "secret", "model_name": "demo-model"}},
+    )
+
+    assert result is not None
+    assert "primary-deliverable-first runtime" in str(result.get("content_text", ""))
+    assert result.get("source") == "live_model"
+
+
+def test_research_graph_includes_research_artifact_nodes(tmp_path: Path) -> None:
+    engine = HarnessEngine()
+    payload = engine.compile_generic_task_payload(
+        query="Generate a deep research report about benchmark strategy and evidence standards.",
+        target="research",
+        workspace_root=str(tmp_path),
+    )
+    node_ids = {str(item.get("node_id", "")) for item in payload["graph"]["nodes"]}
+    node_map = {str(item.get("node_id", "")): item for item in payload["graph"]["nodes"]}
+
+    assert "source_matrix" in node_ids
+    assert "report_outline" in node_ids
+    assert "direct_baseline" in node_ids
+    assert "external_resources" in node_map["source_matrix"]["metrics"]["source_node_ids"]
+    assert "evidence" in node_map["source_matrix"]["metrics"]["source_node_ids"]
 
 
 def test_patch_draft_prefers_code_file_for_routing_task(tmp_path: Path) -> None:

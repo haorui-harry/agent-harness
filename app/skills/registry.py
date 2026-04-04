@@ -143,6 +143,13 @@ def _candidate_lines(text: str) -> list[str]:
         line = raw.strip(" -\t")
         if not line:
             continue
+        lowered = line.lower()
+        if re.match(r"^\[[a-z0-9_-]+\]\s+[a-z ]+$", lowered):
+            continue
+        if lowered.startswith("tool used:"):
+            continue
+        if lowered.startswith("--- (skill:"):
+            continue
         if line.endswith(":") and len(line.split()) <= 4:
             continue
         lines.append(line)
@@ -201,7 +208,12 @@ def _structured_signal_lines(text: str, limit: int = 8) -> list[str]:
     deduped: list[str] = []
     for item in rows:
         value = _normalize_text(item)
+        lowered = value.lower()
         if not value or value in deduped or value in {"{", "}", "[", "]"}:
+            continue
+        if re.match(r"^\[[a-z0-9_-]+\]\s+[a-z ]+$", lowered):
+            continue
+        if lowered.startswith("tool used:"):
             continue
         deduped.append(value)
         if len(deduped) >= limit:
@@ -432,18 +444,28 @@ def artifact_synthesis(text: str) -> str:
 
     facts = _structured_signal_lines(text, limit=6)
     focus_terms = _keywords(text, limit=5)
-    focus = ", ".join(focus_terms[:3]) or "the artifact set"
+    focus = ", ".join(focus_terms[:3]) or "the primary task"
     strongest = facts[0] if facts else "No strong signals extracted."
     support = facts[1] if len(facts) > 1 else "Need stronger supporting detail."
-    constraints = facts[2] if len(facts) > 2 else "Keep the deliverable grounded in evidence and executable next steps."
+    tension = facts[2] if len(facts) > 2 else "The result still needs a stronger link between evidence and the final recommendation."
     next_step = focus_terms[3] if len(focus_terms) > 3 else (focus_terms[0] if focus_terms else "the main decision")
     return (
-        "Artifact Synthesis:\n"
-        f"- Core signal: {strongest[:220]}\n"
-        f"- Supporting signal: {support[:220]}\n"
-        f"- Stable interpretation: the artifacts converge on {focus}.\n"
-        f"- Constraint or caveat: {constraints[:220]}\n"
-        f"- Recommended next step: tighten the final deliverable around {next_step} and leave one inspectable artifact.\n"
+        "## Executive Summary\n\n"
+        f"The work should center on {focus}. The strongest grounded signal is {strongest[:240]}, and the next strongest support is {support[:220]}. "
+        "That means the final deliverable should answer the user request directly before it explains any process.\n\n"
+        "## Key Findings\n\n"
+        f"First, {strongest[:260]}.\n\n"
+        f"Second, {support[:260]}.\n\n"
+        f"Third, {tension[:240]}\n\n"
+        "## Recommendation\n\n"
+        "Ship one primary deliverable with dense analysis, then keep only the supporting artifacts that strengthen reviewer trust. "
+        "If a supporting file does not improve the final answer, validate it, or create a reusable next action, it should stay in the background.\n\n"
+        "## Next Action\n\n"
+        f"Push the result toward a concrete decision around {next_step}, and leave one inspectable artifact that proves the recommendation is executable.\n\n"
+        "## Review Standard\n\n"
+        "- The first paragraph answers the task directly.\n"
+        "- Major claims are visibly tied to evidence or artifacts.\n"
+        "- The closing action is specific enough for a teammate to execute.\n"
         "--- (skill: artifact_synthesis)"
     )
 
@@ -466,6 +488,7 @@ def codebase_triage(text: str) -> str:
     focus = _keywords(text, limit=4)
     lowered = str(text or "").lower()
     topic = _topic_clause(text, fallback="the primary module")
+    signals = _structured_signal_lines(text, limit=6)
     if any(marker in lowered for marker in {"route", "routing", "router", "parser"}):
         hotspot = "routing and parser classification logic"
         patch_target = "query normalization and fallback selection"
@@ -476,13 +499,24 @@ def codebase_triage(text: str) -> str:
         patch_target = focus[1] if len(focus) > 1 else "input handling"
         test_gap = focus[2] if len(focus) > 2 else "the failing edge case"
         execution_note = focus[3] if len(focus) > 3 else "validation output"
-    items = [
-        f"Hotspot: inspect {hotspot} first.",
-        f"Patch target: isolate the defect around {patch_target}.",
-        f"Test gap: add regression coverage for {test_gap}.",
-        f"Execution note: preserve an artifact for {execution_note}.",
-    ]
-    return "Codebase Triage:\n" + "\n".join(f"- {item}" for item in items) + "\n--- (skill: codebase_triage)"
+    grounding = signals[0] if signals else f"Focus on {topic}."
+    secondary = signals[1] if len(signals) > 1 else f"Keep the patch narrowly scoped around {patch_target}."
+    return (
+        "## Engineering Summary\n\n"
+        f"The likely hotspot is {hotspot}. Current grounding suggests: {grounding}\n\n"
+        "## Patch Intent\n\n"
+        f"The patch should isolate the defect around {patch_target} and keep the change surface minimal enough to validate quickly. "
+        f"A second relevant signal is {secondary}\n\n"
+        "## Test Plan\n\n"
+        f"- Add or tighten regression coverage for {test_gap}.\n"
+        "- Keep one direct happy-path test and one edge-case test tied to the patched branch.\n"
+        "- Preserve a validation artifact that records what was executed and what still remains unverified.\n\n"
+        "## Execution Notes\n\n"
+        f"- Preserve evidence for {execution_note}.\n"
+        "- Prefer touching the smallest number of files that can prove the fix.\n"
+        "- If evidence is thin, state the missing proof explicitly instead of inventing implementation details.\n"
+        "--- (skill: codebase_triage)"
+    )
 
 
 def research_brief(text: str) -> str:
@@ -490,13 +524,24 @@ def research_brief(text: str) -> str:
 
     focus = _keywords(text, limit=3)
     topic = _topic_clause(text)
+    signals = _structured_signal_lines(text, limit=6)
+    lead_signal = signals[0] if signals else "No strong evidence signal has been extracted yet."
+    support_signal = signals[1] if len(signals) > 1 else "Evidence still needs to be deepened beyond initial notes."
     return (
-        "Research Brief:\n"
-        f"- Topic: {topic}.\n"
-        f"- Question: what patterns or decisions matter most for {topic}?\n"
-        f"- Hypothesis: better structure around {focus[0] if focus else 'the core mechanism'} improves quality and reproducibility.\n"
-        f"- Evidence to gather: benchmarks, failure cases, and direct artifacts touching {focus[1] if len(focus) > 1 else 'runtime behavior'}.\n"
-        "- Open gap: separate anecdotal wins from reproducible gains.\n"
+        "## Research Question\n\n"
+        f"The topic is {topic}. The central question is which patterns, architectural choices, or missing capabilities matter most for improving outcomes in this area.\n\n"
+        "## Working Thesis\n\n"
+        f"The current hypothesis is that better structure around {focus[0] if focus else 'the core mechanism'} only matters when it improves evidence quality, execution closure, or end-user usefulness.\n\n"
+        "## Findings So Far\n\n"
+        f"- Primary signal: {lead_signal}\n"
+        f"- Supporting signal: {support_signal}\n"
+        f"- Research focus: {focus[1] if len(focus) > 1 else 'identify the highest-leverage weakness and prove it'}\n\n"
+        "## Report Direction\n\n"
+        f"A strong final report should isolate the main failure mode, compare alternatives where needed, and end with a concrete improvement path for {focus[2] if len(focus) > 2 else 'real users'} rather than a generic survey.\n\n"
+        "## Open Gaps\n\n"
+        f"- Gather benchmarks, failure cases, and direct artifacts touching {focus[1] if len(focus) > 1 else 'runtime behavior'}.\n"
+        "- Separate anecdotal wins from reproducible gains.\n"
+        "- Tie each recommendation to evidence instead of letting the brief stay purely conceptual.\n"
         "--- (skill: research_brief)"
     )
 

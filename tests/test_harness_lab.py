@@ -7,6 +7,7 @@ from urllib import request
 
 from app.harness.engine import HarnessEngine
 from app.harness.models import HarnessConstraints, ToolCall, ToolType
+from app.harness.task_profile import _constrain_live_graph_expansion, analyze_task_request
 from app.harness.tools import ToolRegistry
 
 
@@ -133,9 +134,94 @@ def test_task_graph_builder_infers_web_research_without_repo_context(tmp_path) -
     assert "web" in graph.output["profile"]["selected_channels"]
     nodes = graph.output["graph"]["nodes"]
     node_ids = {item["node_id"] for item in nodes}
-    assert {"external_resources", "evidence", "analysis", "validation", "synthesis", "report"}.issubset(node_ids)
+    assert {"external_resources", "evidence", "analysis", "synthesis", "report"}.issubset(node_ids)
+    assert "validation" not in node_ids
     assert "workspace_scan" not in node_ids
     assert graph.output["graph"]["summary"]["node_count"] >= 6
+
+
+def test_research_report_query_prefers_report_mode_over_benchmark_mode(tmp_path) -> None:
+    profile = analyze_task_request(
+        "Write a deep research report on benchmark strategy and evidence standards for general agent frameworks.",
+        target="research",
+        workspace_root=tmp_path,
+    )
+
+    assert profile.execution_intent == "research"
+    assert profile.output_mode == "report"
+    assert profile.requires_validation is False
+
+
+def test_research_report_with_benchmark_scope_keeps_report_as_primary_deliverable(tmp_path) -> None:
+    profile = analyze_task_request(
+        "Generate a deep research and improvement report covering benchmark strategy, experimental design, evidence standards, and a concrete upgrade roadmap for a general agent framework.",
+        target="research",
+        workspace_root=tmp_path,
+    )
+
+    artifact_kinds = {
+        str(item.get("kind", ""))
+        for item in profile.task_spec.get("artifact_contracts", [])
+        if isinstance(item, dict)
+    }
+
+    assert profile.output_mode == "report"
+    assert "deliverable_report" in artifact_kinds
+    assert {"benchmark_manifest", "benchmark_run_config", "data_analysis_spec"}.issubset(artifact_kinds)
+
+
+def test_publishable_report_query_does_not_false_positive_into_data_mode(tmp_path) -> None:
+    profile = analyze_task_request(
+        "Produce a publishable report with concrete findings and a benchmark roadmap for a general-purpose agent framework.",
+        target="research",
+        workspace_root=tmp_path,
+    )
+
+    assert profile.output_mode == "report"
+
+
+def test_live_graph_expansion_is_constrained_for_report_like_queries() -> None:
+    nodes = _constrain_live_graph_expansion(
+        query="Write a research memo on why general agent frameworks fail to beat a direct model answer.",
+        execution_intent="research",
+        output_mode="report",
+        nodes=[
+            {"node_type": "workspace_action", "kind": "dataset_pull_spec", "title": "Dataset", "depends_on": ["analysis"]},
+            {"node_type": "workspace_action", "kind": "data_analysis_spec", "title": "Analysis", "depends_on": ["analysis"]},
+            {"node_type": "workspace_action", "kind": "custom:memo", "title": "Memo", "depends_on": ["analysis"]},
+            {"node_type": "workspace_action", "kind": "custom:research_memo", "title": "Alt Memo", "depends_on": ["analysis"]},
+            {"node_type": "tool_call", "tool_name": "external_resource_hub", "title": "Evidence", "depends_on": ["analysis"]},
+            {"node_type": "subagent", "subagent_kind": "research_probe", "title": "Probe", "depends_on": ["analysis"]},
+        ],
+    )
+
+    kinds = {str(item.get("kind", "")) for item in nodes if str(item.get("node_type", "")) == "workspace_action"}
+    assert "custom:memo" in kinds
+    assert "custom:research_memo" not in kinds
+    assert "dataset_pull_spec" not in kinds
+    assert "data_analysis_spec" not in kinds
+    assert not any(str(item.get("node_type", "")) in {"tool_call", "subagent"} for item in nodes)
+
+
+def test_research_memo_is_deferred_until_supporting_research_artifacts_exist(tmp_path) -> None:
+    tools = ToolRegistry()
+    graph = tools.call(
+        ToolCall(
+            name="task_graph_builder",
+            tool_type=ToolType.CODE,
+            args={
+                "query": "Write a deep research memo on why general agent frameworks often fail to beat a direct model answer.",
+                "target": "research",
+                "workspace_root": str(tmp_path),
+            },
+        )
+    )
+
+    assert graph.success is True
+    nodes = graph.output["graph"]["nodes"]
+    memo_node = next(item for item in nodes if item["node_id"] == "action_custom-memo")
+    assert {"source_matrix", "report_outline", "direct_baseline"}.issubset(set(memo_node["depends_on"]))
+    assert {"source_matrix", "report_outline", "direct_baseline"}.issubset(set(memo_node["metrics"]["source_node_ids"]))
 
 
 def test_task_graph_builder_infers_workspace_grounded_repo_analysis(tmp_path) -> None:
@@ -163,9 +249,11 @@ def test_task_graph_builder_infers_workspace_grounded_repo_analysis(tmp_path) ->
     assert "delivery_bundle" in node_ids
     replan = next(item for item in nodes if item["node_id"] == "replan")
     synthesis = next(item for item in nodes if item["node_id"] == "synthesis")
+    completion_packet = next(item for item in nodes if item["node_id"] == "completion_packet")
     delivery_bundle = next(item for item in nodes if item["node_id"] == "delivery_bundle")
     assert "completion_packet" in replan["depends_on"]
-    assert "completion_packet" in synthesis["depends_on"]
+    assert "completion_packet" not in synthesis["depends_on"]
+    assert "report" in completion_packet["depends_on"]
     assert {"completion_packet", "report"}.issubset(set(delivery_bundle["depends_on"]))
     assert "external_resources" not in node_ids
 

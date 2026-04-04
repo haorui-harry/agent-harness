@@ -19,7 +19,17 @@ _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{1,}|[\u4e00-\u9fff]{2,}")
 
 
 def _tokens(text: str) -> list[str]:
-    return [token.lower() for token in _TOKEN_RE.findall(str(text or ""))]
+    raw_tokens = [token.lower() for token in _TOKEN_RE.findall(str(text or ""))]
+    expanded: list[str] = []
+    for token in raw_tokens:
+        if token not in expanded:
+            expanded.append(token)
+        if "-" in token or "_" in token:
+            for part in re.split(r"[-_]+", token):
+                normalized = part.strip().lower()
+                if len(normalized) >= 2 and normalized not in expanded:
+                    expanded.append(normalized)
+    return expanded
 
 
 def _count_markers(lowered: str, markers: list[str]) -> int:
@@ -277,9 +287,11 @@ def analyze_task_request(
     code_markers = [
         "patch",
         "test",
+        "tests",
         "bug",
         "refactor",
         "fix",
+        "fixes",
         "implement",
         "validation",
         "execute",
@@ -408,14 +420,40 @@ def analyze_task_request(
         "\u5206\u7fa4",
     ]
     report_markers = ["report", "brief", "summary", "proposal", "\u65b9\u6848", "\u62a5\u544a", "\u603b\u7ed3"]
+    memo_markers = ["memo", "one-pager", "one pager", "brief"]
     runbook_markers = ["runbook", "playbook", "ops", "\u64cd\u4f5c\u624b\u518c", "\u9884\u6848"]
-    patch_markers = ["patch", "fix", "implement", "\u4ee3\u7801\u4fee\u6539", "\u8865\u4e01", "\u4fee\u590d"]
+    patch_markers = ["patch", "fix", "fixes", "implement", "tests", "\u4ee3\u7801\u4fee\u6539", "\u8865\u4e01", "\u4fee\u590d"]
+    benchmark_runtime_markers = [
+        "ablation",
+        "runner",
+        "run config",
+        "run-config",
+        "manifest",
+        "suite",
+        "gaia",
+        "swe-bench",
+        "webarena",
+        "tau-bench",
+        "\u6d88\u878d",
+        "\u8dd1\u5206",
+    ]
 
     workspace_signal = _count_markers(lowered, workspace_markers)
     external_signal = _count_markers(lowered, external_markers)
     code_signal = _count_markers(lowered, code_markers)
     ops_signal = _count_markers(lowered, ops_markers)
     benchmark_signal = _count_markers(lowered, benchmark_markers)
+    report_signal = _count_markers(lowered, report_markers + memo_markers)
+    benchmark_runtime_signal = _count_markers(lowered, benchmark_runtime_markers)
+    patch_mode_signal = _count_markers(lowered, patch_markers)
+    runbook_mode_signal = _count_markers(lowered, runbook_markers)
+    webpage_mode_signal = _count_markers(lowered, webpage_markers)
+    slides_mode_signal = _count_markers(lowered, slides_markers)
+    chart_mode_signal = _count_markers(lowered, chart_markers)
+    podcast_mode_signal = _count_markers(lowered, podcast_markers)
+    video_mode_signal = _count_markers(lowered, video_markers)
+    image_mode_signal = _count_markers(lowered, image_markers)
+    data_mode_signal = _count_markers(lowered, data_markers)
 
     if target_hint == "code":
         workspace_signal += 2
@@ -426,7 +464,7 @@ def analyze_task_request(
         ops_signal += 2
 
     execution_intent = "general"
-    if benchmark_signal >= max(code_signal, ops_signal, 2):
+    if benchmark_runtime_signal >= 1 and benchmark_signal >= max(code_signal, ops_signal, 1):
         execution_intent = "benchmark"
     elif code_signal >= max(ops_signal, external_signal, 2):
         execution_intent = "code"
@@ -438,27 +476,27 @@ def analyze_task_request(
         execution_intent = "mixed"
 
     output_mode = "artifact"
-    if any(marker in lowered for marker in patch_markers):
+    if patch_mode_signal > 0:
         output_mode = "patch"
-    elif any(marker in lowered for marker in runbook_markers):
+    elif runbook_mode_signal > 0:
         output_mode = "runbook"
-    elif benchmark_signal > 0:
+    elif benchmark_runtime_signal > 0 and report_signal == 0:
         output_mode = "benchmark"
-    elif any(marker in lowered for marker in webpage_markers):
+    elif webpage_mode_signal > 0:
         output_mode = "webpage"
-    elif any(marker in lowered for marker in slides_markers):
+    elif slides_mode_signal > 0:
         output_mode = "slides"
-    elif any(marker in lowered for marker in chart_markers):
+    elif chart_mode_signal > 0:
         output_mode = "chart"
-    elif any(marker in lowered for marker in podcast_markers):
+    elif podcast_mode_signal > 0:
         output_mode = "podcast"
-    elif any(marker in lowered for marker in video_markers):
+    elif video_mode_signal > 0:
         output_mode = "video"
-    elif any(marker in lowered for marker in image_markers):
+    elif image_mode_signal > 0:
         output_mode = "image"
-    elif any(marker in lowered for marker in data_markers):
+    elif data_mode_signal > 0 and report_signal == 0:
         output_mode = "data"
-    elif any(marker in lowered for marker in report_markers):
+    elif report_signal > 0:
         output_mode = "report"
 
     reasoning_style = "deliberate"
@@ -476,12 +514,14 @@ def analyze_task_request(
         reasoning_style = "analytic"
 
     workspace_summary = inspect_workspace_capabilities(workspace_root)
-    provisional_validation = execution_intent in {"code", "research", "benchmark", "mixed"} or output_mode in {
+    provisional_validation = execution_intent in {"code", "benchmark", "mixed"} or output_mode in {
         "patch",
         "benchmark",
         "chart",
         "data",
     }
+    if execution_intent == "research" and output_mode in {"report", "artifact"}:
+        provisional_validation = False
     provisional_command_execution = (
         execution_intent in {"code", "benchmark"}
         and bool(workspace_summary.get("suggested_commands", []))
@@ -832,6 +872,47 @@ def _required_channels_from_packages(package_priors: list[dict[str, Any]]) -> li
     return deduped
 
 
+def _query_requests_benchmark_support(query: str) -> bool:
+    markers = [
+        "benchmark",
+        "ablation",
+        "runner",
+        "run config",
+        "run-config",
+        "manifest",
+        "suite",
+        "gaia",
+        "swe-bench",
+        "webarena",
+        "tau-bench",
+        "experimental design",
+        "\u57fa\u51c6",
+        "\u6d88\u878d",
+        "\u8dd1\u5206",
+    ]
+    lowered = str(query or "").lower()
+    return _count_markers(lowered, markers) > 0
+
+
+def _query_requests_data_support(query: str) -> bool:
+    markers = [
+        "data analysis",
+        "analytics",
+        "dataset",
+        "csv",
+        "table",
+        "sql",
+        "cohort",
+        "evidence standard",
+        "evidence standards",
+        "\u6570\u636e\u5206\u6790",
+        "\u6570\u636e\u96c6",
+        "\u8868\u683c",
+    ]
+    lowered = str(query or "").lower()
+    return _count_markers(lowered, markers) > 0
+
+
 def _package_graph_expansion_actions(*, package_priors: list[dict[str, Any]], selected_channels: list[str]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     selected = set(selected_channels)
@@ -922,7 +1003,7 @@ def requested_output_modes(*, query: str, output_mode: str) -> list[str]:
     if output_mode in {name for name, _markers in rows}:
         requested.append(output_mode)
     for name, markers in rows:
-        if any(marker in lowered for marker in markers) and name not in requested:
+        if _count_markers(lowered, markers) > 0 and name not in requested:
             requested.append(name)
     return requested
 
@@ -954,6 +1035,10 @@ def default_artifact_targets(
         targets.append("benchmark_matrix")
     elif output_mode == "runbook":
         targets.append("runbook")
+    if output_mode != "benchmark" and _query_requests_benchmark_support(query):
+        targets.append("benchmark_matrix")
+    if _query_requests_data_support(query):
+        targets.append("data_analysis_spec")
     for mode in requested_output_modes(query=query, output_mode=output_mode):
         targets.extend(
             {
@@ -977,6 +1062,7 @@ def custom_artifact_actions(*, task_spec: dict[str, Any]) -> list[dict[str, Any]
     """Convert custom artifact contracts into executable workspace actions."""
 
     contracts = task_spec.get("artifact_contracts", []) if isinstance(task_spec.get("artifact_contracts", []), list) else []
+    target = str(task_spec.get("target", "")).strip().lower()
     actions: list[dict[str, Any]] = []
     for item in contracts:
         if not isinstance(item, dict):
@@ -989,12 +1075,22 @@ def custom_artifact_actions(*, task_spec: dict[str, Any]) -> list[dict[str, Any]
         slug = re.sub(r"[^a-z0-9]+", "-", kind.replace("custom:", "").lower()).strip("-") or "artifact"
         content_type = "application/json" if format_hint == "json" else "text/markdown"
         relative_path = f"briefs/{slug}.json" if content_type == "application/json" else f"briefs/{slug}.md"
+        depends_on = ["analysis"]
+        if target == "research" and kind in {
+            "custom:memo",
+            "custom:brief",
+            "custom:executive_memo",
+            "custom:decision_memo",
+            "custom:launch_memo",
+            "custom:one_pager",
+        }:
+            depends_on = ["analysis", "evidence", "external_resources"]
         actions.append(
             {
                 "node_type": "workspace_action",
                 "kind": kind,
                 "title": f"Generate {title}",
-                "depends_on": ["analysis"],
+                "depends_on": depends_on,
                 "reason": f"query explicitly asks for {title.lower()} as a first-class deliverable",
                 "relative_path": relative_path,
                 "content_type": content_type,
@@ -1062,6 +1158,10 @@ def _default_graph_expansion(
 ) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
     selected = set(selected_channels)
+    lowered = str(query or "").lower()
+    explicit_data_build = any(
+        marker in lowered for marker in ["dataset", "data analysis", "csv", "sql", "dashboard", "\u6570\u636e\u5206\u6790", "\u6570\u636e\u96c6"]
+    )
 
     if execution_intent in {"code", "mixed"} or output_mode == "patch":
         actions.append(
@@ -1080,7 +1180,7 @@ def _default_graph_expansion(
                 "reason": "code-oriented tasks benefit from a concrete draft patch artifact",
             }
         )
-    if execution_intent == "benchmark" or output_mode == "benchmark":
+    if execution_intent == "benchmark" or output_mode == "benchmark" or _query_requests_benchmark_support(query):
         actions.append(
             {
                 "kind": "benchmark_run_config",
@@ -1097,7 +1197,9 @@ def _default_graph_expansion(
                 "reason": "benchmark tasks need a portable manifest for reproducibility",
             }
         )
-    if execution_intent in {"research", "benchmark", "mixed"} and "web" in selected:
+    if execution_intent in {"research", "benchmark", "mixed"} and "web" in selected and (
+        explicit_data_build or output_mode in {"data", "benchmark"} or _query_requests_data_support(query)
+    ):
         actions.append(
             {
                 "kind": "dataset_pull_spec",
@@ -1216,9 +1318,26 @@ def _default_graph_expansion(
         seen.add(dedupe_key)
         deduped_actions.append(action)
 
+    constrained_nodes = _constrain_live_graph_expansion(
+        query=query,
+        execution_intent=execution_intent,
+        output_mode=output_mode,
+        nodes=_normalize_graph_expansion_nodes({"actions": deduped_actions}),
+    )
+    constrained_actions = [
+        {
+            "kind": str(item.get("kind", "")).strip(),
+            "title": str(item.get("title", "")).strip(),
+            "depends_on": list(item.get("depends_on", ["analysis"])) if isinstance(item.get("depends_on", []), list) else ["analysis"],
+            "reason": str(item.get("reason", "graph expansion")).strip(),
+        }
+        for item in constrained_nodes
+        if str(item.get("node_type", "")) == "workspace_action"
+    ]
+
     return {
-        "actions": deduped_actions,
-        "nodes": _normalize_graph_expansion_nodes({"actions": deduped_actions}),
+        "actions": constrained_actions,
+        "nodes": constrained_nodes,
         "replan_enabled": bool(deduped_actions or requires_command_execution),
         "replan_focus": ["execution", "artifacts", "validation"],
         "rationale": ["local graph expansion selected"],
@@ -1280,6 +1399,12 @@ def refine_graph_expansion_with_live_model(
         )
         parsed = _coerce_json_dict(text)
         nodes = _normalize_graph_expansion_nodes(parsed)
+        nodes = _constrain_live_graph_expansion(
+            query=query,
+            execution_intent=execution_intent,
+            output_mode=output_mode,
+            nodes=nodes,
+        )
         if not nodes:
             return local
         replan_focus = [str(item).strip() for item in parsed.get("replan_focus", []) if str(item).strip()] if isinstance(parsed.get("replan_focus", []), list) else []
@@ -1309,6 +1434,62 @@ def refine_graph_expansion_with_live_model(
         }
     except Exception:
         return local
+
+
+def _constrain_live_graph_expansion(
+    *,
+    query: str,
+    execution_intent: str,
+    output_mode: str,
+    nodes: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    lowered = str(query or "").lower()
+    report_like = output_mode in {"report", "artifact"} and any(
+        marker in lowered for marker in ["report", "memo", "brief", "research", "\u62a5\u544a", "\u5907\u5fd8\u5f55"]
+    )
+    explicit_benchmark_build = any(
+        marker in lowered for marker in ["benchmark manifest", "run config", "run-config", "ablation", "runner", "suite"]
+    )
+    explicit_data_build = any(
+        marker in lowered for marker in ["dataset", "data analysis", "csv", "sql", "dashboard", "\u6570\u636e\u5206\u6790", "\u6570\u636e\u96c6"]
+    )
+    explicit_parallel_agent = any(
+        marker in lowered for marker in ["subagent", "delegate", "parallel agent", "multi-agent", "research team"]
+    )
+    presentation_surface = _count_markers(lowered, ["presentation", "slides", "slide", "deck", "webpage", "website", "landing"]) > 0
+    allowed_report_custom_kinds = {
+        "custom:memo",
+        "custom:brief",
+        "custom:executive_memo",
+        "custom:decision_memo",
+        "custom:launch_memo",
+        "custom:one_pager",
+        "custom:source_matrix",
+        "custom:research_outline",
+        "custom:direct_answer_baseline",
+    }
+    filtered: list[dict[str, Any]] = []
+    for item in nodes:
+        if not isinstance(item, dict):
+            continue
+        node_type = str(item.get("node_type", "")).strip()
+        if report_like and node_type in {"tool_call", "subagent"} and not explicit_parallel_agent and not presentation_surface:
+            continue
+        if node_type != "workspace_action":
+            filtered.append(item)
+            continue
+        kind = str(item.get("kind", "")).strip()
+        if report_like:
+            if kind.startswith("custom:") and kind not in allowed_report_custom_kinds:
+                continue
+            if kind in {"dataset_pull_spec", "dataset_loader_template", "data_analysis_spec"} and not explicit_data_build:
+                continue
+            if kind in {"benchmark_manifest", "benchmark_run_config"} and not (
+                execution_intent == "benchmark" or explicit_benchmark_build
+            ):
+                continue
+        filtered.append(item)
+    return filtered
 
 
 def refine_deliberation_with_live_model(
@@ -1509,6 +1690,7 @@ def build_dynamic_task_graph(
     keywords = resolved.keywords or ["task"]
     slug = _slugify(keywords[:3], fallback=resolved.execution_intent or "task")
 
+    task_contracts = resolved.task_spec.get("artifact_contracts", []) if isinstance(resolved.task_spec.get("artifact_contracts", []), list) else []
     report_title = {
         "patch": "Patch Preparation Report",
         "runbook": "Operational Runbook",
@@ -1523,6 +1705,12 @@ def build_dynamic_task_graph(
         "data": "Data Analysis Pack",
         "artifact": "Executable Task Artifact",
     }.get(resolved.output_mode, "Executable Task Artifact")
+    if any(
+        str(item.get("kind", "")) in {"custom:memo", "custom:executive_memo", "custom:decision_memo", "custom:launch_memo"}
+        for item in task_contracts
+        if isinstance(item, dict)
+    ):
+        report_title = "Research Memo"
     report_path = f"reports/{slug}-{resolved.output_mode}-report.md"
 
     nodes: list[TaskGraphNode] = [
@@ -1858,55 +2046,139 @@ def build_dynamic_task_graph(
         expansion_action_ids.append(action_id)
         synthesis_sources.append(action_id)
 
-    completion_packet_depends = list(dict.fromkeys(synthesis_sources))
-    nodes.append(
-        TaskGraphNode(
-            node_id="completion_packet",
-            title="Generate Completion Packet",
-            node_type="workspace_action",
-            status="ready",
-            depends_on=completion_packet_depends,
-            metrics={
-                "action_kind": "completion_packet",
-                "prompt": query,
-                "source_node_ids": completion_packet_depends,
-                "workspace_summary": dict(resolved.workspace_summary),
-                "task_spec": dict(resolved.task_spec),
-            },
-        )
+    research_surface = (
+        resolved.execution_intent in {"research", "benchmark"}
+        or (resolved.output_mode == "report" and "web" in selected)
     )
-
-    if bool(resolved.graph_expansion.get("replan_enabled", False)):
-        replan_depends = ["completion_packet"]
-        nodes.append(
-            TaskGraphNode(
-                node_id="replan",
-                title="Replan Graph",
-                node_type="graph_replan",
-                status="ready",
-                depends_on=replan_depends,
-                metrics={
-                    "prompt": query,
-                    "source_node_ids": replan_depends,
-                    "replan_focus": list(resolved.graph_expansion.get("replan_focus", [])),
-                    "workspace_summary": dict(resolved.workspace_summary),
-                    "task_spec": dict(resolved.task_spec),
-                    "capability_plan": dict(resolved.capability_plan),
-                    "graph_expansion_source": str(resolved.graph_expansion.get("source", "local")),
-                },
+    if research_surface:
+        memo_kinds = {
+            "custom:memo",
+            "custom:brief",
+            "custom:executive_memo",
+            "custom:decision_memo",
+            "custom:launch_memo",
+            "custom:one_pager",
+        }
+        deferred_memo_node_ids = [
+            item.node_id
+            for item in nodes
+            if isinstance(item, TaskGraphNode)
+            and str(item.node_type) == "workspace_action"
+            and str(item.metrics.get("action_kind", "")) in memo_kinds
+        ]
+        research_nodes = [
+            (
+                "source_matrix",
+                "Build Source Matrix",
+                "custom:source_matrix",
+                f"research/{slug}-source-matrix.md",
+                ["Question", "Source", "Usefulness", "Open Gaps"],
+            ),
+            (
+                "report_outline",
+                "Build Research Outline",
+                "custom:research_outline",
+                f"research/{slug}-outline.md",
+                ["Core Thesis", "Sections", "Evidence Coverage", "Missing Proof"],
+            ),
+            (
+                "direct_baseline",
+                "Draft Direct-Model Baseline",
+                "custom:direct_answer_baseline",
+                f"research/{slug}-direct-baseline.md",
+                ["Baseline Answer", "What It Misses", "What Harness Must Add"],
+            ),
+        ]
+        research_evidence_sources = [
+            item.node_id
+            for item in nodes
+            if isinstance(item, TaskGraphNode)
+            and str(item.node_type) in {"tool_call", "skill_call"}
+            and (
+                item.node_id in {"analysis", "external_resources", "evidence"}
+                or str(item.metrics.get("tool_name", "")) in {"external_resource_hub", "evidence_dossier_builder"}
+            )
+        ]
+        prior_sources = list(
+            dict.fromkeys(
+                [item for item in synthesis_sources if item not in deferred_memo_node_ids]
+                + research_evidence_sources
             )
         )
-        synthesis_sources = ["completion_packet", "replan"]
-    else:
-        synthesis_sources = ["completion_packet"]
+        for node_id, title, kind, relative_path, sections in research_nodes:
+            source_ids = list(dict.fromkeys(prior_sources))
+            nodes.append(
+                TaskGraphNode(
+                    node_id=node_id,
+                    title=title,
+                    node_type="workspace_action",
+                    status="ready",
+                    depends_on=source_ids,
+                    metrics={
+                        "action_kind": kind,
+                        "prompt": query,
+                        "source_node_ids": source_ids,
+                        "relative_path": relative_path,
+                        "content_type": "text/markdown",
+                        "format_hint": "markdown",
+                        "artifact_contract": {
+                            "title": title,
+                            "sections": sections,
+                        },
+                    },
+                )
+            )
+            prior_sources.append(node_id)
+        synthesis_sources = list(dict.fromkeys(prior_sources + deferred_memo_node_ids))
+        research_support_ids = ["source_matrix", "report_outline", "direct_baseline"]
+        rewritten_nodes: list[TaskGraphNode] = []
+        for item in nodes:
+            if not isinstance(item, TaskGraphNode):
+                rewritten_nodes.append(item)
+                continue
+            if str(item.node_type) != "workspace_action":
+                rewritten_nodes.append(item)
+                continue
+            action_kind = str(item.metrics.get("action_kind", "")) if isinstance(item.metrics, dict) else ""
+            if action_kind not in memo_kinds:
+                rewritten_nodes.append(item)
+                continue
+            memo_depends = list(dict.fromkeys(list(item.depends_on or []) + research_support_ids))
+            memo_sources = list(
+                dict.fromkeys(
+                    list(item.metrics.get("source_node_ids", []))
+                    + [node_id for node_id in research_support_ids if node_id]
+                )
+            )
+            rewritten_nodes.append(
+                TaskGraphNode(
+                    node_id=item.node_id,
+                    title=item.title,
+                    node_type=item.node_type,
+                    status=item.status,
+                    depends_on=memo_depends,
+                    commands=list(item.commands),
+                    notes=list(item.notes),
+                    artifacts=list(item.artifacts),
+                    metrics={**dict(item.metrics), "source_node_ids": memo_sources},
+                )
+            )
+        nodes = rewritten_nodes
 
     contracts = resolved.task_spec.get("artifact_contracts", []) if isinstance(resolved.task_spec.get("artifact_contracts", []), list) else []
     custom_contract_count = sum(1 for item in contracts if isinstance(item, dict) and str(item.get("kind", "")).startswith("custom:"))
     requested_surface_count = len(requested_output_modes(query=query, output_mode=resolved.output_mode))
 
     synthesis_skill = "artifact_synthesis"
-    if resolved.output_mode == "runbook" or resolved.execution_intent == "ops":
+    lowered_query = query.lower()
+    if resolved.output_mode == "patch" or resolved.execution_intent == "code":
+        synthesis_skill = "codebase_triage"
+    elif resolved.output_mode == "runbook" or resolved.execution_intent == "ops":
         synthesis_skill = "ops_runbook"
+    elif research_surface and any(
+        marker in lowered_query for marker in ["report", "research", "improvement", "roadmap", "strategy", "gaps"]
+    ):
+        synthesis_skill = "artifact_synthesis"
     elif resolved.output_mode == "benchmark" or resolved.execution_intent == "benchmark":
         synthesis_skill = "benchmark_ablation"
     elif custom_contract_count > 0 or requested_surface_count > 1 or len(contracts) > 2:
@@ -1971,6 +2243,45 @@ def build_dynamic_task_graph(
                     "relative_path": f"artifacts/{slug}-execution-trace.json",
                     "source_node_id": "execution",
                     "result_field": "",
+                },
+            )
+        )
+
+    completion_packet_depends = list(dict.fromkeys(synthesis_sources + ["report"]))
+    nodes.append(
+        TaskGraphNode(
+            node_id="completion_packet",
+            title="Generate Completion Packet",
+            node_type="workspace_action",
+            status="ready",
+            depends_on=completion_packet_depends,
+            metrics={
+                "action_kind": "completion_packet",
+                "prompt": query,
+                "source_node_ids": completion_packet_depends,
+                "workspace_summary": dict(resolved.workspace_summary),
+                "task_spec": dict(resolved.task_spec),
+            },
+        )
+    )
+
+    if bool(resolved.graph_expansion.get("replan_enabled", False)):
+        replan_depends = ["completion_packet"]
+        nodes.append(
+            TaskGraphNode(
+                node_id="replan",
+                title="Replan Graph",
+                node_type="graph_replan",
+                status="ready",
+                depends_on=replan_depends,
+                metrics={
+                    "prompt": query,
+                    "source_node_ids": replan_depends,
+                    "replan_focus": list(resolved.graph_expansion.get("replan_focus", [])),
+                    "workspace_summary": dict(resolved.workspace_summary),
+                    "task_spec": dict(resolved.task_spec),
+                    "capability_plan": dict(resolved.capability_plan),
+                    "graph_expansion_source": str(resolved.graph_expansion.get("source", "local")),
                 },
             )
         )
@@ -2066,6 +2377,8 @@ def _normalize_graph_expansion_nodes(payload: dict[str, Any]) -> list[dict[str, 
         if node_type == "workspace_action":
             kind = str(item.get("kind", "")).strip()
             is_custom = kind.startswith("custom:")
+            if kind in {"completion_packet", "delivery_bundle"}:
+                continue
             if kind not in allowed_workspace_actions and not is_custom:
                 continue
             if is_custom and not (
