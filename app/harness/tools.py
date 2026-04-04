@@ -22,14 +22,23 @@ from app.harness.evidence import EvidenceProviderRegistry
 from app.harness.manifest import ToolManifestRegistry
 from app.harness.models import ToolCall, ToolResult, ToolType
 from app.harness.task_profile import analyze_task_request, build_dynamic_task_graph, infer_domains
+from app.skills.packages import SkillPackageCatalog
 from app.skills.registry import list_all_skills
 
 
 class ToolRegistry:
     """Registry for harness-level tool calls."""
 
-    def __init__(self) -> None:
-        self._evidence = EvidenceProviderRegistry()
+    def __init__(
+        self,
+        *,
+        evidence_registry: EvidenceProviderRegistry | None = None,
+        package_catalog: SkillPackageCatalog | None = None,
+        gateway_config: dict[str, Any] | None = None,
+    ) -> None:
+        self._evidence = evidence_registry or EvidenceProviderRegistry()
+        self._packages = package_catalog or SkillPackageCatalog()
+        self._gateway = dict(gateway_config or {})
         self._manifests = ToolManifestRegistry()
         self._tool_schemas = self._build_tool_schemas()
         self._tools: dict[str, Callable[[dict[str, Any]], Any]] = {
@@ -102,6 +111,16 @@ class ToolRegistry:
         """List configured evidence sources backing evidence-aware tools."""
 
         return self._evidence.list_sources()
+
+    def list_skill_packages(self, enabled_only: bool = False) -> list[dict[str, Any]]:
+        """List package-style skills exposed to the planner/runtime."""
+
+        return [item.to_dict() for item in self._packages.list_packages(enabled_only=enabled_only)]
+
+    def suggest_skill_packages(self, query: str, *, target: str = "general", limit: int = 6) -> list[dict[str, Any]]:
+        """Suggest package-style skills for a task."""
+
+        return [item.to_dict() for item in self._packages.suggest(query, target=target, limit=limit)]
 
     def infer_tool_type(self, tool_name: str) -> ToolType:
         """Infer tool type from tool name."""
@@ -210,33 +229,96 @@ class ToolRegistry:
         limit = int(args.get("limit", 3))
         return {"trending": get_trending_skills(limit=limit)}
 
-    @staticmethod
-    def _code_skill_search(args: dict[str, Any]) -> dict[str, Any]:
+    def _code_skill_search(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).lower()
+        query_tokens = set(re.findall(r"[a-z0-9_-]+", query))
         limit = int(args.get("limit", 8))
-        matches = []
+        target = str(args.get("target", "general")).strip().lower() or "general"
+
+        ranked: list[tuple[float, dict[str, Any]]] = []
+        for index, package in enumerate(
+            self._packages.suggest(query, target=target, limit=max(limit, 6), enabled_only=False)
+        ):
+            score = package.score_for_query(query, target=target)
+            score += max(0.0, 0.06 - 0.01 * index)
+            ranked.append(
+                (
+                    score,
+                    {
+                        "name": package.name,
+                        "category": package.category,
+                        "tier": "package",
+                        "cost": float(max(len(package.tool_refs), 1)),
+                        "source": package.source,
+                        "summary": package.summary or package.description,
+                        "skills": list(package.skill_refs),
+                        "tools": list(package.tool_refs),
+                        "artifacts": list(package.artifact_kinds),
+                        "match_score": round(score, 4),
+                    },
+                )
+            )
+
         for meta in list_all_skills():
             haystack = " ".join([meta.name, meta.description, " ".join(meta.confidence_keywords)]).lower()
-            if query and query in haystack:
-                matches.append(
+            score = 0.0
+            if not query:
+                score = 0.18
+            if query and meta.name.lower() in query:
+                score += 0.52
+            overlap = [token for token in query_tokens if token in haystack]
+            if overlap:
+                score += min(0.3, 0.08 * len(overlap[:4]))
+            if target != "general" and (target == meta.category.value or target in haystack):
+                score += 0.18
+            if score <= 0.0:
+                continue
+            ranked.append(
+                (
+                    score,
                     {
                         "name": meta.name,
                         "category": meta.category.value,
                         "tier": meta.tier.value,
                         "cost": meta.compute_cost,
+                        "source": "builtin",
+                        "summary": meta.summary or meta.description,
+                        "skills": [meta.name],
+                        "tools": [],
+                        "artifacts": [meta.output_type],
+                        "match_score": round(score, 4),
+                    },
+                )
+            )
+
+        ranked.sort(key=lambda item: (-item[0], item[1]["tier"] != "package", item[1]["name"]))
+        merged: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for _score, item in ranked:
+            key = (str(item.get("name", "")), str(item.get("tier", "")))
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(item)
+            if len(merged) >= limit:
+                break
+
+        if not merged:
+            for package in self._packages.list_packages(enabled_only=False)[:limit]:
+                merged.append(
+                    {
+                        "name": package.name,
+                        "category": package.category,
+                        "tier": "package",
+                        "cost": float(max(len(package.tool_refs), 1)),
+                        "source": package.source,
+                        "summary": package.summary or package.description,
+                        "skills": list(package.skill_refs),
+                        "tools": list(package.tool_refs),
+                        "artifacts": list(package.artifact_kinds),
                     }
                 )
-        if not query:
-            matches = [
-                {
-                    "name": meta.name,
-                    "category": meta.category.value,
-                    "tier": meta.tier.value,
-                    "cost": meta.compute_cost,
-                }
-                for meta in list_all_skills()[:limit]
-            ]
-        return {"skills": matches[:limit]}
+        return {"skills": merged[:limit], "gateway": self._gateway}
 
     @staticmethod
     def _workspace_file_search(args: dict[str, Any]) -> dict[str, Any]:

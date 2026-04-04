@@ -10,6 +10,16 @@ from pathlib import Path
 from typing import Any
 
 from app.agents.sandbox import ThreadSandbox
+from app.core.tasking import (
+    allowed_workspace_action_kinds,
+    build_world_state,
+    compute_state_gap,
+    default_capability_registry,
+    default_workspace_action_specs,
+    infer_task_spec,
+    plan_capability_path,
+    workspace_action_result_field,
+)
 from app.skills.registry import execute_skill
 
 
@@ -240,79 +250,69 @@ class TaskGraphActionMapper:
         prompt = str(metrics.get("prompt", context.get("query", ""))).strip()
         workspace_summary = dict(metrics.get("workspace_summary", {})) if isinstance(metrics.get("workspace_summary", {}), dict) else {}
         source_text = self._collect_source_text(metrics=metrics, context=context)
-        body: dict[str, Any]
-        relative_path: str
-        content: str
-        content_type = "text/markdown"
-
-        if action_kind == "patch_scaffold":
-            relative_path = str(metrics.get("relative_path", "plans/patch-scaffold.md"))
-            content = self._build_patch_scaffold(prompt=prompt, source_text=source_text, context=context, workspace_summary=workspace_summary)
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "output": content,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        elif action_kind == "patch_draft":
-            relative_path = str(metrics.get("relative_path", "patches/patch-draft.diff"))
-            content = self._build_patch_draft(prompt=prompt, source_text=source_text, workspace_summary=workspace_summary)
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "output": content,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        elif action_kind == "benchmark_run_config":
-            relative_path = str(metrics.get("relative_path", "benchmarks/run-config.json"))
-            payload = self._build_benchmark_run_config(prompt=prompt, source_text=source_text, workspace_summary=workspace_summary)
-            content = json.dumps(payload, indent=2, default=str)
-            content_type = "application/json"
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "config": payload,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        elif action_kind == "benchmark_manifest":
-            relative_path = str(metrics.get("relative_path", "benchmarks/manifest.json"))
-            payload = self._build_benchmark_manifest(prompt=prompt, source_text=source_text, workspace_summary=workspace_summary)
-            content = json.dumps(payload, indent=2, default=str)
-            content_type = "application/json"
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "manifest": payload,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        elif action_kind == "dataset_pull_spec":
-            relative_path = str(metrics.get("relative_path", "datasets/pull-spec.json"))
-            payload = self._build_dataset_pull_spec(prompt=prompt, source_text=source_text, context=context)
-            content = json.dumps(payload, indent=2, default=str)
-            content_type = "application/json"
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "spec": payload,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        elif action_kind == "dataset_loader_template":
-            relative_path = str(metrics.get("relative_path", "datasets/loader_template.py"))
-            content = self._build_dataset_loader_template(prompt=prompt, source_text=source_text, context=context)
-            body = {
-                "node_id": node.get("node_id", ""),
-                "action_kind": action_kind,
-                "path": relative_path,
-                "output": content,
-                "graph_id": graph.get("graph_id", ""),
-            }
-        else:
+        descriptor = self._resolve_workspace_action_descriptor(action_kind=action_kind, metrics=metrics)
+        if descriptor is None or str(descriptor.get("kind", "")).strip() == "validation_execution":
             raise ValueError(f"unsupported workspace_action: {action_kind}")
+        local = self._render_workspace_action_local(
+            action_kind=action_kind,
+            prompt=prompt,
+            source_text=source_text,
+            context=context,
+            workspace_summary=workspace_summary,
+            descriptor=descriptor,
+        )
+        relative_path = str(metrics.get("relative_path", descriptor.get("default_relative_path", ""))).strip() or str(
+            descriptor.get("default_relative_path", f"artifacts/{action_kind}.txt")
+        )
+        content_type = str(metrics.get("content_type", descriptor.get("content_type", "text/markdown"))).strip() or "text/markdown"
+        result_field = str(descriptor.get("result_field", workspace_action_result_field(action_kind, content_type=content_type))).strip() or "output"
+        body = {
+            "node_id": node.get("node_id", ""),
+            "action_kind": action_kind,
+            "path": relative_path,
+            "graph_id": graph.get("graph_id", ""),
+            "artifact_contract": dict(descriptor.get("artifact_contract", {})) if isinstance(descriptor.get("artifact_contract", {}), dict) else {},
+        }
+        if content_type == "application/json":
+            payload = dict(local.get("payload", {})) if isinstance(local.get("payload", {}), dict) else {}
+            content = json.dumps(payload, indent=2, default=str)
+            body[result_field] = payload
+        else:
+            content = str(local.get("content", ""))
+            body[result_field] = content
+
+        live_generation = self._live_workspace_action_generation(
+            action_kind=action_kind,
+            prompt=prompt,
+            source_text=source_text,
+            workspace_summary=workspace_summary,
+            local_relative_path=relative_path,
+            local_body=body,
+            local_content=content,
+            content_type=content_type,
+            context=context,
+        )
+        generation_source = "local"
+        if live_generation:
+            generation_source = str(live_generation.get("source", "live_model"))
+            relative_path = str(live_generation.get("relative_path", relative_path)).strip() or relative_path
+            content_type = str(live_generation.get("content_type", content_type)).strip() or content_type
+            if content_type == "application/json":
+                payload = dict(live_generation.get("content_json", {})) if isinstance(live_generation.get("content_json", {}), dict) else {}
+                if payload:
+                    content = json.dumps(payload, indent=2, default=str)
+                    field = self._workspace_action_result_field(action_kind)
+                    body[field] = payload
+            else:
+                text = str(live_generation.get("content_text", "")).strip()
+                if text:
+                    content = text
+                    field = self._workspace_action_result_field(action_kind)
+                    body[field] = text
+        body["path"] = relative_path
+        body["generation_source"] = generation_source
+        if live_generation and isinstance(live_generation.get("rationale", []), list):
+            body["generation_rationale"] = [str(item) for item in live_generation.get("rationale", []) if str(item)]
 
         target = sandbox.write_text(relative_path, content, area="workspace")
         artifact = {
@@ -320,7 +320,7 @@ class TaskGraphActionMapper:
             "label": str(node.get("title", action_kind)),
             "status": "completed",
             "path": str(target),
-            "summary": f"workspace action {action_kind} generated",
+            "summary": f"workspace action {action_kind} generated via {generation_source}",
             "content_type": content_type,
         }
         return {
@@ -329,6 +329,396 @@ class TaskGraphActionMapper:
             "artifact": artifact,
             "result": body,
         }
+
+    def _resolve_workspace_action_descriptor(
+        self,
+        *,
+        action_kind: str,
+        metrics: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        spec = default_workspace_action_specs().get(action_kind)
+        if spec is not None:
+            return spec.to_dict()
+        if not action_kind.startswith("custom:"):
+            return None
+        artifact_contract = dict(metrics.get("artifact_contract", {})) if isinstance(metrics.get("artifact_contract", {}), dict) else {}
+        format_hint = str(metrics.get("format_hint", artifact_contract.get("format_hint", ""))).strip()
+        content_type = str(metrics.get("content_type", "")).strip()
+        if not content_type:
+            if format_hint == "json":
+                content_type = "application/json"
+            else:
+                content_type = "text/markdown" if format_hint in {"", "markdown"} else "text/plain"
+        return {
+            "kind": action_kind,
+            "title": str(metrics.get("title", artifact_contract.get("title", action_kind.replace("custom:", "").replace("_", " ").title()))).strip(),
+            "default_relative_path": str(metrics.get("relative_path", artifact_contract.get("relative_path", f"artifacts/{action_kind.replace(':', '-')}.md"))).strip(),
+            "content_type": content_type,
+            "result_field": workspace_action_result_field(action_kind, content_type=content_type),
+            "format_hint": format_hint or ("json" if content_type == "application/json" else "markdown"),
+            "artifact_contract": artifact_contract,
+        }
+
+    def _render_workspace_action_local(
+        self,
+        *,
+        action_kind: str,
+        prompt: str,
+        source_text: str,
+        context: dict[str, Any],
+        workspace_summary: dict[str, Any],
+        descriptor: dict[str, Any],
+    ) -> dict[str, Any]:
+        if action_kind.startswith("custom:"):
+            payload = self._build_custom_document_artifact(
+                prompt=prompt,
+                source_text=source_text,
+                workspace_summary=workspace_summary,
+                descriptor=descriptor,
+            )
+        else:
+            builder = self._workspace_action_builders().get(action_kind)
+            if builder:
+                payload = builder(
+                    prompt=prompt,
+                    source_text=source_text,
+                    context=context,
+                    workspace_summary=workspace_summary,
+                )
+            else:
+                payload = self._build_generic_workspace_action(
+                    prompt=prompt,
+                    source_text=source_text,
+                    context=context,
+                    workspace_summary=workspace_summary,
+                    descriptor=descriptor,
+                )
+        if str(descriptor.get("content_type", "")).strip() == "application/json":
+            return {"payload": dict(payload) if isinstance(payload, dict) else {"content": str(payload)}}
+        return {"content": str(payload)}
+
+    def _workspace_action_builders(self) -> dict[str, Any]:
+        return {
+            "patch_scaffold": lambda **kwargs: self._build_patch_scaffold(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                context=kwargs["context"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
+            "patch_draft": lambda **kwargs: self._build_patch_draft(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
+            "benchmark_run_config": lambda **kwargs: self._build_benchmark_run_config(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
+            "benchmark_manifest": lambda **kwargs: self._build_benchmark_manifest(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
+            "dataset_pull_spec": lambda **kwargs: self._build_dataset_pull_spec(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                context=kwargs["context"],
+            ),
+            "dataset_loader_template": lambda **kwargs: self._build_dataset_loader_template(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                context=kwargs["context"],
+            ),
+            "webpage_blueprint": lambda **kwargs: self._build_webpage_blueprint(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "slide_deck_plan": lambda **kwargs: self._build_slide_deck_plan(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "chart_pack_spec": lambda **kwargs: self._build_chart_pack_spec(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "podcast_episode_plan": lambda **kwargs: self._build_podcast_episode_plan(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "video_storyboard": lambda **kwargs: self._build_video_storyboard(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "image_prompt_pack": lambda **kwargs: self._build_image_prompt_pack(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+            "data_analysis_spec": lambda **kwargs: self._build_data_analysis_spec(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+            ),
+        }
+
+    @staticmethod
+    def _build_generic_workspace_action(
+        *,
+        prompt: str,
+        source_text: str,
+        context: dict[str, Any],
+        workspace_summary: dict[str, Any],
+        descriptor: dict[str, Any],
+    ) -> dict[str, Any] | str:
+        del context
+        content_type = str(descriptor.get("content_type", "")).strip()
+        title = str(descriptor.get("title", descriptor.get("kind", "Artifact"))).strip()
+        format_hint = str(descriptor.get("format_hint", "")).strip()
+        contract = dict(descriptor.get("artifact_contract", {})) if isinstance(descriptor.get("artifact_contract", {}), dict) else {}
+        note = TaskGraphActionMapper._single_line(source_text)[:240]
+        if content_type == "application/json":
+            return {
+                "title": title,
+                "kind": str(descriptor.get("kind", "")),
+                "objective": prompt,
+                "format_hint": format_hint or "json",
+                "workspace_languages": list(workspace_summary.get("languages", [])),
+                "workspace_frameworks": list(workspace_summary.get("frameworks", [])),
+                "contract": contract,
+                "notes": note,
+            }
+        return (
+            f"# {title}\n\n"
+            f"- Kind: {descriptor.get('kind', '')}\n"
+            f"- Objective: {prompt}\n"
+            f"- Format: {format_hint or 'markdown'}\n"
+            f"- Workspace languages: {', '.join(workspace_summary.get('languages', [])) or 'unknown'}\n\n"
+            "## Grounding\n\n"
+            f"{note}\n\n"
+            "## Contract\n\n"
+            f"{json.dumps(contract, indent=2, ensure_ascii=False) if contract else 'No explicit contract provided.'}\n"
+        )
+
+    @classmethod
+    def _build_custom_document_artifact(
+        cls,
+        *,
+        prompt: str,
+        source_text: str,
+        workspace_summary: dict[str, Any],
+        descriptor: dict[str, Any],
+    ) -> str:
+        contract = dict(descriptor.get("artifact_contract", {})) if isinstance(descriptor.get("artifact_contract", {}), dict) else {}
+        kind = str(descriptor.get("kind", contract.get("kind", "custom:document"))).strip()
+        title = str(descriptor.get("title", contract.get("title", "Document"))).strip()
+        sections = [
+            str(item).strip()
+            for item in contract.get("sections", cls._default_custom_sections(kind=kind, title=title))
+            if str(item).strip()
+        ]
+        grounding = cls._grounding_snapshot(source_text)
+        summary = grounding["summary"][0] if grounding["summary"] else f"This document addresses {prompt}."
+        lines = [f"# {title}", "", f"Objective: {prompt}", ""]
+
+        if kind == "custom:checklist":
+            lines.extend(["## Checklist", ""])
+            for item in cls._section_points(section="Checklist", prompt=prompt, grounding=grounding):
+                lines.append(f"- [ ] {item}")
+            lines.append("")
+        elif kind == "custom:faq":
+            lines.extend(["## FAQ", ""])
+            faq_rows = cls._section_points(section="FAQ", prompt=prompt, grounding=grounding)
+            for index, item in enumerate(faq_rows, start=1):
+                lines.append(f"### Q{index}")
+                lines.append(f"What should stakeholders know about {item.rstrip('.')}?")
+                lines.append("")
+                lines.append(f"A{index}. {item}")
+                lines.append("")
+        else:
+            lines.extend(["## Summary", "", summary, ""])
+            for section in sections:
+                lines.extend([f"## {section}", ""])
+                for item in cls._section_points(section=section, prompt=prompt, grounding=grounding):
+                    lines.append(f"- {item}")
+                lines.append("")
+
+        if grounding["evidence"]:
+            lines.extend(["## Grounding Signals", ""])
+            for item in grounding["evidence"][:5]:
+                lines.append(f"- {item}")
+            lines.append("")
+        if workspace_summary.get("languages") or workspace_summary.get("frameworks"):
+            lines.extend(["## Workspace Context", ""])
+            if workspace_summary.get("languages"):
+                lines.append(f"- Languages: {', '.join(str(item) for item in workspace_summary.get('languages', []))}")
+            if workspace_summary.get("frameworks"):
+                lines.append(f"- Frameworks: {', '.join(str(item) for item in workspace_summary.get('frameworks', []))}")
+            lines.append("")
+        return "\n".join(lines).strip() + "\n"
+
+    @staticmethod
+    def _default_custom_sections(*, kind: str, title: str) -> list[str]:
+        mapping = {
+            "custom:decision_memo": ["Decision", "Evidence", "Tradeoffs", "Next Step"],
+            "custom:executive_memo": ["Context", "Recommendation", "Risks", "Next Step"],
+            "custom:launch_memo": ["Launch Goal", "Audience and Promise", "Execution Plan", "Risks and Controls", "Immediate Ask"],
+            "custom:memo": ["Context", "Recommendation", "Implications", "Next Step"],
+            "custom:brief": ["Question", "Key Findings", "Implications", "Open Questions"],
+            "custom:one_pager": ["Headline", "Why It Matters", "Proof", "Next Step"],
+            "custom:checklist": ["Checklist"],
+            "custom:faq": ["FAQ"],
+        }
+        return mapping.get(kind, ["Summary", "Evidence", "Next Step"]) or [title]
+
+    @classmethod
+    def _section_points(cls, *, section: str, prompt: str, grounding: dict[str, list[str]]) -> list[str]:
+        name = section.lower()
+        summary = grounding["summary"]
+        evidence = grounding["evidence"]
+        risks = grounding["risks"]
+        actions = grounding["actions"]
+        prompt_focus = cls._single_line(prompt)
+        if "decision" in name or "recommendation" in name:
+            return [
+                summary[0] if summary else f"Proceed with a bounded first release for {prompt_focus}.",
+                actions[0] if actions else "Keep the first iteration narrow enough to validate quickly.",
+            ]
+        if "context" in name or "question" in name or "headline" in name or "launch goal" in name:
+            return [
+                f"Primary objective: {prompt_focus}.",
+                summary[0] if summary else "Use the first artifact to reduce ambiguity before expanding scope.",
+            ]
+        if "evidence" in name or "proof" in name or "findings" in name:
+            return evidence[:3] or summary[:2] or ["Ground the recommendation in inspectable artifacts and citations."]
+        if "risk" in name or "tradeoff" in name:
+            return risks[:3] or [
+                "Main risk is acting on unvalidated assumptions.",
+                "Mitigate by keeping a clear owner, evidence trail, and rollback path.",
+            ]
+        if "next" in name or "ask" in name or "execution" in name or "plan" in name:
+            return actions[:3] or [
+                "Assign one owner to the first deliverable and the validation step.",
+                "Validate the strongest claim with a concrete artifact before rollout.",
+            ]
+        if "implication" in name or "why it matters" in name:
+            return summary[:2] or ["The output should unlock a concrete decision instead of another abstract plan."]
+        if "open question" in name:
+            return [
+                "Which assumption still lacks direct evidence?",
+                "What would block a reviewer from approving the next step?",
+            ]
+        if "faq" in name or "checklist" in name:
+            return actions[:2] + risks[:2] or ["Confirm scope, evidence, and approval criteria."]
+        return summary[:2] or evidence[:2] or [f"Address {prompt_focus} with a reviewable artifact."]
+
+    @classmethod
+    def _grounding_snapshot(cls, source_text: str) -> dict[str, list[str]]:
+        summary: list[str] = []
+        evidence: list[str] = []
+        risks: list[str] = []
+        actions: list[str] = []
+
+        for payload in cls._json_objects_from_text(source_text):
+            output = payload.get("output")
+            if isinstance(output, str):
+                summary.extend(cls._meaningful_lines(output, limit=4))
+            if isinstance(output, dict):
+                record_count = int(output.get("record_count", output.get("count", 0)) or 0)
+                if record_count > 0:
+                    evidence.append(f"Collected {record_count} evidence records for the task.")
+                for record in output.get("records", [])[:3] if isinstance(output.get("records", []), list) else []:
+                    if isinstance(record, dict) and str(record.get("title", "")).strip():
+                        evidence.append(str(record.get("title", "")).strip())
+                risk_matrix = output.get("risk_matrix", [])
+                for row in risk_matrix[:3] if isinstance(risk_matrix, list) else []:
+                    if not isinstance(row, dict):
+                        continue
+                    dimension = str(row.get("dimension", "risk")).strip() or "risk"
+                    level = str(row.get("level", "unknown")).strip() or "unknown"
+                    controls = ", ".join(str(item) for item in row.get("controls", [])[:2]) if isinstance(row.get("controls", []), list) else ""
+                    risks.append(f"{dimension.title()} risk is {level}" + (f"; controls: {controls}." if controls else "."))
+                results = output.get("results", [])
+                for item in results[:3] if isinstance(results, list) else []:
+                    if not isinstance(item, dict):
+                        continue
+                    command = cls._single_line(item.get("command", "")) or "command"
+                    exit_code = item.get("exit_code", 0)
+                    actions.append(f"Validation command `{command}` exited with code {exit_code}.")
+            tool_name = str(payload.get("tool_name", "")).strip()
+            if tool_name == "policy_risk_matrix" and not risks:
+                risks.append("Use the risk matrix to make controls explicit before rollout.")
+            if tool_name in {"external_resource_hub", "evidence_dossier_builder"} and not evidence:
+                evidence.append(f"Evidence was collected through {tool_name}.")
+
+        summary.extend(cls._meaningful_lines(source_text, limit=4))
+        deduped_summary = cls._dedupe_lines(summary)[:5]
+        deduped_evidence = cls._dedupe_lines(evidence)[:5]
+        deduped_risks = cls._dedupe_lines(risks)[:5]
+        deduped_actions = cls._dedupe_lines(actions)[:5]
+        if not deduped_actions:
+            deduped_actions = [
+                "Package the strongest evidence into the first deliverable.",
+                "Keep the next validation step inspectable and bounded.",
+            ]
+        return {
+            "summary": deduped_summary,
+            "evidence": deduped_evidence,
+            "risks": deduped_risks,
+            "actions": deduped_actions,
+        }
+
+    @staticmethod
+    def _dedupe_lines(lines: list[str]) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in lines:
+            value = TaskGraphActionMapper._single_line(item).strip(" -")
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            out.append(value)
+        return out
+
+    @staticmethod
+    def _meaningful_lines(text: str, *, limit: int = 5) -> list[str]:
+        rows: list[str] = []
+        for line in re.split(r"\r?\n+", str(text or "")):
+            value = TaskGraphActionMapper._single_line(line).strip(" -")
+            if not value:
+                continue
+            lowered = value.lower()
+            if lowered in {"{", "}", "[", "]"}:
+                continue
+            if lowered.startswith("--- (skill:"):
+                continue
+            if value.endswith(":") and len(value.split()) <= 4:
+                continue
+            if re.fullmatch(r"[\{\}\[\],:\"]+", value):
+                continue
+            if value not in rows:
+                rows.append(value)
+            if len(rows) >= limit:
+                break
+        return rows
+
+    @staticmethod
+    def _json_objects_from_text(text: str, *, limit: int = 6) -> list[dict[str, Any]]:
+        payload = str(text or "")
+        decoder = json.JSONDecoder()
+        objects: list[dict[str, Any]] = []
+        index = 0
+        while index < len(payload) and len(objects) < limit:
+            start = payload.find("{", index)
+            if start < 0:
+                break
+            try:
+                value, offset = decoder.raw_decode(payload[start:])
+            except Exception:
+                index = start + 1
+                continue
+            if isinstance(value, dict):
+                objects.append(value)
+            index = start + max(offset, 1)
+        return objects
 
     def _execute_subagent_node(
         self,
@@ -498,6 +888,89 @@ class TaskGraphActionMapper:
             "rationale": ["general probe falls back to tool discovery"],
         }
 
+    def _live_workspace_action_generation(
+        self,
+        *,
+        action_kind: str,
+        prompt: str,
+        source_text: str,
+        workspace_summary: dict[str, Any],
+        local_relative_path: str,
+        local_body: dict[str, Any],
+        local_content: str,
+        content_type: str,
+        context: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        overrides = self._resolve_live_model_overrides(context)
+        if not overrides:
+            return None
+        try:
+            from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
+
+            config = LiveModelConfig.resolve(overrides)
+            if not config:
+                return None
+            gateway = LiveModelGateway(config)
+            mode = "json" if content_type == "application/json" else "text"
+            payload = {
+                "action_kind": action_kind,
+                "prompt": prompt,
+                "source_text": source_text[:4000],
+                "workspace_summary": workspace_summary,
+                "local_relative_path": local_relative_path,
+                "local_result": local_body,
+                "local_content_preview": local_content[:3000],
+                "expected_mode": mode,
+            }
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are generating the concrete artifact content for one workspace_action inside a general agent runtime. "
+                        "Return strict JSON with keys relative_path, content_text, content_json, rationale. "
+                        "Only set content_json for JSON artifacts. "
+                        "Only set content_text for text, diff, markdown, or python artifacts. "
+                        "Keep the output executable and grounded in the provided task, source text, and workspace summary. "
+                        "Do not change artifact type."
+                    ),
+                },
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+            ]
+            text, meta = gateway.chat(
+                messages=messages,
+                budget=CallBudget(max_calls=1),
+                temperature=0.1,
+                require_json=True,
+            )
+            parsed = self._parse_json_dict(text)
+            relative_path = str(parsed.get("relative_path", local_relative_path)).strip() or local_relative_path
+            rationale = [str(item).strip() for item in parsed.get("rationale", []) if str(item).strip()] if isinstance(parsed.get("rationale", []), list) else []
+            if mode == "json":
+                content_json = parsed.get("content_json", {})
+                if not isinstance(content_json, dict) or not content_json:
+                    return None
+                return {
+                    "source": "live_model",
+                    "model": str(meta.get("model", "")),
+                    "relative_path": relative_path,
+                    "content_json": content_json,
+                    "content_type": "application/json",
+                    "rationale": rationale,
+                }
+            content_text = str(parsed.get("content_text", "")).strip()
+            if not content_text:
+                return None
+            return {
+                "source": "live_model",
+                "model": str(meta.get("model", "")),
+                "relative_path": relative_path,
+                "content_text": content_text,
+                "content_type": content_type,
+                "rationale": rationale,
+            }
+        except Exception:
+            return None
+
     def _live_subagent_plan(
         self,
         *,
@@ -513,7 +986,7 @@ class TaskGraphActionMapper:
         try:
             from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
 
-            config = LiveModelConfig.from_overrides(overrides)
+            config = LiveModelConfig.resolve(overrides)
             if not config:
                 return None
             gateway = LiveModelGateway(config)
@@ -601,13 +1074,32 @@ class TaskGraphActionMapper:
     ) -> dict[str, Any]:
         metrics = node.get("metrics", {}) if isinstance(node.get("metrics", {}), dict) else {}
         failure_policy = self._classify_failure_policy(context=context)
-        additions = self._propose_replan_nodes(
+        task_spec = self._coerce_task_spec(
+            metrics=metrics,
+            graph=graph,
+            context=context,
+        )
+        world_state = build_world_state(graph=graph, context=context)
+        state_gap = compute_state_gap(task_spec=task_spec, world_state=world_state)
+        capability_replan = plan_capability_path(
+            task_spec=task_spec,
+            registry=default_capability_registry(),
+            world_state=world_state,
+        )
+        additions = self._recompile_nodes_from_state_gap(
+            graph=graph,
+            metrics=metrics,
+            state_gap=state_gap.to_dict(),
+            capability_replan=capability_replan,
+        )
+        if not additions:
+            additions = self._propose_replan_nodes(
             node=node,
             graph=graph,
             context=context,
             metrics=metrics,
             failure_policy=failure_policy,
-        )
+            )
         added_node_ids: list[str] = []
         if additions:
             synthesis = next((item for item in graph.get("nodes", []) if str(item.get("node_id", "")) == "synthesis"), None)
@@ -624,6 +1116,10 @@ class TaskGraphActionMapper:
             "title": node.get("title", ""),
             "node_type": node.get("node_type", ""),
             "failure_policy": failure_policy,
+            "task_spec": task_spec.to_dict(),
+            "world_state": world_state.to_dict(),
+            "state_gap": state_gap.to_dict(),
+            "capability_replan": capability_replan,
             "added_node_ids": added_node_ids,
             "added_nodes": additions,
             "graph_id": graph.get("graph_id", ""),
@@ -636,6 +1132,112 @@ class TaskGraphActionMapper:
             summary=f"replanned graph with {len(added_node_ids)} new node(s)",
             kind="replan_result",
         )
+
+    @staticmethod
+    def _coerce_task_spec(*, metrics: dict[str, Any], graph: dict[str, Any], context: dict[str, Any]):
+        payload = metrics.get("task_spec", {})
+        if isinstance(payload, dict) and payload.get("artifact_contracts"):
+            artifact_contracts = []
+            for item in payload.get("artifact_contracts", []):
+                if not isinstance(item, dict):
+                    continue
+                from app.core.tasking import ArtifactContract, TaskSpec
+
+                artifact_contracts.append(
+                    ArtifactContract(
+                        kind=str(item.get("kind", "")),
+                        title=str(item.get("title", "")),
+                        format_hint=str(item.get("format_hint", "")),
+                        required=bool(item.get("required", True)),
+                    )
+                )
+            from app.core.tasking import TaskSpec
+
+            return TaskSpec(
+                query=str(payload.get("query", metrics.get("prompt", graph.get("query", "")))),
+                goal=str(payload.get("goal", metrics.get("prompt", graph.get("query", "")))),
+                target=str(payload.get("target", "general")),
+                domains=[str(item) for item in payload.get("domains", []) if str(item).strip()],
+                constraints=[str(item) for item in payload.get("constraints", []) if str(item).strip()],
+                success_criteria=[str(item) for item in payload.get("success_criteria", []) if str(item).strip()],
+                required_channels=[str(item) for item in payload.get("required_channels", []) if str(item).strip()],
+                artifact_contracts=artifact_contracts,
+                risk_policy=str(payload.get("risk_policy", "balanced")),
+                needs_validation=bool(payload.get("needs_validation", False)),
+                needs_command_execution=bool(payload.get("needs_command_execution", False)),
+            )
+        return infer_task_spec(
+            query=str(metrics.get("prompt", graph.get("query", context.get("query", "")))),
+            output_mode=str(metrics.get("output_mode", "artifact")),
+            needs_validation=True,
+        )
+
+    def _recompile_nodes_from_state_gap(
+        self,
+        *,
+        graph: dict[str, Any],
+        metrics: dict[str, Any],
+        state_gap: dict[str, Any],
+        capability_replan: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        existing_ids = {
+            str(item.get("node_id", ""))
+            for item in graph.get("nodes", [])
+            if isinstance(item, dict)
+        }
+        additions: list[dict[str, Any]] = []
+        prompt = str(metrics.get("prompt", graph.get("query", "")))
+        workspace_summary = dict(metrics.get("workspace_summary", {})) if isinstance(metrics.get("workspace_summary", {}), dict) else {}
+        for step in capability_replan.get("steps", []) if isinstance(capability_replan.get("steps", []), list) else []:
+            if not isinstance(step, dict):
+                continue
+            node_type = str(step.get("node_type", "")).strip()
+            if node_type not in {"tool_call", "workspace_action", "subagent"}:
+                continue
+            if node_type == "tool_call":
+                spec = {
+                    "node_type": node_type,
+                    "tool_name": str(step.get("ref", "")).strip(),
+                    "tool_args": dict(step.get("default_args", {})) if isinstance(step.get("default_args", {}), dict) else {},
+                    "title": str(step.get("title", "")),
+                    "reason": str(step.get("reason", "")),
+                }
+                key = spec["tool_name"]
+            elif node_type == "workspace_action":
+                spec = {
+                    "node_type": node_type,
+                    "kind": str(step.get("ref", "")).strip(),
+                    "title": str(step.get("title", "")),
+                    "reason": str(step.get("reason", "")),
+                    "source_node_ids": ["analysis", "execution"],
+                }
+                key = spec["kind"]
+            else:
+                spec = {
+                    "node_type": node_type,
+                    "subagent_kind": str(step.get("ref", "")).strip() or "repair_probe",
+                    "objective": str(step.get("reason", prompt)),
+                    "title": str(step.get("title", "")),
+                    "reason": str(step.get("reason", "")),
+                    "source_node_ids": ["analysis", "execution"],
+                }
+                key = spec["subagent_kind"]
+            node_id = self._replan_node_id(node_type=node_type, key=key)
+            if not key or node_id in existing_ids:
+                continue
+            additions.append(
+                self._build_replanned_node(
+                    node_id=node_id,
+                    node_type=node_type,
+                    spec=spec,
+                    prompt=prompt,
+                    workspace_summary=workspace_summary,
+                )
+            )
+            existing_ids.add(node_id)
+        if additions or not state_gap:
+            return additions
+        return []
 
     def _execute_static_node(
         self,
@@ -702,7 +1304,11 @@ class TaskGraphActionMapper:
             return ""
         node_results = context.get("node_results", {})
         source = node_results.get(source_node_id, {}) if isinstance(node_results, dict) else {}
+        if not isinstance(source, dict) or not source:
+            return ""
         result = source.get("result", {}) if isinstance(source, dict) else {}
+        if result in ({}, None, ""):
+            return ""
         if not isinstance(result, dict):
             return str(result)
         if field:
@@ -1019,7 +1625,7 @@ class TaskGraphActionMapper:
         try:
             from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
 
-            config = LiveModelConfig.from_overrides(self._resolve_live_model_overrides(context))
+            config = LiveModelConfig.resolve(self._resolve_live_model_overrides(context))
             if not config:
                 return []
             gateway = LiveModelGateway(config)
@@ -1037,8 +1643,8 @@ class TaskGraphActionMapper:
                         "You are replanning a general agent task graph after execution feedback. "
                         "Return strict JSON with key actions. "
                         "Each action must include node_type from workspace_action, tool_call, subagent. "
-                        "Allowed workspace_action kinds: patch_scaffold, patch_draft, benchmark_run_config, "
-                        "benchmark_manifest, dataset_pull_spec, dataset_loader_template. "
+                        f"Allowed workspace_action kinds: {', '.join(sorted(allowed_workspace_action_kinds(include_internal=False)))}. "
+                        "You may also emit kind starting with custom: when you include relative_path plus content_type or artifact_contract. "
                         "Allowed tool_call names: tool_search, workspace_file_search, external_resource_hub, code_experiment_design. "
                         "Allowed subagent kinds: repair_probe, research_probe, benchmark_probe."
                     ),
@@ -1068,7 +1674,37 @@ class TaskGraphActionMapper:
     @staticmethod
     def _build_patch_draft(*, prompt: str, source_text: str, workspace_summary: dict[str, Any]) -> str:
         targets = workspace_summary.get("sample_files", []) if isinstance(workspace_summary.get("sample_files", []), list) else []
-        target = str(targets[0]) if targets else "src/module.py"
+        preferred = [
+            str(item)
+            for item in targets
+            if isinstance(item, str)
+            and Path(item).suffix.lower() in {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java"}
+            and "test" not in Path(item).name.lower()
+        ]
+        fallback_targets = [
+            str(item)
+            for item in targets
+            if isinstance(item, str) and Path(item).name.lower() not in {"notes.md", "readme.md"}
+        ]
+        target = preferred[0] if preferred else (fallback_targets[0] if fallback_targets else (str(targets[0]) if targets else "src/module.py"))
+        target_name = Path(target).name.lower()
+        lowered_prompt = prompt.lower()
+        if target_name.startswith("router") and any(marker in lowered_prompt for marker in {"route", "routing", "parser"}):
+            return (
+                f"diff --git a/{target} b/{target}\n"
+                f"--- a/{target}\n"
+                f"+++ b/{target}\n"
+                "@@\n"
+                "-def route(query):\n"
+                "-    return \"research\" if \"report\" in query else \"general\"\n"
+                "+def route(query):\n"
+                "+    normalized = (query or \"\").strip().lower()\n"
+                "+    if any(token in normalized for token in (\"report\", \"research\", \"benchmark\", \"paper\")):\n"
+                "+        return \"research\"\n"
+                "+    if any(token in normalized for token in (\"patch\", \"test\", \"repo\", \"workspace\", \"code\", \"parser\", \"routing\")):\n"
+                "+        return \"code\"\n"
+                "+    return \"general\"\n"
+            )
         return (
             f"diff --git a/{target} b/{target}\n"
             f"--- a/{target}\n"
@@ -1116,6 +1752,135 @@ class TaskGraphActionMapper:
         )
 
     @staticmethod
+    def _build_webpage_blueprint(*, prompt: str, source_text: str) -> str:
+        focus = TaskGraphActionMapper._compact_query(prompt, limit=6)
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return (
+            "# Landing Page Blueprint\n\n"
+            f"## Theme\n- Mission: {prompt}\n- Focus terms: {focus}\n\n"
+            "## First Screen\n"
+            "- Headline: make the promise concrete in one sentence.\n"
+            "- Proof point: show one measurable signal or artifact.\n"
+            "- CTA: primary action plus a lower-risk secondary action.\n\n"
+            "## Section Architecture\n"
+            "1. Problem and audience fit\n"
+            "2. How the system works\n"
+            "3. Evidence, safety, and governance\n"
+            "4. Artifact gallery or case study\n"
+            "5. Final conversion block\n\n"
+            "## Interaction Notes\n"
+            "- Prioritize scannability over jargon.\n"
+            "- Put concrete artifacts above framework internals.\n\n"
+            f"## Grounding\n{note}\n"
+        )
+
+    @staticmethod
+    def _build_slide_deck_plan(*, prompt: str, source_text: str) -> str:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return (
+            "# Slide Deck Plan\n\n"
+            f"- Presentation goal: {prompt}\n"
+            "- Slide 1: opening tension and business context\n"
+            "- Slide 2: what exists today and where it breaks\n"
+            "- Slide 3: solution or system mechanism\n"
+            "- Slide 4: evidence, benchmark, or artifact proof\n"
+            "- Slide 5: rollout plan and ownership\n"
+            "- Slide 6: risks, asks, and next decision\n\n"
+            f"Grounding: {note}\n"
+        )
+
+    @staticmethod
+    def _build_chart_pack_spec(*, prompt: str, source_text: str) -> dict[str, Any]:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return {
+            "objective": prompt,
+            "charts": [
+                {
+                    "id": "headline_comparison",
+                    "type": "bar",
+                    "question": "Which option or segment leads on the main metric?",
+                    "fields": ["category", "metric_value", "annotation"],
+                },
+                {
+                    "id": "trend_view",
+                    "type": "line",
+                    "question": "How does the main signal change over time?",
+                    "fields": ["date", "metric_value", "segment"],
+                },
+                {
+                    "id": "risk_pocket",
+                    "type": "scatter",
+                    "question": "Where are the outliers, failures, or governance pockets?",
+                    "fields": ["x_metric", "y_metric", "cluster", "label"],
+                },
+            ],
+            "render_targets": ["dashboard", "briefing deck", "report appendix"],
+            "notes": note,
+        }
+
+    @staticmethod
+    def _build_podcast_episode_plan(*, prompt: str, source_text: str) -> str:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return (
+            "# Podcast Episode Plan\n\n"
+            f"- Episode brief: {prompt}\n"
+            "- Cold open: 15-second tension statement\n"
+            "- Segment 1: background and why it matters now\n"
+            "- Segment 2: explain the mechanism with one concrete example\n"
+            "- Segment 3: discuss tradeoffs, risks, and disagreement\n"
+            "- Closing: three takeaways and one open question\n\n"
+            f"Grounding: {note}\n"
+        )
+
+    @staticmethod
+    def _build_video_storyboard(*, prompt: str, source_text: str) -> str:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return (
+            "# Video Storyboard\n\n"
+            f"- Brief: {prompt}\n"
+            "- Scene 1: visual hook and core claim\n"
+            "- Scene 2: product or system in action\n"
+            "- Scene 3: charts, artifacts, or evidence montage\n"
+            "- Scene 4: risks and contrast against alternatives\n"
+            "- Final frame: CTA plus one-sentence takeaway\n\n"
+            f"Grounding: {note}\n"
+        )
+
+    @staticmethod
+    def _build_image_prompt_pack(*, prompt: str, source_text: str) -> str:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return (
+            "# Image Prompt Pack\n\n"
+            f"- Subject: {prompt}\n"
+            "- Prompt A: editorial hero visual with strong focal point\n"
+            "- Prompt B: technical schematic with labeled modules\n"
+            "- Prompt C: campaign poster with bold type hierarchy\n"
+            "- Prompt D: product render showing user interaction\n"
+            "- Shared constraints: aspect ratio, color palette, negative prompts, required labels\n\n"
+            f"Grounding: {note}\n"
+        )
+
+    @staticmethod
+    def _build_data_analysis_spec(*, prompt: str, source_text: str) -> dict[str, Any]:
+        note = TaskGraphActionMapper._single_line(source_text)[:220]
+        return {
+            "objective": prompt,
+            "analysis_questions": [
+                "What is the north-star outcome?",
+                "Which segments or cohorts explain the variance?",
+                "What guardrail metrics should block rollout?",
+            ],
+            "required_tables": ["fact_table", "dimension_table", "quality_log"],
+            "metrics": {
+                "north_star": "primary_outcome",
+                "diagnostics": ["conversion", "latency"],
+                "guardrails": ["risk_rate"],
+            },
+            "outputs": ["analysis_report.md", "chart_pack.json", "dashboard_spec.md"],
+            "notes": note,
+        }
+
+    @staticmethod
     def _classify_failure_policy(*, context: dict[str, Any]) -> dict[str, Any]:
         execution_json = TaskGraphActionMapper._extract_result_field("execution", "", context)
         if execution_json:
@@ -1146,7 +1911,11 @@ class TaskGraphActionMapper:
             except Exception:
                 parsed = {}
             output = parsed.get("output", {}) if isinstance(parsed, dict) else {}
-            count = int(output.get("count", 0)) if isinstance(output, dict) else 0
+            count = 0
+            if isinstance(output, dict):
+                count = int(output.get("record_count", output.get("count", 0)) or 0)
+                if count <= 0 and isinstance(output.get("records", []), list):
+                    count = len(output.get("records", []))
             if count <= 0:
                 return {"policy": "evidence_gap", "summary": "evidence collection returned no records"}
 
@@ -1163,6 +1932,10 @@ class TaskGraphActionMapper:
     def _resolve_live_model_overrides(context: dict[str, Any]) -> dict[str, Any] | None:
         payload = context.get("live_model", {})
         return dict(payload) if isinstance(payload, dict) and payload else None
+
+    @staticmethod
+    def _workspace_action_result_field(action_kind: str) -> str:
+        return workspace_action_result_field(action_kind)
 
     @staticmethod
     def _allowed_subagent_tools() -> set[str]:
@@ -1185,6 +1958,13 @@ class TaskGraphActionMapper:
             "validation_planner",
             "codebase_triage",
             "ops_runbook",
+            "webpage_blueprint",
+            "slide_deck_designer",
+            "chart_storyboard",
+            "podcast_episode_plan",
+            "video_storyboard",
+            "image_prompt_pack",
+            "data_analysis_plan",
         }
 
     @staticmethod

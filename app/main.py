@@ -553,6 +553,48 @@ def skill_card_command(
     console.print_json(json.dumps(card, indent=2, default=str))
 
 
+@app.command("skill-packages")
+def skill_packages_command(
+    enabled_only: bool = typer.Option(False, "--enabled-only", help="Only show enabled packages"),
+) -> None:
+    """List DeerFlow-style skill packages."""
+
+    console.print_json(json.dumps({"packages": HARNESS.list_skill_packages(enabled_only=enabled_only)}, indent=2, default=str))
+
+
+@app.command("skill-package")
+def skill_package_command(
+    name: str = typer.Argument(..., help="Skill package name"),
+) -> None:
+    """Inspect one DeerFlow-style skill package."""
+
+    payload = HARNESS.get_skill_package(name)
+    if payload is None:
+        raise typer.BadParameter(f"Unknown skill package: {name}")
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
+@app.command("skill-package-update")
+def skill_package_update_command(
+    name: str = typer.Argument(..., help="Skill package name"),
+    enabled: bool = typer.Option(..., "--enabled/--disabled", help="Enable or disable the package"),
+) -> None:
+    """Enable or disable one skill package."""
+
+    payload = HARNESS.update_skill_package(name, enabled=enabled)
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
+@app.command("skill-package-install")
+def skill_package_install_command(
+    archive_path: str = typer.Argument(..., help="Path to a .skill archive"),
+) -> None:
+    """Install a DeerFlow-style .skill archive into skills/custom."""
+
+    payload = HARNESS.install_skill_package_archive(archive_path)
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
 @app.command("skills-interop-export")
 def skills_interop_export_command(
     framework: str = typer.Option("all", "--framework", "-f", help="Target: all|openai|anthropic"),
@@ -1004,7 +1046,7 @@ def harness_live_config_command(
         temperature=0.15,
         max_tokens=1400,
     )
-    config = LiveModelConfig.from_overrides(overrides)
+    config = LiveModelConfig.resolve(overrides)
     if config:
         payload = config.masked()
     else:
@@ -1268,8 +1310,8 @@ def harness_mission_command(
     console.print_json(json.dumps(payload, indent=2, default=str))
 
 
-@app.command("agent-thread-run")
-def agent_thread_run_command(
+@app.command("agent-thread-harness-run")
+def agent_thread_harness_run_command(
     thread_id: str = typer.Argument(..., help="Persistent thread id"),
     query: str = typer.Argument(..., help="Task query"),
     mode: str = typer.Option("balanced", "--mode", "-m", help="Execution mode"),
@@ -1387,6 +1429,33 @@ def agent_thread_exec_task_command(
     console.print_json(json.dumps(payload, indent=2, default=str))
 
 
+@app.command("agent-thread-run")
+def agent_thread_run_command(
+    thread_id: str = typer.Argument(..., help="Persistent thread id"),
+    query: str = typer.Argument(..., help="General task query"),
+    target: str = typer.Option("auto", "--target", help="auto | general | code | research | ops | benchmark"),
+    max_nodes: int = typer.Option(0, "--max-nodes", help="Optional execution slice size"),
+    async_mode: bool = typer.Option(False, "--async/--sync", help="Queue in background or execute immediately"),
+    output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
+) -> None:
+    """Single thread-first super-agent entrypoint."""
+
+    payload = HARNESS.run_thread_first(
+        thread_id,
+        query,
+        target=target,
+        max_nodes=max(0, max_nodes),
+        async_mode=async_mode,
+    )
+    if output:
+        path = Path(output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        console.print(f"[green]Thread super-agent payload written:[/] {path}")
+        return
+    console.print_json(json.dumps(payload, indent=2, default=str))
+
+
 @app.command("deep-research-report")
 def deep_research_report_command(
     topic: str = typer.Argument(..., help="Research topic"),
@@ -1500,6 +1569,23 @@ def agent_thread_workspace_view_command(
         )
         return
     console.print_json(json.dumps(stream_payload, indent=2, default=str))
+
+
+@app.command("agent-thread-export")
+def agent_thread_export_command(
+    thread_id: str = typer.Argument(..., help="Persistent thread id"),
+    output: str = typer.Option("", "--output", "-o", help="Optional output JSON file"),
+) -> None:
+    """Export a DeerFlow-like thread snapshot contract for frontend use."""
+
+    payload = HARNESS.export_thread_frontend_snapshot(thread_id)
+    if output:
+        path = Path(output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        console.print(f"[green]Thread export written:[/] {path}")
+        return
+    console.print_json(json.dumps(payload, indent=2, default=str))
 
 
 @app.command("agent-thread-subagents")

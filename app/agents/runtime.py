@@ -28,6 +28,10 @@ def _slugify(value: str) -> str:
     return text or "artifact"
 
 
+def _as_message_blocks(content: str) -> list[dict[str, str]]:
+    return [{"type": "text", "text": str(content)}]
+
+
 class AgentThreadRuntime:
     """Persistent runtime for generic agent threads and their artifacts."""
 
@@ -74,6 +78,7 @@ class AgentThreadRuntime:
             "runs": [],
             "executions": [],
             "events": [],
+            "next_event_id": 1,
             "control": {
                 "interrupt_requested": False,
                 "interrupt_reason": "",
@@ -113,6 +118,7 @@ class AgentThreadRuntime:
             "runs": [],
             "executions": [],
             "events": [],
+            "next_event_id": 1,
             "control": {
                 "interrupt_requested": False,
                 "interrupt_reason": "",
@@ -172,6 +178,64 @@ class AgentThreadRuntime:
             "control": payload.get("control", {}),
         }
 
+    def export_frontend_thread_snapshot(self, thread_id: str) -> dict[str, Any]:
+        """Export one thread in a DeerFlow-like frontend snapshot contract."""
+
+        payload = self.load_thread(thread_id) or self.ensure_thread(thread_id)
+        workspace = payload.get("workspace", {}) if isinstance(payload.get("workspace", {}), dict) else {}
+        artifacts = payload.get("artifacts", []) if isinstance(payload.get("artifacts", []), list) else []
+        executions = payload.get("executions", []) if isinstance(payload.get("executions", []), list) else []
+        events = payload.get("events", []) if isinstance(payload.get("events", []), list) else []
+        active_execution = executions[-1] if executions else {}
+        runnable = active_execution.get("graph", {}).get("summary", {}).get("runnable_nodes", []) if isinstance(active_execution.get("graph", {}), dict) else []
+        uploads = self._sandbox(thread_id).list_files("uploads")
+        output_virtuals = []
+        for item in artifacts:
+            if not isinstance(item, dict):
+                continue
+            rel = str(item.get("relative_path", "")).replace("\\", "/").strip("/")
+            if rel:
+                output_virtuals.append(f"/mnt/user-data/{rel}")
+        return {
+            "values": {
+                "messages": [self._serialize_message(item) for item in payload.get("messages", []) if isinstance(item, dict)],
+                "thread_data": {
+                    "workspace_path": str(workspace.get("workspace", "")),
+                    "uploads_path": str(workspace.get("uploads", "")),
+                    "outputs_path": str(workspace.get("outputs", "")),
+                },
+                "uploaded_files": [f"/mnt/user-data/uploads/{item}" for item in uploads],
+                "title": payload.get("title", ""),
+                "artifacts": output_virtuals,
+                "events": self._serialize_frontend_events(events),
+            },
+            "next": [str(item) for item in runnable],
+            "tasks": self._serialize_task_events(events),
+            "metadata": {
+                "thread_id": payload.get("thread_id", thread_id),
+                "source": "agent-harness-thread-runtime",
+                "event_contract": "agent-harness-thread-events/v2",
+                "status": payload.get("status", ""),
+                "agent_name": payload.get("agent_name", ""),
+                "step": len(payload.get("events", [])),
+                "active_execution_id": payload.get("control", {}).get("active_execution_id", ""),
+            },
+            "created_at": payload.get("created_at", ""),
+            "checkpoint": {
+                "checkpoint_id": active_execution.get("execution_id", ""),
+                "thread_id": payload.get("thread_id", thread_id),
+                "checkpoint_ns": "",
+            },
+            "parent_checkpoint": {
+                "checkpoint_id": active_execution.get("parent_execution_id", ""),
+                "thread_id": payload.get("thread_id", thread_id),
+                "checkpoint_ns": "",
+            },
+            "interrupts": payload.get("control", {}) if payload.get("control") else [],
+            "checkpoint_id": active_execution.get("execution_id", ""),
+            "parent_checkpoint_id": active_execution.get("parent_execution_id", ""),
+        }
+
     def append_message(self, thread_id: str, role: str, content: str, metadata: dict[str, Any] | None = None) -> None:
         payload = self.ensure_thread(thread_id)
         payload.setdefault("messages", []).append(
@@ -188,9 +252,39 @@ class AgentThreadRuntime:
 
     def append_event(self, thread_id: str, event: dict[str, Any]) -> None:
         payload = self.ensure_thread(thread_id)
-        payload.setdefault("events", []).append({**dict(event), "timestamp": _utc_now()})
+        payload.setdefault("events", [])
+        next_event_id = int(payload.get("next_event_id", len(payload.get("events", [])) + 1))
+        payload["events"].append({**dict(event), "timestamp": _utc_now(), "event_id": next_event_id})
+        payload["next_event_id"] = next_event_id + 1
         payload["updated_at"] = _utc_now()
         self._save_thread_payload(thread_id, payload)
+
+    def list_events(self, thread_id: str, *, after: int = 0, limit: int = 100) -> list[dict[str, Any]]:
+        payload = self.ensure_thread(thread_id)
+        events = payload.get("events", []) if isinstance(payload.get("events", []), list) else []
+        rows = [
+            dict(item)
+            for item in events
+            if isinstance(item, dict) and int(item.get("event_id", 0)) > max(0, int(after))
+        ]
+        return rows[: max(1, min(int(limit), 500))]
+
+    def wait_for_events(
+        self,
+        thread_id: str,
+        *,
+        after: int = 0,
+        limit: int = 100,
+        timeout_seconds: float = 15.0,
+        poll_interval_seconds: float = 0.1,
+    ) -> list[dict[str, Any]]:
+        deadline = time.time() + max(0.1, float(timeout_seconds))
+        while time.time() <= deadline:
+            rows = self.list_events(thread_id, after=after, limit=limit)
+            if rows:
+                return rows
+            time.sleep(max(0.02, float(poll_interval_seconds)))
+        return []
 
     def write_artifact(
         self,
@@ -318,11 +412,12 @@ class AgentThreadRuntime:
             self._save_execution(thread_id, payload, execution)
             self.append_event(
                 thread_id,
-                {
-                    "event": "node_started",
-                    "execution_id": execution["execution_id"],
-                    "node_id": node.get("node_id", ""),
-                },
+                self._build_node_event_payload(
+                    event="node_started",
+                    phase="started",
+                    execution_id=execution["execution_id"],
+                    node=node,
+                ),
             )
             result = self.action_mapper.execute_node(
                 sandbox=sandbox,
@@ -339,20 +434,30 @@ class AgentThreadRuntime:
                 node.setdefault("artifacts", []).append(dict(result["artifact"]))
                 thread_root = (self.root / thread_id).resolve()
                 artifact_path = Path(str(result["artifact"].get("path", ""))).resolve()
-                payload.setdefault("artifacts", []).append(
-                    {
-                        "artifact_id": uuid.uuid4().hex[:12],
-                        "name": Path(str(result["artifact"].get("path", ""))).name,
-                        "kind": result["artifact"].get("kind", "node_artifact"),
-                        "content_type": str(result["artifact"].get("content_type", "application/json")),
-                        "path": str(result["artifact"].get("path", "")),
-                        "relative_path": artifact_path.relative_to(thread_root).as_posix(),
-                        "summary": str(result["artifact"].get("summary", "")),
-                        "created_at": _utc_now(),
-                        "size_bytes": artifact_path.stat().st_size,
-                    }
-                )
+                artifact_record = {
+                    "artifact_id": uuid.uuid4().hex[:12],
+                    "name": Path(str(result["artifact"].get("path", ""))).name,
+                    "kind": result["artifact"].get("kind", "node_artifact"),
+                    "content_type": str(result["artifact"].get("content_type", "application/json")),
+                    "path": str(result["artifact"].get("path", "")),
+                    "relative_path": artifact_path.relative_to(thread_root).as_posix(),
+                    "summary": str(result["artifact"].get("summary", "")),
+                    "created_at": _utc_now(),
+                    "size_bytes": artifact_path.stat().st_size,
+                }
+                payload.setdefault("artifacts", []).append(artifact_record)
                 payload["artifact_count"] = len(payload.get("artifacts", []))
+                self.append_event(
+                    thread_id,
+                    self._build_node_event_payload(
+                        event="artifact_written",
+                        phase="artifact",
+                        execution_id=execution["execution_id"],
+                        node=node,
+                        result=result,
+                        artifact=artifact_record,
+                    ),
+                )
             execution.setdefault("node_results", []).append(result)
             execution["updated_at"] = _utc_now()
             self._refresh_graph_summary(execution["graph"])
@@ -360,12 +465,23 @@ class AgentThreadRuntime:
             self._save_execution(thread_id, payload, execution)
             self.append_event(
                 thread_id,
-                {
-                    "event": "node_completed",
-                    "execution_id": execution["execution_id"],
-                    "node_id": node.get("node_id", ""),
-                    "status": node.get("status", ""),
-                },
+                self._build_node_event_payload(
+                    event="node_result",
+                    phase="result",
+                    execution_id=execution["execution_id"],
+                    node=node,
+                    result=result,
+                ),
+            )
+            self.append_event(
+                thread_id,
+                self._build_node_event_payload(
+                    event="node_completed",
+                    phase="completed",
+                    execution_id=execution["execution_id"],
+                    node=node,
+                    result=result,
+                ),
             )
             payload = self.load_thread(thread_id) or payload
 
@@ -414,7 +530,11 @@ class AgentThreadRuntime:
         if execution is None:
             execution = self._create_execution(graph=graph, execution_label=execution_label, context=context)
             execution["status"] = "queued"
-            payload.setdefault("executions", []).append(execution)
+            current = self.load_thread(thread_id) or payload
+            current.setdefault("executions", [])
+            if not any(str(item.get("execution_id", "")) == execution["execution_id"] for item in current.get("executions", [])):
+                current["executions"].append(execution)
+            payload = current
             self._save_thread_payload(thread_id, payload)
         future = self._executor.submit(
             self.execute_task_graph,
@@ -684,10 +804,25 @@ class AgentThreadRuntime:
                 payload["events"] = list(current.get("events", []))
             if len(current.get("messages", [])) > len(payload.get("messages", [])):
                 payload["messages"] = list(current.get("messages", []))
+            payload.setdefault("executions", [])
+            known_ids = {
+                str(item.get("execution_id", ""))
+                for item in payload.get("executions", [])
+                if isinstance(item, dict)
+            }
+            for item in current.get("executions", []):
+                if not isinstance(item, dict):
+                    continue
+                execution_id = str(item.get("execution_id", ""))
+                if execution_id and execution_id not in known_ids:
+                    payload["executions"].append(item)
+                    known_ids.add(execution_id)
         for index, current in enumerate(payload.get("executions", [])):
             if str(current.get("execution_id", "")) == str(execution.get("execution_id", "")):
                 payload["executions"][index] = execution
                 break
+        else:
+            payload.setdefault("executions", []).append(execution)
         payload["artifact_count"] = len(payload.get("artifacts", []))
         payload["updated_at"] = _utc_now()
         self._save_thread_payload(thread_id, payload)
@@ -695,12 +830,168 @@ class AgentThreadRuntime:
     def _sandbox(self, thread_id: str):
         return self.sandbox_provider.get(self.root / thread_id)
 
+    @staticmethod
+    def _serialize_message(message: dict[str, Any]) -> dict[str, Any]:
+        role = str(message.get("role", "assistant"))
+        content = str(message.get("content", ""))
+        msg_type = {"user": "human", "assistant": "ai"}.get(role, role)
+        return {
+            "content": _as_message_blocks(content) if msg_type == "human" else content,
+            "additional_kwargs": {},
+            "response_metadata": {},
+            "type": msg_type,
+            "name": None,
+            "id": str(message.get("timestamp", "")) or uuid.uuid4().hex[:12],
+        }
+
+    @staticmethod
+    def _serialize_task_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        tasks: dict[str, dict[str, Any]] = {}
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            name = str(event.get("task_name", "")).strip()
+            kind = str(event.get("task_kind", "")).strip()
+            execution_id = str(event.get("execution_id", "")).strip()
+            if not name and not execution_id:
+                continue
+            key = execution_id or f"{kind}:{name}"
+            event_name = str(event.get("event", ""))
+            if event_name in {
+                "task_started",
+                "task_running",
+                "task_completed",
+                "task_failed",
+                "task_interrupted",
+                "task_updated",
+            }:
+                tasks[key] = {
+                    "id": key,
+                    "name": name or execution_id,
+                    "kind": kind or "task",
+                    "status": str(event.get("status", "")) or event_name.replace("task_", ""),
+                    "event_id": int(event.get("event_id", 0)),
+                    "updated_at": str(event.get("timestamp", "")),
+                    "execution_id": execution_id,
+                    "completed_nodes": int(event.get("completed_nodes", 0)),
+                    "node_count": int(event.get("node_count", 0)),
+                }
+                continue
+            if event_name not in {"node_started", "node_result", "artifact_written", "node_completed"}:
+                continue
+            node_id = str(event.get("node_id", "")).strip()
+            node_key = f"{execution_id}:{node_id}" if execution_id and node_id else key or node_id
+            if not node_key:
+                continue
+            tasks[node_key] = {
+                "id": node_key,
+                "name": str(event.get("node_title", "")) or node_id or execution_id,
+                "kind": str(event.get("node_type", "")) or "node",
+                "status": str(event.get("status", "")) or str(event.get("phase", "")) or event_name,
+                "event_id": int(event.get("event_id", 0)),
+                "updated_at": str(event.get("timestamp", "")),
+                "execution_id": execution_id,
+                "node_id": node_id,
+                "node_type": str(event.get("node_type", "")),
+                "phase": str(event.get("phase", "")),
+                "summary": str(event.get("summary", "")),
+                "artifact_relative_path": str(event.get("artifact_relative_path", "")),
+                "artifact_kind": str(event.get("artifact_kind", "")),
+                "preview": str(event.get("preview", "")),
+                "completed_nodes": int(event.get("completed_nodes", 0)),
+                "node_count": int(event.get("node_count", 0)),
+            }
+        return list(tasks.values())[-20:]
+
+    @staticmethod
+    def _serialize_frontend_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for event in events[-50:]:
+            if not isinstance(event, dict):
+                continue
+            rows.append(
+                {
+                    "event_id": int(event.get("event_id", 0)),
+                    "event": str(event.get("event", "")),
+                    "phase": str(event.get("phase", "")),
+                    "timestamp": str(event.get("timestamp", "")),
+                    "execution_id": str(event.get("execution_id", "")),
+                    "node_id": str(event.get("node_id", "")),
+                    "node_title": str(event.get("node_title", "")),
+                    "node_type": str(event.get("node_type", "")),
+                    "summary": str(event.get("summary", "")),
+                    "artifact_relative_path": str(event.get("artifact_relative_path", "")),
+                    "artifact_kind": str(event.get("artifact_kind", "")),
+                    "preview": str(event.get("preview", "")),
+                }
+            )
+        return rows
+
+    @staticmethod
+    def _build_node_event_payload(
+        *,
+        event: str,
+        phase: str,
+        execution_id: str,
+        node: dict[str, Any],
+        result: dict[str, Any] | None = None,
+        artifact: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        metrics = node.get("metrics", {}) if isinstance(node.get("metrics", {}), dict) else {}
+        result_dict = result if isinstance(result, dict) else {}
+        result_payload = result_dict.get("result", {}) if isinstance(result_dict.get("result", {}), dict) else {}
+        artifact_payload = artifact or {}
+        return {
+            "event": event,
+            "event_contract": "agent-harness-thread-events/v2",
+            "phase": phase,
+            "execution_id": execution_id,
+            "node_id": str(node.get("node_id", "")),
+            "node_title": str(node.get("title", "")),
+            "node_type": str(node.get("node_type", "")),
+            "depends_on": list(node.get("depends_on", [])) if isinstance(node.get("depends_on", []), list) else [],
+            "status": str(result_dict.get("status", node.get("status", phase))),
+            "tool_name": str(metrics.get("tool_name", "")),
+            "skill_name": str(metrics.get("skill_name", "")),
+            "action_kind": str(metrics.get("action_kind", "")),
+            "subagent_kind": str(metrics.get("subagent_kind", "")),
+            "summary": AgentThreadRuntime._result_summary(result_payload, artifact_payload),
+            "preview": AgentThreadRuntime._result_preview(result_payload),
+            "artifact_relative_path": str(artifact_payload.get("relative_path", "")),
+            "artifact_kind": str(artifact_payload.get("kind", "")),
+        }
+
+    @staticmethod
+    def _result_summary(result_payload: dict[str, Any], artifact_payload: dict[str, Any]) -> str:
+        if artifact_payload.get("summary"):
+            return str(artifact_payload.get("summary", ""))
+        for key in ("summary", "action_kind", "tool_name", "skill_name", "subagent_kind", "node_type"):
+            value = str(result_payload.get(key, "")).strip()
+            if value:
+                return value
+        if isinstance(result_payload.get("results", []), list) and result_payload.get("results", []):
+            return f"produced {len(result_payload.get('results', []))} command result(s)"
+        return "node updated"
+
+    @staticmethod
+    def _result_preview(result_payload: dict[str, Any]) -> str:
+        for key in ("output", "notes", "objective", "path"):
+            value = result_payload.get(key, "")
+            if isinstance(value, str) and value.strip():
+                return value.strip()[:240]
+        for key in ("config", "manifest", "spec"):
+            value = result_payload.get(key, {})
+            if isinstance(value, dict) and value:
+                return json.dumps(value, ensure_ascii=False, default=str)[:240]
+        return ""
+
     def _save_thread_payload(self, thread_id: str, payload: dict[str, Any]) -> None:
         thread_dir = self.root / thread_id
         thread_dir.mkdir(parents=True, exist_ok=True)
         payload.setdefault("workspace", self._sandbox(thread_id).workspace_paths())
         payload.setdefault("executions", [])
         payload.setdefault("events", [])
+        payload.setdefault("next_event_id", len(payload.get("events", [])) + 1)
         payload.setdefault(
             "control",
             {

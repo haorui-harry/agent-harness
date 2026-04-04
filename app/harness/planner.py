@@ -18,24 +18,23 @@ class HarnessPlanner:
         target: str = "general",
         live_model_overrides: dict[str, Any] | None = None,
     ) -> list[str]:
-        """Build a lightweight plan from a dynamic task profile."""
+        """Build a lightweight plan from capability-graph planning."""
 
         profile = analyze_task_request(query, target=target, live_model_overrides=live_model_overrides)
-        plan = ["understand request and success criteria"]
-
-        if "workspace" in profile.deliberation.selected:
-            plan.append("inspect workspace context and local artifacts")
-        if "web" in profile.deliberation.selected:
-            plan.append("collect external evidence and references")
-        if "discovery" in profile.deliberation.selected or profile.skill_priors:
-            prior_names = ", ".join(item.name for item in profile.skill_priors[:3]) or "general skills"
-            plan.append(f"select capabilities and skill priors ({prior_names})")
-        if profile.requires_command_execution:
-            plan.append("execute bounded actions inside the workspace")
+        plan = ["understand goal, constraints, and desired end state"]
+        steps = profile.capability_plan.get("steps", []) if isinstance(profile.capability_plan.get("steps", []), list) else []
+        for step in steps[:8]:
+            if not isinstance(step, dict):
+                continue
+            title = str(step.get("title", "")).strip()
+            reason = str(step.get("reason", "")).strip()
+            if title:
+                plan.append(f"{title.lower()} because {reason or 'the capability graph selected it'}")
         if profile.requires_validation:
-            plan.append("validate claims or outputs before final synthesis")
-
-        plan.append(f"synthesize a {profile.output_mode} artifact")
+            plan.append("validate the result against the task success criteria and remaining state gap")
+        if profile.requires_command_execution:
+            plan.append("execute bounded workspace commands only if they reduce the remaining state gap")
+        plan.append(f"close the remaining artifact gap and publish a {profile.output_mode} result")
         return plan
 
     def next_tool_call(
@@ -79,64 +78,40 @@ class HarnessPlanner:
         primary = keywords[0] if keywords else profile.query
         skill_query = " ".join(keywords[:3]) or profile.execution_intent or profile.query
         glob = "*.py" if profile.execution_intent in {"code", "benchmark"} else "*"
-        selected = set(profile.deliberation.selected)
 
         sequence: list[tuple[str, dict[str, object]]] = []
-        if "workspace" in selected:
-            sequence.append(
-                (
-                    "workspace_file_search",
-                    {"query": primary, "glob": glob, "limit": 8},
-                )
-            )
-        if "web" in selected:
-            sequence.append(
-                (
-                    "external_resource_hub",
-                    {"query": profile.query, "limit": 6},
-                )
-            )
-            sequence.append(
-                (
-                    "evidence_dossier_builder",
-                    {"query": profile.query, "limit": 5, "domains": profile.domains or ["general"]},
-                )
-            )
-        if "discovery" in selected:
-            sequence.append(
-                (
-                    "tool_search",
-                    {"query": profile.query, "limit": 6},
-                )
-            )
-        if profile.skill_priors:
-            sequence.append(
-                (
-                    "code_skill_search",
-                    {"query": skill_query, "limit": 6},
-                )
-            )
-        if "risk" in selected or "risk" in profile.domains or profile.execution_intent == "ops":
-            sequence.append(
-                (
-                    "policy_risk_matrix",
-                    {"query": profile.query, "evidence_limit": 4},
-                )
-            )
+        for step in profile.capability_plan.get("steps", []) if isinstance(profile.capability_plan.get("steps", []), list) else []:
+            if not isinstance(step, dict) or str(step.get("node_type", "")) != "tool_call":
+                continue
+            ref = str(step.get("ref", "")).strip()
+            if not ref:
+                continue
+            args = dict(step.get("default_args", {})) if isinstance(step.get("default_args", {}), dict) else {}
+            if ref == "workspace_file_search":
+                args.setdefault("query", primary)
+                args.setdefault("glob", glob)
+                args.setdefault("limit", 8)
+            elif ref == "code_skill_search":
+                args.setdefault("query", skill_query)
+                args.setdefault("limit", 6)
+            elif ref == "external_resource_hub":
+                args.setdefault("query", profile.query)
+                args.setdefault("limit", 6)
+            elif ref == "evidence_dossier_builder":
+                args.setdefault("query", profile.query)
+                args.setdefault("limit", 5)
+                args.setdefault("domains", profile.domains or ["general"])
+            elif ref == "policy_risk_matrix":
+                args.setdefault("query", profile.query)
+                args.setdefault("evidence_limit", 4)
+            else:
+                args.setdefault("query", profile.query)
+            sequence.append((ref, args))
+
         if profile.execution_intent == "benchmark":
-            sequence.append(
-                (
-                    "code_experiment_design",
-                    {"query": profile.query, "max_experiments": 5},
-                )
-            )
+            sequence.append(("code_experiment_design", {"query": profile.query, "max_experiments": 5}))
         elif profile.execution_intent == "code" and profile.requires_validation:
-            sequence.append(
-                (
-                    "memory_context_digest",
-                    {"events": []},
-                )
-            )
+            sequence.append(("memory_context_digest", {"events": []}))
         return sequence
 
     @staticmethod

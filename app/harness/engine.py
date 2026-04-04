@@ -10,6 +10,7 @@ from typing import Any
 from app.agents.runtime import AgentThreadRuntime
 from app.agents.scheduler import AgentExecutionScheduler
 from app.agents.subagents import ParallelSubagentExecutor
+from app.agents.task_actions import TaskGraphActionMapper
 from app.agents.workspace_view import ThreadWorkspaceStreamBuilder
 from app.core.state import GraphState
 from app.graph import build_graph
@@ -32,27 +33,45 @@ from app.harness.recipes import HarnessRecipe, RecipeRegistry
 from app.harness.redteam import HarnessRedTeam
 from app.harness.research_lab import HarnessResearchLab
 from app.harness.report import HarnessReportBuilder
+from app.harness.runtime_settings import HarnessRuntimeSettings
 from app.harness.security import SecurityAction, SecurityDecision, SecurityEngine
 from app.harness.showcase import HarnessShowcaseBuilder
+from app.harness.super_agent import ThreadFirstSuperAgent
 from app.harness.stream import HarnessEventStreamBuilder
 from app.harness.state import HarnessMemoryStore
 from app.harness.tools import ToolRegistry
 from app.harness.value import HarnessValueScorer
 from app.harness.visuals import HarnessVisualProtocol
+from app.skills.manager import SkillPackageManager
+from app.skills.packages import SkillPackageCatalog
 
 
 class HarnessEngine:
     """Top-level harness runner for reliable agent execution."""
 
-    def __init__(self) -> None:
+    def __init__(self, settings: HarnessRuntimeSettings | None = None) -> None:
+        self.settings = settings or HarnessRuntimeSettings.from_env()
         self.graph = build_graph()
-        self.thread_runtime = AgentThreadRuntime()
+        self.planner = HarnessPlanner()
+        self.skill_manager = SkillPackageManager()
+        self.skill_packages = SkillPackageCatalog(
+            skills_root=self.skill_manager.skills_root,
+            state_file=self.skill_manager.state_file,
+        )
+        self.tools = ToolRegistry(
+            evidence_registry=self.settings.build_evidence_registry(),
+            package_catalog=self.skill_packages,
+            gateway_config=self.settings.gateway.to_dict(),
+        )
+        self.thread_runtime = AgentThreadRuntime(
+            self.settings.threads_root,
+            sandbox_provider=self.settings.build_sandbox_provider(),
+            action_mapper=TaskGraphActionMapper(tool_registry=self.tools),
+        )
         self.scheduler = AgentExecutionScheduler(self.thread_runtime)
         self.subagents = ParallelSubagentExecutor(self.thread_runtime)
         self.workspace_view = ThreadWorkspaceStreamBuilder()
-        self.planner = HarnessPlanner()
-        self.tools = ToolRegistry()
-        self.memory = HarnessMemoryStore()
+        self.memory = self.settings.build_memory_store()
         self.guardrails = GuardrailEngine()
         self.evaluator = HarnessEvaluator()
         self.live_agent = LiveAgentOrchestrator()
@@ -76,6 +95,7 @@ class HarnessEngine:
         self.stream = HarnessEventStreamBuilder()
         self.optimizer = HarnessOptimizer()
         self.research_lab = HarnessResearchLab()
+        self.super_agent = ThreadFirstSuperAgent(self, package_catalog=self.skill_packages)
 
     def list_tool_catalog(self) -> list[dict[str, Any]]:
         """Return tool manifest catalog and runtime availability."""
@@ -92,6 +112,53 @@ class HarnessEngine:
         """Return configured evidence providers for evidence-aware tools."""
 
         return self.tools.list_evidence_sources()
+
+    def list_skill_packages(self, enabled_only: bool = False) -> list[dict[str, Any]]:
+        """Return package-style skills available to the thread-first runtime."""
+
+        return [item for item in self.skill_manager.list_packages() if (item.get("enabled", True) or not enabled_only)]
+
+    def get_skill_package(self, name: str) -> dict[str, Any] | None:
+        """Return one package-style skill."""
+
+        return self.skill_manager.get_package(name)
+
+    def suggest_skill_packages(
+        self,
+        query: str,
+        *,
+        target: str = "general",
+        limit: int = 6,
+    ) -> list[dict[str, Any]]:
+        """Suggest package-style skills for a task."""
+
+        return self.tools.suggest_skill_packages(query, target=target, limit=limit)
+
+    def update_skill_package(self, name: str, *, enabled: bool) -> dict[str, Any]:
+        """Enable or disable one skill package."""
+
+        payload = self.skill_manager.update_package(name, enabled=enabled)
+        self._refresh_skill_runtime()
+        return payload
+
+    def install_skill_package_archive(self, archive_path: str | Path) -> dict[str, Any]:
+        """Install a DeerFlow-style .skill archive."""
+
+        payload = self.skill_manager.install_archive(archive_path)
+        self._refresh_skill_runtime()
+        return payload
+
+    def _refresh_skill_runtime(self) -> None:
+        self.skill_packages = SkillPackageCatalog(
+            skills_root=self.skill_manager.skills_root,
+            state_file=self.skill_manager.state_file,
+        )
+        self.tools = ToolRegistry(
+            evidence_registry=self.settings.build_evidence_registry(),
+            package_catalog=self.skill_packages,
+            gateway_config=self.settings.gateway.to_dict(),
+        )
+        self.thread_runtime.action_mapper = TaskGraphActionMapper(tool_registry=self.tools)
 
     def discover_tools(
         self,
@@ -497,6 +564,11 @@ class HarnessEngine:
 
         return self.workspace_view.to_html(self.build_thread_workspace_stream(thread_id))
 
+    def export_thread_frontend_snapshot(self, thread_id: str) -> dict[str, Any]:
+        """Export a DeerFlow-like thread snapshot contract for frontend consumers."""
+
+        return self.thread_runtime.export_frontend_thread_snapshot(thread_id)
+
     def generate_deep_research_report(
         self,
         topic: str,
@@ -529,6 +601,23 @@ class HarnessEngine:
     ) -> dict[str, Any]:
         """Build a generic executable task graph for non-mission agent work."""
 
+        return self.compile_generic_task_payload(
+            query=query,
+            target=target,
+            workspace_root=workspace_root,
+            live_model=live_model,
+        )["graph"]
+
+    def compile_generic_task_payload(
+        self,
+        query: str,
+        *,
+        target: str = "general",
+        workspace_root: str = ".",
+        live_model: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Compile a generic task graph plus planning/profile payload."""
+
         result = self.tools.call(
             ToolCall(
                 name="task_graph_builder",
@@ -547,7 +636,28 @@ class HarnessEngine:
         graph = output.get("graph", {})
         if not isinstance(graph, dict):
             raise ValueError("task_graph_builder returned invalid graph")
-        return graph
+        return output
+
+    def run_thread_first(
+        self,
+        thread_id: str,
+        query: str,
+        *,
+        target: str = "auto",
+        max_nodes: int = 0,
+        live_model: dict[str, Any] | None = None,
+        async_mode: bool = False,
+    ) -> dict[str, Any]:
+        """Run the thread-first super-agent entrypoint."""
+
+        return self.super_agent.run(
+            thread_id,
+            query,
+            target=target,
+            max_nodes=max_nodes,
+            live_model=live_model,
+            async_mode=async_mode,
+        )
 
     def execute_thread_generic_task(
         self,
@@ -560,26 +670,13 @@ class HarnessEngine:
     ) -> dict[str, Any]:
         """Build and execute a generic cross-scene task graph inside one thread."""
 
-        thread = self.thread_runtime.ensure_thread(thread_id, title=query[:80])
-        workspace_root = str(thread.get("workspace", {}).get("workspace", "."))
-        graph = self.build_generic_task_graph(
-            query=query,
+        return self.run_thread_first(
+            thread_id,
+            query,
             target=target,
-            workspace_root=workspace_root,
+            max_nodes=max_nodes,
             live_model=live_model,
         )
-        execution = self.execute_thread_task_graph(
-            thread_id,
-            graph,
-            execution_label=f"generic:{target}",
-            context={"query": query, "target": target, "live_model": dict(live_model or {})},
-            max_nodes=max_nodes,
-        )
-        return {
-            "thread": self.get_thread(thread_id),
-            "graph": graph,
-            "execution": execution,
-        }
 
     def run(
         self,

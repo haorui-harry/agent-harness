@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.core.mission import MissionRegistry
+from app.core.tasking import default_capability_registry, infer_task_spec, plan_capability_path
 from app.harness.discovery import ToolDiscoveryEngine
 from app.harness.engine import HarnessEngine
 from app.harness.manifest import ToolManifestRegistry
 from app.harness.models import HarnessConstraints
+from app.harness.planner import HarnessPlanner
 from app.harness.security import SecurityEngine
+from app.harness.task_profile import analyze_task_request
 
 
 def test_manifest_catalog_includes_innovative_tools() -> None:
@@ -20,6 +24,76 @@ def test_manifest_catalog_includes_innovative_tools() -> None:
     assert "api_skill_dependency_graph" in names
     assert "api_skill_portfolio_optimizer" in names
     assert "code_experiment_design" in names
+
+
+def test_task_profile_and_mission_cover_creative_and_analytics_surfaces() -> None:
+    creative = analyze_task_request(
+        "Create a landing page, keynote deck, video storyboard, and image prompt pack for an AI agent launch."
+    )
+    assert creative.output_mode == "webpage"
+    assert "webpage_blueprint" in creative.artifact_targets
+    assert any(item.name == "webpage_blueprint" for item in creative.skill_priors)
+
+    analytics = analyze_task_request(
+        "Analyze a dataset, prepare charts, and propose a dashboard narrative for stakeholders."
+    )
+    assert analytics.output_mode in {"chart", "data"}
+    assert any(item in analytics.artifact_targets for item in {"chart_pack_spec", "data_analysis_spec"})
+    assert any(item.name in {"chart_storyboard", "data_analysis_plan"} for item in analytics.skill_priors)
+    assert analytics.task_spec.get("artifact_contracts")
+    assert analytics.capability_plan.get("steps")
+
+    mission = MissionRegistry().infer("Create a landing page and presentation deck for the launch")
+    assert mission.name == "creative_pack"
+
+
+def test_capability_graph_planning_is_task_spec_driven() -> None:
+    spec = infer_task_spec(
+        query="Inspect my repo, gather external benchmark evidence, and produce a chart pack plus website blueprint.",
+        target="general",
+        domains=["engineering", "research"],
+        output_mode="webpage",
+        workspace_required=True,
+        external_required=True,
+        needs_validation=True,
+    )
+    plan = plan_capability_path(task_spec=spec, registry=default_capability_registry())
+    names = [str(item.get("capability", "")) for item in plan.get("steps", []) if isinstance(item, dict)]
+    assert "observe_workspace" in names
+    assert "collect_external_evidence" in names
+    assert "produce_webpage_blueprint" in names
+
+    planner = HarnessPlanner()
+    built = planner.build_plan("Create a landing page and chart pack with evidence from my repo and the web.")
+    assert any("capability graph" in item or "inspect workspace" in item.lower() or "collect external resources" in item.lower() for item in built)
+
+
+def test_task_spec_can_infer_custom_document_contracts() -> None:
+    spec = infer_task_spec(
+        query="Write a decision memo, a one-pager brief, and an FAQ for the rollout.",
+        target="general",
+        domains=["enterprise"],
+        output_mode="report",
+    )
+    kinds = [item.kind for item in spec.artifact_contracts]
+
+    assert "custom:decision_memo" in kinds
+    assert "custom:one_pager" in kinds
+    assert "custom:brief" in kinds
+    assert "custom:faq" in kinds
+
+
+def test_task_spec_can_infer_risk_register_contract() -> None:
+    spec = infer_task_spec(
+        query="Prepare a launch memo and risk register for the rollout.",
+        target="general",
+        domains=["enterprise"],
+        output_mode="report",
+    )
+    kinds = [item.kind for item in spec.artifact_contracts]
+
+    assert "custom:launch_memo" in kinds
+    assert "risk_register" in kinds
 
 
 def test_discovery_prioritizes_risk_tools_for_audit_queries() -> None:

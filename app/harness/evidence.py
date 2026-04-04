@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -102,10 +101,11 @@ class EvidenceSourceConfig:
 class EvidenceProviderRegistry:
     """Collect evidence records from local dossiers, static catalogs, and HTTP JSON endpoints."""
 
-    def __init__(self, config_path: str = "") -> None:
+    def __init__(self, config_path: str = "", resolved_headers: dict[str, str] | None = None) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
         self.default_dossier_root = self.repo_root / "docs" / "evidence"
-        self.sources = self._load_sources(config_path=config_path or os.getenv("AGENT_HARNESS_EVIDENCE_CONFIG", ""))
+        self.resolved_headers = dict(resolved_headers or {})
+        self.sources = self._load_sources(config_path=config_path)
 
     def list_sources(self) -> list[dict[str, Any]]:
         return [
@@ -262,7 +262,7 @@ class EvidenceProviderRegistry:
         if params:
             sep = "&" if "?" in url else "?"
             url = f"{url}{sep}{params}"
-        headers = {name: os.getenv(env_key, "") for name, env_key in source.headers_env.items()}
+        headers = {name: self.resolved_headers.get(env_key, "") for name, env_key in source.headers_env.items()}
         req = request.Request(url, headers={k: v for k, v in headers.items() if v})
         try:
             with request.urlopen(req, timeout=source.timeout_seconds) as response:

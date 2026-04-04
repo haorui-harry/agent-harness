@@ -19,6 +19,7 @@ class ThreadWorkspaceStreamBuilder:
         messages = thread_payload.get("messages", []) if isinstance(thread_payload.get("messages", []), list) else []
         events = thread_payload.get("events", []) if isinstance(thread_payload.get("events", []), list) else []
         showcase = self._build_showcase(thread_payload, executions, artifacts)
+        timeline = self._build_timeline(events)
         return {
             "schema": self.SCHEMA,
             "thread_id": thread_payload.get("thread_id", ""),
@@ -49,6 +50,7 @@ class ThreadWorkspaceStreamBuilder:
                 }
                 for item in executions[-8:]
             ],
+            "timeline": timeline,
             "stream_events": events[-20:],
         }
 
@@ -59,6 +61,7 @@ class ThreadWorkspaceStreamBuilder:
         messages = payload.get("messages", []) if isinstance(payload.get("messages", []), list) else []
         artifacts = payload.get("artifacts", []) if isinstance(payload.get("artifacts", []), list) else []
         executions = payload.get("executions", []) if isinstance(payload.get("executions", []), list) else []
+        timeline = payload.get("timeline", []) if isinstance(payload.get("timeline", []), list) else []
         events = payload.get("stream_events", []) if isinstance(payload.get("stream_events", []), list) else []
         workspace = payload.get("workspace", {}) if isinstance(payload.get("workspace", {}), dict) else {}
         return f"""<!doctype html>
@@ -172,6 +175,10 @@ class ThreadWorkspaceStreamBuilder:
         <ul class="artifact-list">{"".join(f"<li><code>{html.escape(str(item.get('name','')))}</code> {html.escape(str(item.get('kind','')))}<br /><span class='muted'>{html.escape(str(item.get('summary','')))}</span></li>" for item in artifacts) or "<li>No artifacts.</li>"}</ul>
       </div>
       <div class="card span-6">
+        <div class="title">Node Timeline</div>
+        <ul class="event-list">{"".join(f"<li><strong>{html.escape(str(item.get('node_title','')) or str(item.get('node_id','')))}</strong> <code>{html.escape(str(item.get('phase','')))}</code><br /><span class='muted'>{html.escape(str(item.get('summary','')))}</span>{'<br /><code>' + html.escape(str(item.get('artifact_relative_path',''))) + '</code>' if str(item.get('artifact_relative_path','')) else ''}</li>" for item in timeline) or "<li>No node timeline.</li>"}</ul>
+      </div>
+      <div class="card span-6">
         <div class="title">Event Stream</div>
         <ul class="event-list">{"".join(f"<li><code>{html.escape(str(item.get('event','')))}</code> {html.escape(str(item.get('timestamp','')))}</li>" for item in events) or "<li>No events.</li>"}</ul>
       </div>
@@ -200,6 +207,7 @@ class ThreadWorkspaceStreamBuilder:
         tool_payload = self._read_json_artifact(artifacts, preferred_kind="tool_result")
         deliverables: list[str] = []
         value_points: list[str] = []
+        artifact_family_notes = self._artifact_family_notes(artifacts)
         if workspace_payload:
             deliverables.append(
                 f"Scanned workspace and found {int(workspace_payload.get('file_count', 0))} relevant file(s)."
@@ -216,8 +224,10 @@ class ThreadWorkspaceStreamBuilder:
             result_text = str(plan_payload.get("output", "")).strip()
             if result_text:
                 deliverables.append("Generated an executable engineering brief instead of a generic summary.")
+        deliverables.extend(item["deliverable"] for item in artifact_family_notes)
         if report_text:
             deliverables.append("Wrote a final markdown report artifact for handoff and review.")
+        value_points.extend(item["value"] for item in artifact_family_notes)
         value_points.extend(
             [
                 "This run produced inspectable artifacts, not just a final answer string.",
@@ -225,22 +235,96 @@ class ThreadWorkspaceStreamBuilder:
                 "Workspace paths and artifact files are exposed directly so the user can inspect the agent computer state.",
             ]
         )
+        preview = self._read_preview_artifact(artifacts)
+        plan_output = str(plan_payload.get("output", "")).strip() if plan_payload else ""
+        preview_body = report_text or preview.get("content", "") or plan_output or "No report generated."
+        preview_title = preview.get("title", "Artifact Preview")
+        summary_focus = ", ".join(item["family"] for item in artifact_family_notes[:3])
         summary = (
             f"This thread executed a concrete task inside a persistent agent workspace. "
             f"It grounded on local files, generated reviewable artifacts, and exposed the execution computer "
             f"through workspace paths, event history, and artifact outputs."
         )
-        result_body = report_text or str(plan_payload.get("output", "No report generated.")) if plan_payload else "No report generated."
-        result_body = result_body[:1200]
+        if summary_focus:
+            summary += f" Primary artifact families: {summary_focus}."
+        result_body = preview_body[:1200]
         return {
             "title": str(thread_payload.get("title", "") or "Agent Result"),
             "task": task or "No task captured.",
             "summary": summary,
             "deliverables": deliverables[:4],
             "value_points": value_points[:4],
-            "result_title": "Final Report Excerpt",
+            "result_title": preview_title,
             "result_body": result_body,
         }
+
+    @staticmethod
+    def _build_timeline(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            if str(event.get("event", "")) not in {"node_started", "node_result", "artifact_written", "node_completed"}:
+                continue
+            rows.append(
+                {
+                    "event_id": int(event.get("event_id", 0)),
+                    "event": str(event.get("event", "")),
+                    "phase": str(event.get("phase", "")),
+                    "timestamp": str(event.get("timestamp", "")),
+                    "execution_id": str(event.get("execution_id", "")),
+                    "node_id": str(event.get("node_id", "")),
+                    "node_title": str(event.get("node_title", "")),
+                    "node_type": str(event.get("node_type", "")),
+                    "summary": str(event.get("summary", "")),
+                    "artifact_relative_path": str(event.get("artifact_relative_path", "")),
+                }
+            )
+        return rows[-20:]
+
+    @staticmethod
+    def _artifact_family_notes(artifacts: list[dict[str, Any]]) -> list[dict[str, str]]:
+        rows: list[dict[str, str]] = []
+        seen: set[str] = set()
+        mapping = [
+            ("web", ["web/"], "Prepared a landing-page or webpage blueprint artifact.", "Turns a generic request into a page structure someone can build next."),
+            ("slides", ["slides/"], "Prepared a slide deck plan with narrative beats and proof moments.", "Makes the result presentable to executives instead of burying it in prose."),
+            ("charts", ["charts/"], "Prepared a chart pack spec with renderable data contracts.", "Creates a visualization-ready surface rather than only describing insights."),
+            ("podcast", ["podcast/"], "Prepared a podcast episode plan with segment structure.", "Extends the framework into audio-ready content packaging."),
+            ("video", ["video/"], "Prepared a video storyboard with scene-by-scene beats.", "Creates a media artifact that downstream teams can directly produce."),
+            ("images", ["images/"], "Prepared an image prompt pack for reusable visual generation.", "Supports visual asset production without locking to one generator."),
+            ("analysis", ["analysis/data-analysis-spec"], "Prepared a data-analysis specification with metrics and outputs.", "Pushes the task toward reproducible analytics rather than loose commentary."),
+            ("benchmarks", ["benchmarks/"], "Prepared benchmark execution artifacts.", "Makes evaluation portable and reproducible."),
+            ("datasets", ["datasets/"], "Prepared external data pull or loader artifacts.", "Grounds research and analysis tasks in reproducible evidence collection."),
+        ]
+        for artifact in artifacts:
+            rel = str(artifact.get("relative_path", artifact.get("name", ""))).lower()
+            for family, patterns, deliverable, value in mapping:
+                if family in seen or not any(pattern in rel for pattern in patterns):
+                    continue
+                seen.add(family)
+                rows.append({"family": family, "deliverable": deliverable, "value": value})
+        return rows
+
+    @staticmethod
+    def _read_preview_artifact(artifacts: list[dict[str, Any]]) -> dict[str, str]:
+        for artifact in reversed(artifacts):
+            path = Path(str(artifact.get("path", "")))
+            if not path.exists() or path.suffix.lower() not in {".md", ".txt", ".diff", ".py", ".json"}:
+                continue
+            try:
+                content = path.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            title = Path(str(artifact.get("relative_path", artifact.get("name", path.name)))).name
+            if path.suffix.lower() == ".json":
+                try:
+                    payload = json.loads(content)
+                    content = json.dumps(payload, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+            return {"title": f"Artifact Preview: {title}", "content": content}
+        return {"title": "Artifact Preview", "content": ""}
 
     @staticmethod
     def _read_text_artifact(artifacts: list[dict[str, Any]], preferred_kind: str = "") -> str:

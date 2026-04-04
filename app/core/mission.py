@@ -761,6 +761,56 @@ class MissionRegistry:
     def _defaults() -> list[MissionProfile]:
         return [
             MissionProfile(
+                name="creative_pack",
+                title="Creative Media Mission Pack",
+                summary="Multi-format package for landing pages, slide decks, visuals, audio, and launch storytelling.",
+                primary_deliverable="Experience pack with webpage blueprint, deck arc, media scripts, and visual directions.",
+                target_users=["product marketer", "designer", "creative lead", "founder"],
+                output_views=["landing page", "slide deck", "video storyboard", "image prompt pack"],
+                review_questions=[
+                    "Does the first screen explain the audience, value, and output in one glance?",
+                    "Which media asset proves the story instead of repeating the slogan?",
+                    "What artifact can design or marketing execute next without reinterpretation?",
+                ],
+                deliverables=[
+                    MissionDeliverableBlueprint("Webpage Blueprint", "Hero structure, page sections, proof blocks, and CTA design.", "design and growth"),
+                    MissionDeliverableBlueprint("Slide Deck Plan", "Slide-by-slide arc for demos, launches, and executive reviews.", "founder and product marketing"),
+                    MissionDeliverableBlueprint("Media Storyboard", "Podcast or video segment structure with beats and proof moments.", "content team"),
+                    MissionDeliverableBlueprint("Visual Direction Pack", "Prompt-ready visual directions for hero art, posters, and diagrams.", "creative ops"),
+                ],
+                benchmark_targets=[
+                    BenchmarkTargetBlueprint("TAU-bench", "medium", "Useful for multi-step creative task packaging with tool choices.", "No direct media-generation benchmark loop yet."),
+                    BenchmarkTargetBlueprint("TheAgentCompany", "medium", "Matches cross-functional knowledge-work packaging.", "Needs richer long-horizon editing and review state."),
+                    BenchmarkTargetBlueprint("GAIA", "low", "Can partially validate evidence-backed content planning.", "Not a direct creative-output benchmark."),
+                ],
+                keyword_patterns=[r"(webpage|website|landing|frontend|ui|slide|deck|presentation|ppt|podcast|video|storyboard|image|poster|illustration)"],
+            ),
+            MissionProfile(
+                name="analytics_pack",
+                title="Analytics Mission Pack",
+                summary="Decision-oriented package for data analysis, charting, dashboard framing, and evidence-backed readouts.",
+                primary_deliverable="Analysis pack with data questions, chart portfolio, dashboard narrative, and validation notes.",
+                target_users=["analyst", "operator", "research lead", "executive reviewer"],
+                output_views=["analysis brief", "chart pack", "dashboard spec", "evidence notes"],
+                review_questions=[
+                    "Which metric actually drives the decision and which metric is only diagnostic?",
+                    "Where are the outliers or segments that would invalidate the headline?",
+                    "What chart pack or dashboard view is ready for stakeholder consumption today?",
+                ],
+                deliverables=[
+                    MissionDeliverableBlueprint("Analysis Question Set", "Decision questions, cohorts, metrics, and failure checks.", "analytics owner"),
+                    MissionDeliverableBlueprint("Chart Portfolio", "Reusable chart specs with data contracts and captions.", "analyst and product"),
+                    MissionDeliverableBlueprint("Dashboard Narrative", "How to sequence metrics, alerts, and annotations on the surface.", "ops and leadership"),
+                    MissionDeliverableBlueprint("Data Pull Spec", "Reproducible collection rules and quality checks for the dataset.", "data engineering"),
+                ],
+                benchmark_targets=[
+                    BenchmarkTargetBlueprint("GAIA", "medium", "Good fit for evidence-backed multi-step analysis framing.", "Needs stronger public run history on external datasets."),
+                    BenchmarkTargetBlueprint("TAU-bench", "medium", "Useful for operational analytics and workflow-oriented analysis loops.", "Needs live connectors into business systems."),
+                    BenchmarkTargetBlueprint("TheAgentCompany", "medium", "Fits workplace analysis and reporting tasks.", "Needs stronger persistent memory around datasets and iterations."),
+                ],
+                keyword_patterns=[r"(data|dataset|analytics|analysis|chart|graph|plot|dashboard|sql|csv|cohort|visualization)"],
+            ),
+            MissionProfile(
                 name="strategy_pack",
                 title="Strategy Mission Pack",
                 summary="Business-facing package for launch, rollout, and investment decisions.",

@@ -63,7 +63,7 @@ class LiveModelConfig:
         base: LiveModelConfig | None = None,
     ) -> LiveModelConfig | None:
         payload = dict(overrides or {})
-        base_config = base or LiveModelConfig.from_env()
+        base_config = base
         if base_config:
             merged = {
                 "base_url": base_config.base_url,
@@ -99,6 +99,16 @@ class LiveModelConfig:
                 maximum=10.0,
             ),
         )
+
+    @staticmethod
+    def resolve(
+        overrides: dict[str, Any] | None,
+        *,
+        base: LiveModelConfig | None = None,
+    ) -> LiveModelConfig | None:
+        """Resolve live-model config from explicit base first, then the environment in one place."""
+
+        return LiveModelConfig.from_overrides(overrides, base=base or LiveModelConfig.from_env())
 
     def masked(self) -> dict[str, Any]:
         return {
@@ -393,7 +403,7 @@ class LiveAgentOrchestrator:
         strategy: str = "",
         champion: dict[str, Any] | None = None,
     ) -> LiveAgentResult:
-        config = LiveModelConfig.from_overrides(live_model_overrides)
+        config = LiveModelConfig.resolve(live_model_overrides)
         profile, source, reason = self.strategies.resolve(
             query=query,
             mode=mode,

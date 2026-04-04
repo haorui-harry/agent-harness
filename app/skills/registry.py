@@ -32,9 +32,11 @@ def _sentences(text: str) -> list[str]:
 
 def _keywords(text: str, limit: int = 6) -> list[str]:
     stop = {
+        "and",
         "this",
         "that",
         "with",
+        "for",
         "from",
         "into",
         "about",
@@ -67,15 +69,144 @@ def _keywords(text: str, limit: int = 6) -> list[str]:
         "than",
         "then",
         "into",
+        "title",
+        "query",
+        "node",
+        "node_id",
+        "graph",
+        "graph_id",
+        "output",
+        "input",
+        "result",
+        "results",
+        "kind",
+        "summary",
+        "source",
+        "path",
+        "prompt",
+        "content",
+        "artifact",
+        "artifacts",
+        "metrics",
+        "status",
+        "relative_path",
+        "content_type",
+        "workspace",
+        "task",
+        "analysis",
+        "prepare",
+        "write",
+        "create",
+        "design",
+        "draft",
+        "build",
+        "rolling",
+        "out",
+        "depends_on",
+        "reason",
+        "tool_name",
+        "skill_name",
+        "node_type",
+        "execution_id",
+        "record_count",
+        "latency_ms",
+        "success",
     }
     tokens = [word.lower() for word in _WORD_RE.findall(str(text or "")) if word.lower() not in stop]
     counts = Counter(tokens)
     return [word for word, _ in counts.most_common(limit)]
 
 
+def _topic_clause(text: str, fallback: str = "the target system") -> str:
+    normalized = _normalize_text(text)
+    for pattern in [r"\bon ([^.;]+)", r"\bfor ([^.;]+)", r"\babout ([^.;]+)"]:
+        match = re.search(pattern, normalized, flags=re.IGNORECASE)
+        if not match:
+            continue
+        topic = match.group(1).strip(" .")
+        topic = re.split(r"\band\b|\bwith\b", topic, maxsplit=1, flags=re.IGNORECASE)[0].strip(" .")
+        if topic:
+            return topic
+    stripped = re.sub(
+        r"^(write|prepare|create|design|generate|draft|build|analyze|analyse|inspect|summarize|develop)\s+",
+        "",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    words = stripped.split()
+    return " ".join(words[:10]).strip(" .,") or fallback
+
+
 def _candidate_lines(text: str) -> list[str]:
-    lines = [line.strip(" -\t") for line in str(text or "").splitlines() if line.strip(" -\t")]
+    lines = []
+    for raw in str(text or "").splitlines():
+        line = raw.strip(" -\t")
+        if not line:
+            continue
+        if line.endswith(":") and len(line.split()) <= 4:
+            continue
+        lines.append(line)
     return lines or _sentences(text)
+
+
+def _json_objects(text: str, limit: int = 6) -> list[dict[str, Any]]:
+    payload = str(text or "")
+    decoder = json.JSONDecoder()
+    objects: list[dict[str, Any]] = []
+    index = 0
+    while index < len(payload) and len(objects) < limit:
+        start = payload.find("{", index)
+        if start < 0:
+            break
+        try:
+            value, offset = decoder.raw_decode(payload[start:])
+        except Exception:
+            index = start + 1
+            continue
+        if isinstance(value, dict):
+            objects.append(value)
+        index = start + max(offset, 1)
+    return objects
+
+
+def _structured_signal_lines(text: str, limit: int = 8) -> list[str]:
+    rows: list[str] = []
+    for payload in _json_objects(text, limit=limit):
+        output = payload.get("output")
+        if isinstance(output, str):
+            rows.extend(_candidate_lines(output)[:3])
+        if isinstance(output, dict):
+            record_count = int(output.get("record_count", output.get("count", 0)) or 0)
+            if record_count > 0:
+                rows.append(f"Collected {record_count} supporting evidence records.")
+            for record in output.get("records", [])[:3] if isinstance(output.get("records", []), list) else []:
+                if isinstance(record, dict) and str(record.get("title", "")).strip():
+                    rows.append(str(record.get("title", "")).strip())
+            for risk in output.get("risk_matrix", [])[:3] if isinstance(output.get("risk_matrix", []), list) else []:
+                if not isinstance(risk, dict):
+                    continue
+                dimension = str(risk.get("dimension", "risk")).strip() or "risk"
+                level = str(risk.get("level", "unknown")).strip() or "unknown"
+                rows.append(f"{dimension.title()} risk is {level}.")
+            for result in output.get("results", [])[:2] if isinstance(output.get("results", []), list) else []:
+                if not isinstance(result, dict):
+                    continue
+                command = _normalize_text(str(result.get("command", ""))) or "command"
+                rows.append(f"Command {command} exited with code {result.get('exit_code', 0)}.")
+        tool_name = str(payload.get("tool_name", "")).strip()
+        if tool_name and tool_name not in rows:
+            rows.append(f"Tool used: {tool_name}.")
+    if not rows:
+        rows = _candidate_lines(text)
+    deduped: list[str] = []
+    for item in rows:
+        value = _normalize_text(item)
+        if not value or value in deduped or value in {"{", "}", "[", "]"}:
+            continue
+        deduped.append(value)
+        if len(deduped) >= limit:
+            break
+    return deduped
 
 
 def _match_lines(text: str, keywords: list[str], limit: int = 4) -> list[str]:
@@ -299,13 +430,20 @@ def decompose_task(text: str) -> str:
 def artifact_synthesis(text: str) -> str:
     """Turn mixed notes, logs, and artifact snippets into a grounded synthesis."""
 
-    facts = _candidate_lines(text)[:4]
-    focus = ", ".join(_keywords(text, limit=3)) or "the artifact set"
+    facts = _structured_signal_lines(text, limit=6)
+    focus_terms = _keywords(text, limit=5)
+    focus = ", ".join(focus_terms[:3]) or "the artifact set"
+    strongest = facts[0] if facts else "No strong signals extracted."
+    support = facts[1] if len(facts) > 1 else "Need stronger supporting detail."
+    constraints = facts[2] if len(facts) > 2 else "Keep the deliverable grounded in evidence and executable next steps."
+    next_step = focus_terms[3] if len(focus_terms) > 3 else (focus_terms[0] if focus_terms else "the main decision")
     return (
         "Artifact Synthesis:\n"
-        f"- Observed signals: {' | '.join(item[:90] for item in facts) if facts else 'No strong signals extracted.'}\n"
+        f"- Core signal: {strongest[:220]}\n"
+        f"- Supporting signal: {support[:220]}\n"
         f"- Stable interpretation: the artifacts converge on {focus}.\n"
-        f"- Remaining gap: validate the weakest unsupported assumption before finalizing.\n"
+        f"- Constraint or caveat: {constraints[:220]}\n"
+        f"- Recommended next step: tighten the final deliverable around {next_step} and leave one inspectable artifact.\n"
         "--- (skill: artifact_synthesis)"
     )
 
@@ -326,11 +464,23 @@ def codebase_triage(text: str) -> str:
     """Summarize likely code hotspots, missing tests, and execution priorities."""
 
     focus = _keywords(text, limit=4)
+    lowered = str(text or "").lower()
+    topic = _topic_clause(text, fallback="the primary module")
+    if any(marker in lowered for marker in {"route", "routing", "router", "parser"}):
+        hotspot = "routing and parser classification logic"
+        patch_target = "query normalization and fallback selection"
+        test_gap = "ambiguous queries that should route to code instead of general"
+        execution_note = "compare current routing behavior before and after the patch"
+    else:
+        hotspot = focus[0] if focus else topic
+        patch_target = focus[1] if len(focus) > 1 else "input handling"
+        test_gap = focus[2] if len(focus) > 2 else "the failing edge case"
+        execution_note = focus[3] if len(focus) > 3 else "validation output"
     items = [
-        f"Hotspot: inspect {focus[0] if focus else 'the primary module'} first.",
-        f"Patch target: isolate the defect around {focus[1] if len(focus) > 1 else 'input handling'}.",
-        f"Test gap: add regression coverage for {focus[2] if len(focus) > 2 else 'the failing edge case'}.",
-        f"Execution note: preserve an artifact for {focus[3] if len(focus) > 3 else 'validation output'}.",
+        f"Hotspot: inspect {hotspot} first.",
+        f"Patch target: isolate the defect around {patch_target}.",
+        f"Test gap: add regression coverage for {test_gap}.",
+        f"Execution note: preserve an artifact for {execution_note}.",
     ]
     return "Codebase Triage:\n" + "\n".join(f"- {item}" for item in items) + "\n--- (skill: codebase_triage)"
 
@@ -339,11 +489,13 @@ def research_brief(text: str) -> str:
     """Turn a topic into a research brief with hypotheses, evidence, and gaps."""
 
     focus = _keywords(text, limit=3)
+    topic = _topic_clause(text)
     return (
         "Research Brief:\n"
-        f"- Question: how should we improve {focus[0] if focus else 'the target system'}?\n"
-        f"- Hypothesis: better structure around {focus[1] if len(focus) > 1 else 'task decomposition'} improves results.\n"
-        f"- Evidence to gather: benchmarks, failure cases, and direct artifacts touching {focus[2] if len(focus) > 2 else 'runtime behavior'}.\n"
+        f"- Topic: {topic}.\n"
+        f"- Question: what patterns or decisions matter most for {topic}?\n"
+        f"- Hypothesis: better structure around {focus[0] if focus else 'the core mechanism'} improves quality and reproducibility.\n"
+        f"- Evidence to gather: benchmarks, failure cases, and direct artifacts touching {focus[1] if len(focus) > 1 else 'runtime behavior'}.\n"
         "- Open gap: separate anecdotal wins from reproducible gains.\n"
         "--- (skill: research_brief)"
     )
@@ -388,6 +540,116 @@ def frontend_critique(text: str) -> str:
         f"- Redesign priority: make {focus[2] if len(focus) > 2 else 'the first-screen story'} obvious within one glance.\n"
         "- Finish: package the critique with before or after visual guidance.\n"
         "--- (skill: frontend_critique)"
+    )
+
+
+def chart_storyboard(text: str) -> str:
+    """Design a chart pack with chart choices, data expectations, and narrative intent."""
+
+    focus = _keywords(text, limit=4)
+    lead = focus[0] if focus else "the main metric"
+    compare = focus[1] if len(focus) > 1 else "key segments"
+    trend = focus[2] if len(focus) > 2 else "trend over time"
+    return (
+        "Chart Storyboard:\n"
+        f"- Chart 1: headline comparison chart covering {lead} across {compare}.\n"
+        f"- Chart 2: time-series chart explaining how {trend} evolves.\n"
+        f"- Chart 3: risk or outlier chart isolating failure pockets around {focus[3] if len(focus) > 3 else 'edge cases'}.\n"
+        "- Data contract: keep fields for dimension, metric, time, source, and annotation.\n"
+        "- Review rule: every chart needs one sentence explaining the decision it should unlock.\n"
+        "--- (skill: chart_storyboard)"
+    )
+
+
+def data_analysis_plan(text: str) -> str:
+    """Frame a concrete data-analysis plan with questions, cuts, and validation hooks."""
+
+    focus = _keywords(text, limit=4)
+    return (
+        "Data Analysis Plan:\n"
+        f"- Core question: what drives {focus[0] if focus else 'the target outcome'}?\n"
+        f"- Primary cuts: cohort by {focus[1] if len(focus) > 1 else 'segment'}, compare by {focus[2] if len(focus) > 2 else 'time'}, and inspect outliers in {focus[3] if len(focus) > 3 else 'edge populations'}.\n"
+        "- Required tables: fact table, dimension table, source quality log.\n"
+        "- Metrics: define one north-star metric, two diagnostic metrics, and one guardrail metric.\n"
+        "- Validation: reconcile sample counts, null rates, and metric definitions before publishing charts.\n"
+        "--- (skill: data_analysis_plan)"
+    )
+
+
+def webpage_blueprint(text: str) -> str:
+    """Design a user-facing webpage or landing page blueprint."""
+
+    focus = _keywords(text, limit=4)
+    return (
+        "Webpage Blueprint:\n"
+        f"- Hero: a decisive headline around {focus[0] if focus else 'the product promise'} with one proof point and one primary action.\n"
+        f"- Section 2: demonstrate how {focus[1] if len(focus) > 1 else 'the workflow'} works through three steps.\n"
+        f"- Section 3: trust layer covering {focus[2] if len(focus) > 2 else 'evidence, safety, and governance'}.\n"
+        f"- Section 4: artifact gallery or case study anchored on {focus[3] if len(focus) > 3 else 'visible results'}.\n"
+        "- Interaction notes: first screen must clarify who it is for, what it produces, and what the user can open.\n"
+        "--- (skill: webpage_blueprint)"
+    )
+
+
+def slide_deck_designer(text: str) -> str:
+    """Generate a slide-deck structure with pacing and visual intent."""
+
+    focus = _keywords(text, limit=4)
+    topic = _topic_clause(text, fallback="the core proposal")
+    return (
+        "Slide Deck Design:\n"
+        f"- Slide 1: opening tension framed around {topic}.\n"
+        f"- Slide 2: system or market context for {focus[0] if focus else 'the audience'}.\n"
+        f"- Slide 3: product or method mechanism centered on {focus[1] if len(focus) > 1 else 'the differentiator'}.\n"
+        "- Slide 4: proof section with benchmarks, user evidence, or execution artifacts.\n"
+        f"- Slide 5: rollout or adoption path constrained by {focus[2] if len(focus) > 2 else 'risk and dependencies'}.\n"
+        "- Slide 6: closing ask with a single decision, owner, and next checkpoint.\n"
+        "--- (skill: slide_deck_designer)"
+    )
+
+
+def podcast_episode_plan(text: str) -> str:
+    """Turn a topic into a podcast episode outline with segment logic."""
+
+    focus = _keywords(text, limit=4)
+    return (
+        "Podcast Episode Plan:\n"
+        f"- Cold open: state the sharp question about {focus[0] if focus else 'the topic'} in under 20 seconds.\n"
+        f"- Segment 1: explain the background and why {focus[1] if len(focus) > 1 else 'it matters now'}.\n"
+        f"- Segment 2: unpack the main mechanism behind {focus[2] if len(focus) > 2 else 'the system'} using examples.\n"
+        f"- Segment 3: debate risks, tradeoffs, and open problems around {focus[3] if len(focus) > 3 else 'deployment'}.\n"
+        "- Close: summarize three takeaways and one open question for the audience.\n"
+        "--- (skill: podcast_episode_plan)"
+    )
+
+
+def video_storyboard(text: str) -> str:
+    """Create a short-form video storyboard with scenes and beats."""
+
+    focus = _keywords(text, limit=4)
+    return (
+        "Video Storyboard:\n"
+        f"- Scene 1: attention hook introducing {focus[0] if focus else 'the main idea'} in one visual moment.\n"
+        f"- Scene 2: show the system or product in action around {focus[1] if len(focus) > 1 else 'the workflow'}.\n"
+        f"- Scene 3: proof montage using charts, artifacts, or evidence for {focus[2] if len(focus) > 2 else 'performance'}.\n"
+        f"- Scene 4: risk or counterfactual beat clarifying {focus[3] if len(focus) > 3 else 'what can go wrong'}.\n"
+        "- Final frame: explicit call to action plus on-screen takeaway sentence.\n"
+        "--- (skill: video_storyboard)"
+    )
+
+
+def image_prompt_pack(text: str) -> str:
+    """Produce a reusable image prompt pack with multiple visual directions."""
+
+    focus = _keywords(text, limit=4)
+    return (
+        "Image Prompt Pack:\n"
+        f"- Direction A: editorial hero image centered on {focus[0] if focus else 'the concept'} with clean composition.\n"
+        f"- Direction B: technical schematic emphasizing {focus[1] if len(focus) > 1 else 'mechanism and structure'}.\n"
+        f"- Direction C: campaign poster framing {focus[2] if len(focus) > 2 else 'the strongest claim'} with bold typography.\n"
+        f"- Direction D: product-render style image showing {focus[3] if len(focus) > 3 else 'the user interaction'}.\n"
+        "- Shared constraints: specify aspect ratio, palette, negative prompts, and must-include labels.\n"
+        "--- (skill: image_prompt_pack)"
     )
 
 
@@ -731,6 +993,118 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             tier=SkillTier.ADVANCED,
             compute_cost=1.1,
             synergies=["executive_summary", "brainstorm_ideas", "generate_recommendations"],
+            conflicts=[],
+        ),
+    },
+    "chart_storyboard": {
+        "fn": chart_storyboard,
+        "metadata": SkillMetadata(
+            name="chart_storyboard",
+            description="Choose chart families, data contracts, and decision narratives for a chart pack",
+            strengths=["data storytelling", "chart selection", "artifact-oriented visualization framing"],
+            weaknesses=["does not render charts itself", "depends on metric clarity"],
+            category=SkillCategory.ANALYSIS,
+            output_type="structured",
+            confidence_keywords=["chart", "graph", "visualization", "plot", "dashboard", "data story"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.3,
+            synergies=["data_analysis_plan", "extract_facts", "validation_planner"],
+            conflicts=[],
+        ),
+    },
+    "data_analysis_plan": {
+        "fn": data_analysis_plan,
+        "metadata": SkillMetadata(
+            name="data_analysis_plan",
+            description="Design a data-analysis plan with questions, metrics, cohorts, and validation hooks",
+            strengths=["analysis framing", "metric design", "data rigor"],
+            weaknesses=["does not execute queries", "quality depends on source data availability"],
+            category=SkillCategory.ANALYSIS,
+            output_type="structured",
+            confidence_keywords=["data", "dataset", "analysis", "analytics", "cohort", "metric", "sql"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.4,
+            synergies=["chart_storyboard", "extract_facts", "benchmark_ablation"],
+            conflicts=[],
+        ),
+    },
+    "webpage_blueprint": {
+        "fn": webpage_blueprint,
+        "metadata": SkillMetadata(
+            name="webpage_blueprint",
+            description="Plan a landing page or webpage with first-screen story, sections, and interaction intent",
+            strengths=["product storytelling", "information hierarchy", "web deliverable framing"],
+            weaknesses=["does not implement frontend code by itself", "works best with a clear audience"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["webpage", "website", "landing page", "frontend", "ui", "page"],
+            tier=SkillTier.EXPERT,
+            compute_cost=1.3,
+            synergies=["frontend_critique", "slide_deck_designer", "executive_summary"],
+            conflicts=[],
+        ),
+    },
+    "slide_deck_designer": {
+        "fn": slide_deck_designer,
+        "metadata": SkillMetadata(
+            name="slide_deck_designer",
+            description="Turn a topic into a presentation deck arc with slide beats and proof moments",
+            strengths=["narrative pacing", "presentation planning", "executive communication"],
+            weaknesses=["does not render slides", "can be generic without a precise audience"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["slides", "deck", "presentation", "ppt", "keynote"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.2,
+            synergies=["webpage_blueprint", "chart_storyboard", "executive_summary"],
+            conflicts=[],
+        ),
+    },
+    "podcast_episode_plan": {
+        "fn": podcast_episode_plan,
+        "metadata": SkillMetadata(
+            name="podcast_episode_plan",
+            description="Structure a podcast episode with hook, segments, and takeaway design",
+            strengths=["audio narrative", "segment design", "audience pacing"],
+            weaknesses=["does not synthesize audio", "needs topic clarity"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["podcast", "episode", "audio", "host", "interview"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.2,
+            synergies=["research_brief", "synthesize_perspectives", "executive_summary"],
+            conflicts=[],
+        ),
+    },
+    "video_storyboard": {
+        "fn": video_storyboard,
+        "metadata": SkillMetadata(
+            name="video_storyboard",
+            description="Create a short-form video storyboard with scenes, proof beats, and CTA framing",
+            strengths=["visual pacing", "scene design", "artifact-backed storytelling"],
+            weaknesses=["does not render video", "needs downstream media production"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["video", "storyboard", "scene", "trailer", "short"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.3,
+            synergies=["image_prompt_pack", "slide_deck_designer", "chart_storyboard"],
+            conflicts=[],
+        ),
+    },
+    "image_prompt_pack": {
+        "fn": image_prompt_pack,
+        "metadata": SkillMetadata(
+            name="image_prompt_pack",
+            description="Generate reusable image prompt directions for hero art, diagrams, and campaign visuals",
+            strengths=["visual direction", "prompt packaging", "multi-style asset planning"],
+            weaknesses=["does not render images directly", "quality depends on downstream generator"],
+            category=SkillCategory.GENERATION,
+            output_type="structured",
+            confidence_keywords=["image", "poster", "illustration", "thumbnail", "render", "visual"],
+            tier=SkillTier.ADVANCED,
+            compute_cost=1.1,
+            synergies=["video_storyboard", "webpage_blueprint", "brainstorm_ideas"],
             conflicts=[],
         ),
     },

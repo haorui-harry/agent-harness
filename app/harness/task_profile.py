@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.core.tasking import allowed_workspace_action_kinds, default_capability_registry, infer_task_spec, plan_capability_path
 from app.core.state import SkillCategory
 from app.core.task_graph import ExecutableTaskGraph, TaskGraphNode
 from app.skills.registry import list_all_skills
@@ -21,7 +22,19 @@ def _tokens(text: str) -> list[str]:
 
 
 def _count_markers(lowered: str, markers: list[str]) -> int:
-    return sum(1 for marker in markers if marker in lowered)
+    tokens = set(_tokens(lowered))
+    total = 0
+    for marker in markers:
+        marker_text = str(marker or "").lower()
+        if not marker_text:
+            continue
+        if re.fullmatch(r"[a-z0-9_-]+", marker_text):
+            if marker_text in tokens:
+                total += 1
+            continue
+        if marker_text in lowered:
+            total += 1
+    return total
 
 
 def _slugify(parts: list[str], fallback: str = "task") -> str:
@@ -86,6 +99,8 @@ class TaskProfile:
     requires_command_execution: bool = False
     artifact_targets: list[str] = field(default_factory=list)
     workspace_summary: dict[str, Any] = field(default_factory=dict)
+    task_spec: dict[str, Any] = field(default_factory=dict)
+    capability_plan: dict[str, Any] = field(default_factory=dict)
     graph_expansion: dict[str, Any] = field(default_factory=dict)
     skill_priors: list[SkillPrior] = field(default_factory=list)
     deliberation: ChannelDeliberation = field(default_factory=ChannelDeliberation)
@@ -107,6 +122,8 @@ class TaskProfile:
             "requires_command_execution": self.requires_command_execution,
             "artifact_targets": list(self.artifact_targets),
             "workspace_summary": dict(self.workspace_summary),
+            "task_spec": dict(self.task_spec),
+            "capability_plan": dict(self.capability_plan),
             "graph_expansion": dict(self.graph_expansion),
             "skill_priors": [item.to_dict() for item in self.skill_priors],
             "deliberation": self.deliberation.to_dict(),
@@ -294,6 +311,91 @@ def analyze_task_request(
         "\u8bc4\u6d4b",
         "\u8dd1\u5206",
     ]
+    webpage_markers = [
+        "webpage",
+        "website",
+        "landing page",
+        "landing",
+        "html",
+        "frontend",
+        "web app",
+        "component",
+        "\u7f51\u9875",
+        "\u7f51\u7ad9",
+        "\u524d\u7aef",
+        "\u754c\u9762",
+        "\u9875\u9762",
+    ]
+    slides_markers = [
+        "slides",
+        "slide",
+        "deck",
+        "presentation",
+        "ppt",
+        "pptx",
+        "keynote",
+        "\u5e7b\u706f",
+        "\u6f14\u793a",
+        "\u6c47\u62a5",
+    ]
+    chart_markers = [
+        "chart",
+        "charts",
+        "graph",
+        "graphs",
+        "plot",
+        "visualization",
+        "visualize",
+        "data viz",
+        "\u56fe\u8868",
+        "\u53ef\u89c6\u5316",
+        "\u7ed8\u56fe",
+    ]
+    podcast_markers = [
+        "podcast",
+        "episode",
+        "audio show",
+        "audio",
+        "interview",
+        "\u64ad\u5ba2",
+        "\u97f3\u9891",
+    ]
+    video_markers = [
+        "video",
+        "storyboard",
+        "trailer",
+        "promo video",
+        "short film",
+        "shorts",
+        "\u89c6\u9891",
+        "\u5206\u955c",
+    ]
+    image_markers = [
+        "image",
+        "poster",
+        "illustration",
+        "thumbnail",
+        "render",
+        "visual",
+        "\u6d77\u62a5",
+        "\u63d2\u56fe",
+        "\u5c01\u9762",
+        "\u914d\u56fe",
+    ]
+    data_markers = [
+        "data analysis",
+        "analytics",
+        "dataset",
+        "csv",
+        "table",
+        "sql",
+        "cohort",
+        "segmentation",
+        "\u6570\u636e\u5206\u6790",
+        "\u6570\u636e\u96c6",
+        "\u8868\u683c",
+        "\u5206\u7fa4",
+    ]
     report_markers = ["report", "brief", "summary", "proposal", "\u65b9\u6848", "\u62a5\u544a", "\u603b\u7ed3"]
     runbook_markers = ["runbook", "playbook", "ops", "\u64cd\u4f5c\u624b\u518c", "\u9884\u6848"]
     patch_markers = ["patch", "fix", "implement", "\u4ee3\u7801\u4fee\u6539", "\u8865\u4e01", "\u4fee\u590d"]
@@ -331,6 +433,20 @@ def analyze_task_request(
         output_mode = "runbook"
     elif benchmark_signal > 0:
         output_mode = "benchmark"
+    elif any(marker in lowered for marker in webpage_markers):
+        output_mode = "webpage"
+    elif any(marker in lowered for marker in slides_markers):
+        output_mode = "slides"
+    elif any(marker in lowered for marker in chart_markers):
+        output_mode = "chart"
+    elif any(marker in lowered for marker in podcast_markers):
+        output_mode = "podcast"
+    elif any(marker in lowered for marker in video_markers):
+        output_mode = "video"
+    elif any(marker in lowered for marker in image_markers):
+        output_mode = "image"
+    elif any(marker in lowered for marker in data_markers):
+        output_mode = "data"
     elif any(marker in lowered for marker in report_markers):
         output_mode = "report"
 
@@ -343,8 +459,36 @@ def analyze_task_request(
         reasoning_style = "evidence-led"
     elif execution_intent == "ops":
         reasoning_style = "procedural"
+    elif output_mode in {"webpage", "slides", "podcast", "video", "image"}:
+        reasoning_style = "creative"
+    elif output_mode in {"chart", "data"}:
+        reasoning_style = "analytic"
 
     workspace_summary = inspect_workspace_capabilities(workspace_root)
+    provisional_validation = execution_intent in {"code", "research", "benchmark", "mixed"} or output_mode in {
+        "patch",
+        "benchmark",
+        "chart",
+        "data",
+    }
+    provisional_command_execution = (
+        execution_intent in {"code", "benchmark"}
+        and bool(workspace_summary.get("suggested_commands", []))
+        and any(
+            marker in lowered
+            for marker in ["run", "execute", "build", "test", "validation", "\u8fd0\u884c", "\u6267\u884c", "\u6d4b\u8bd5"]
+        )
+    )
+    task_spec = infer_task_spec(
+        query=query,
+        target=target_hint,
+        domains=infer_domains(query),
+        output_mode=output_mode,
+        workspace_required=workspace_signal > 0,
+        external_required=external_signal > 0,
+        needs_validation=provisional_validation,
+        needs_command_execution=provisional_command_execution,
+    )
     skill_priors = select_skill_priors(
         query=query,
         execution_intent=execution_intent,
@@ -374,23 +518,33 @@ def analyze_task_request(
         local=local_deliberation,
         live_model_overrides=live_model_overrides,
     )
+    capability_plan = plan_capability_path(
+        task_spec=task_spec,
+        registry=default_capability_registry(),
+    )
+    merged_selected = list(dict.fromkeys(list(deliberation.selected) + list(capability_plan.get("required_channels", []))))
+    if (
+        workspace_signal <= 0
+        and target_hint == "research"
+        and external_signal > 0
+        and "web" in merged_selected
+        and "workspace" in merged_selected
+        and "workspace" not in task_spec.required_channels
+    ):
+        merged_selected = [item for item in merged_selected if item != "workspace"]
+    deliberation = ChannelDeliberation(
+        scores=dict(deliberation.scores),
+        selected=merged_selected,
+        rationale=list(deliberation.rationale)
+        + (["capability graph requested additional channels"] if merged_selected != deliberation.selected else []),
+    )
 
     selected = set(deliberation.selected)
     requires_workspace = "workspace" in selected
     requires_external_evidence = "web" in selected
     requires_discovery = "discovery" in selected or not selected
-    requires_validation = execution_intent in {"code", "research", "benchmark", "mixed"} or output_mode in {
-        "patch",
-        "benchmark",
-    }
-    requires_command_execution = (
-        execution_intent in {"code", "benchmark"}
-        and bool(workspace_summary.get("suggested_commands", []))
-        and any(
-            marker in lowered
-            for marker in ["run", "execute", "build", "test", "validation", "\u8fd0\u884c", "\u6267\u884c", "\u6d4b\u8bd5"]
-        )
-    )
+    requires_validation = provisional_validation
+    requires_command_execution = provisional_command_execution
 
     if requires_workspace and requires_external_evidence:
         evidence_strategy = "hybrid"
@@ -410,6 +564,8 @@ def analyze_task_request(
         requires_command_execution=requires_command_execution,
         live_model_overrides=live_model_overrides,
         skill_priors=skill_priors,
+        task_spec=task_spec.to_dict(),
+        capability_plan=capability_plan,
     )
 
     return TaskProfile(
@@ -427,12 +583,15 @@ def analyze_task_request(
         requires_validation=requires_validation,
         requires_command_execution=requires_command_execution,
         artifact_targets=default_artifact_targets(
+            query=query,
             selected_channels=deliberation.selected,
             output_mode=output_mode,
             requires_validation=requires_validation,
             requires_command_execution=requires_command_execution,
         ),
         workspace_summary=workspace_summary,
+        task_spec=task_spec.to_dict(),
+        capability_plan=capability_plan,
         graph_expansion=graph_expansion,
         skill_priors=skill_priors,
         deliberation=deliberation,
@@ -464,6 +623,13 @@ def select_skill_priors(
         "benchmark": {"benchmark_ablation", "validate_claims"},
         "report": {"research_brief", "extract_facts", "artifact_synthesis"},
         "artifact": {"artifact_synthesis", "executive_summary"},
+        "webpage": {"webpage_blueprint", "frontend_critique", "executive_summary"},
+        "slides": {"slide_deck_designer", "webpage_blueprint", "executive_summary"},
+        "chart": {"chart_storyboard", "data_analysis_plan", "extract_facts"},
+        "podcast": {"podcast_episode_plan", "research_brief", "synthesize_perspectives"},
+        "video": {"video_storyboard", "image_prompt_pack", "executive_summary"},
+        "image": {"image_prompt_pack", "brainstorm_ideas", "frontend_critique"},
+        "data": {"data_analysis_plan", "chart_storyboard", "extract_facts", "validation_planner"},
     }
 
     priors: list[SkillPrior] = []
@@ -607,8 +773,31 @@ def inspect_workspace_capabilities(workspace_root: str | Path | None) -> dict[st
     }
 
 
+def requested_output_modes(*, query: str, output_mode: str) -> list[str]:
+    """Infer one or more artifact surfaces requested by the user."""
+
+    lowered = str(query or "").lower()
+    rows = [
+        ("webpage", ["webpage", "website", "landing page", "landing", "html", "frontend", "web app", "\u7f51\u9875", "\u524d\u7aef"]),
+        ("slides", ["slides", "slide", "deck", "presentation", "ppt", "keynote", "\u5e7b\u706f", "\u6f14\u793a"]),
+        ("chart", ["chart", "charts", "graph", "plot", "visualization", "visualize", "\u56fe\u8868", "\u53ef\u89c6\u5316"]),
+        ("podcast", ["podcast", "episode", "audio", "interview", "\u64ad\u5ba2", "\u97f3\u9891"]),
+        ("video", ["video", "storyboard", "trailer", "short film", "\u89c6\u9891", "\u5206\u955c"]),
+        ("image", ["image", "poster", "illustration", "thumbnail", "render", "\u6d77\u62a5", "\u63d2\u56fe"]),
+        ("data", ["data analysis", "analytics", "dataset", "csv", "table", "sql", "cohort", "\u6570\u636e\u5206\u6790", "\u6570\u636e\u96c6"]),
+    ]
+    requested: list[str] = []
+    if output_mode in {name for name, _markers in rows}:
+        requested.append(output_mode)
+    for name, markers in rows:
+        if any(marker in lowered for marker in markers) and name not in requested:
+            requested.append(name)
+    return requested
+
+
 def default_artifact_targets(
     *,
+    query: str,
     selected_channels: list[str],
     output_mode: str,
     requires_validation: bool,
@@ -633,11 +822,60 @@ def default_artifact_targets(
         targets.append("benchmark_matrix")
     elif output_mode == "runbook":
         targets.append("runbook")
+    for mode in requested_output_modes(query=query, output_mode=output_mode):
+        targets.extend(
+            {
+                "webpage": ["webpage_blueprint"],
+                "slides": ["slide_deck_plan"],
+                "chart": ["chart_pack_spec"],
+                "podcast": ["podcast_episode_plan"],
+                "video": ["video_storyboard"],
+                "image": ["image_prompt_pack"],
+                "data": ["data_analysis_spec"],
+            }.get(mode, [])
+        )
     deduped: list[str] = []
     for item in targets:
         if item not in deduped:
             deduped.append(item)
     return deduped
+
+
+def custom_artifact_actions(*, task_spec: dict[str, Any]) -> list[dict[str, Any]]:
+    """Convert custom artifact contracts into executable workspace actions."""
+
+    contracts = task_spec.get("artifact_contracts", []) if isinstance(task_spec.get("artifact_contracts", []), list) else []
+    actions: list[dict[str, Any]] = []
+    for item in contracts:
+        if not isinstance(item, dict):
+            continue
+        kind = str(item.get("kind", "")).strip()
+        if not kind.startswith("custom:"):
+            continue
+        title = str(item.get("title", kind.replace("custom:", "").replace("_", " ").title())).strip()
+        format_hint = str(item.get("format_hint", "markdown")).strip() or "markdown"
+        slug = re.sub(r"[^a-z0-9]+", "-", kind.replace("custom:", "").lower()).strip("-") or "artifact"
+        content_type = "application/json" if format_hint == "json" else "text/markdown"
+        relative_path = f"briefs/{slug}.json" if content_type == "application/json" else f"briefs/{slug}.md"
+        actions.append(
+            {
+                "node_type": "workspace_action",
+                "kind": kind,
+                "title": f"Generate {title}",
+                "depends_on": ["analysis"],
+                "reason": f"query explicitly asks for {title.lower()} as a first-class deliverable",
+                "relative_path": relative_path,
+                "content_type": content_type,
+                "format_hint": format_hint,
+                "artifact_contract": {
+                    "kind": kind,
+                    "title": title,
+                    "format_hint": format_hint,
+                    "required": bool(item.get("required", True)),
+                },
+            }
+        )
+    return actions
 
 
 def plan_graph_expansion(
@@ -650,15 +888,20 @@ def plan_graph_expansion(
     requires_command_execution: bool,
     live_model_overrides: dict[str, Any] | None,
     skill_priors: list[SkillPrior],
+    task_spec: dict[str, Any] | None = None,
+    capability_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Plan additional executable graph nodes beyond analysis/report writing."""
 
     local = _default_graph_expansion(
+        query=query,
         execution_intent=execution_intent,
         output_mode=output_mode,
         selected_channels=selected_channels,
         workspace_summary=workspace_summary,
         requires_command_execution=requires_command_execution,
+        task_spec=task_spec,
+        capability_plan=capability_plan,
     )
     return refine_graph_expansion_with_live_model(
         query=query,
@@ -673,11 +916,14 @@ def plan_graph_expansion(
 
 def _default_graph_expansion(
     *,
+    query: str,
     execution_intent: str,
     output_mode: str,
     selected_channels: list[str],
     workspace_summary: dict[str, Any],
     requires_command_execution: bool,
+    task_spec: dict[str, Any] | None = None,
+    capability_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
     selected = set(selected_channels)
@@ -733,6 +979,67 @@ def _default_graph_expansion(
                 "reason": "external-evidence tasks benefit from a reusable loader template",
             }
         )
+    for mode in requested_output_modes(query=query, output_mode=output_mode):
+        actions.extend(
+            {
+                "webpage": [
+                    {
+                        "kind": "webpage_blueprint",
+                        "title": "Generate Webpage Blueprint",
+                        "depends_on": ["analysis"],
+                        "reason": "page-design tasks need a concrete first-screen and section blueprint",
+                    }
+                ],
+                "slides": [
+                    {
+                        "kind": "slide_deck_plan",
+                        "title": "Generate Slide Deck Plan",
+                        "depends_on": ["analysis"],
+                        "reason": "presentation tasks need slide-by-slide structure and proof beats",
+                    }
+                ],
+                "chart": [
+                    {
+                        "kind": "chart_pack_spec",
+                        "title": "Generate Chart Pack Spec",
+                        "depends_on": ["analysis"],
+                        "reason": "visualization tasks need chart choices and data contracts",
+                    }
+                ],
+                "podcast": [
+                    {
+                        "kind": "podcast_episode_plan",
+                        "title": "Generate Podcast Episode Plan",
+                        "depends_on": ["analysis"],
+                        "reason": "audio tasks need a segment plan and episode arc",
+                    }
+                ],
+                "video": [
+                    {
+                        "kind": "video_storyboard",
+                        "title": "Generate Video Storyboard",
+                        "depends_on": ["analysis"],
+                        "reason": "video tasks need scene-by-scene storyboard structure",
+                    }
+                ],
+                "image": [
+                    {
+                        "kind": "image_prompt_pack",
+                        "title": "Generate Image Prompt Pack",
+                        "depends_on": ["analysis"],
+                        "reason": "image tasks need reusable prompt directions and visual constraints",
+                    }
+                ],
+                "data": [
+                    {
+                        "kind": "data_analysis_spec",
+                        "title": "Generate Data Analysis Spec",
+                        "depends_on": ["analysis"],
+                        "reason": "data-analysis tasks need questions, metrics, cuts, and output contracts",
+                    }
+                ],
+            }.get(mode, [])
+        )
     if requires_command_execution and workspace_summary.get("suggested_commands"):
         actions.append(
             {
@@ -740,6 +1047,21 @@ def _default_graph_expansion(
                 "title": "Execute Suggested Validation",
                 "depends_on": ["analysis"],
                 "reason": "workspace indicates concrete validation commands are available",
+            }
+        )
+    actions.extend(custom_artifact_actions(task_spec=task_spec or {}))
+    for step in (capability_plan or {}).get("steps", []) if isinstance((capability_plan or {}).get("steps", []), list) else []:
+        if not isinstance(step, dict) or str(step.get("node_type", "")) != "workspace_action":
+            continue
+        kind = str(step.get("ref", "")).strip()
+        if not kind:
+            continue
+        actions.append(
+            {
+                "kind": kind,
+                "title": str(step.get("title", kind.replace("_", " ").title())).strip(),
+                "depends_on": ["analysis"],
+                "reason": str(step.get("reason", "capability graph selected workspace action")).strip(),
             }
         )
 
@@ -753,6 +1075,7 @@ def _default_graph_expansion(
 
     return {
         "actions": deduped_actions,
+        "nodes": _normalize_graph_expansion_nodes({"actions": deduped_actions}),
         "replan_enabled": bool(deduped_actions or requires_command_execution),
         "replan_focus": ["execution", "artifacts", "validation"],
         "rationale": ["local graph expansion selected"],
@@ -777,7 +1100,7 @@ def refine_graph_expansion_with_live_model(
     try:
         from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
 
-        config = LiveModelConfig.from_overrides(live_model_overrides)
+        config = LiveModelConfig.resolve(live_model_overrides)
         if not config:
             return local
         gateway = LiveModelGateway(config)
@@ -793,11 +1116,15 @@ def refine_graph_expansion_with_live_model(
             {
                 "role": "system",
                 "content": (
-                "You are expanding a general agent task graph. "
-                "Return strict JSON with keys: actions, replan_enabled, replan_focus, rationale. "
-                    "Allowed action kinds: patch_scaffold, patch_draft, benchmark_run_config, benchmark_manifest, "
-                    "dataset_pull_spec, dataset_loader_template, validation_execution. "
-                    "Only propose actions that materially improve executable artifacts."
+                    "You are expanding a general agent task graph. "
+                    "Return strict JSON with keys: nodes, replan_enabled, replan_focus, rationale. "
+                    "Each node must include node_type from workspace_action, tool_call, subagent. "
+                    f"Allowed workspace_action kinds: {', '.join(sorted(allowed_workspace_action_kinds(include_internal=True)))}. "
+                    "You may also emit kind starting with custom: when you include relative_path plus content_type or artifact_contract. "
+                    "Allowed tool_call names: tool_search, workspace_file_search, workspace_file_read, external_resource_hub, "
+                    "evidence_dossier_builder, code_experiment_design, policy_risk_matrix. "
+                    "Allowed subagent kinds: repair_probe, research_probe, benchmark_probe, general_probe. "
+                    "Only propose nodes that materially improve executable artifacts or evidence gathering."
                 ),
             },
             {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
@@ -809,31 +1136,8 @@ def refine_graph_expansion_with_live_model(
             require_json=True,
         )
         parsed = _coerce_json_dict(text)
-        raw_actions = parsed.get("actions", [])
-        actions: list[dict[str, Any]] = []
-        for item in raw_actions if isinstance(raw_actions, list) else []:
-            if not isinstance(item, dict):
-                continue
-            kind = str(item.get("kind", "")).strip()
-            if kind not in {
-                "patch_scaffold",
-                "patch_draft",
-                "benchmark_run_config",
-                "benchmark_manifest",
-                "dataset_pull_spec",
-                "dataset_loader_template",
-                "validation_execution",
-            }:
-                continue
-            actions.append(
-                {
-                    "kind": kind,
-                    "title": str(item.get("title", kind.replace("_", " ").title())).strip(),
-                    "depends_on": list(item.get("depends_on", ["analysis"])) if isinstance(item.get("depends_on", []), list) else ["analysis"],
-                    "reason": str(item.get("reason", "live model expansion")).strip(),
-                }
-            )
-        if not actions:
+        nodes = _normalize_graph_expansion_nodes(parsed)
+        if not nodes:
             return local
         replan_focus = [str(item).strip() for item in parsed.get("replan_focus", []) if str(item).strip()] if isinstance(parsed.get("replan_focus", []), list) else []
         rationale = list(local.get("rationale", []))
@@ -842,8 +1146,19 @@ def refine_graph_expansion_with_live_model(
             text_item = str(item).strip()
             if text_item:
                 rationale.append(text_item)
+        actions = [
+            {
+                "kind": str(item.get("kind", "")).strip(),
+                "title": str(item.get("title", "")).strip(),
+                "depends_on": list(item.get("depends_on", ["analysis"])) if isinstance(item.get("depends_on", []), list) else ["analysis"],
+                "reason": str(item.get("reason", "live model expansion")).strip(),
+            }
+            for item in nodes
+            if str(item.get("node_type", "")) == "workspace_action"
+        ]
         return {
             "actions": actions,
+            "nodes": nodes,
             "replan_enabled": bool(parsed.get("replan_enabled", True)),
             "replan_focus": replan_focus or list(local.get("replan_focus", [])),
             "rationale": rationale[:8],
@@ -872,7 +1187,7 @@ def refine_deliberation_with_live_model(
     try:
         from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
 
-        config = LiveModelConfig.from_overrides(live_model_overrides)
+        config = LiveModelConfig.resolve(live_model_overrides)
         if not config:
             return local
         gateway = LiveModelGateway(config)
@@ -949,8 +1264,7 @@ def deliberate_channels(
     ops_signal: int,
 ) -> ChannelDeliberation:
     """Choose evidence channels from priors and task constraints."""
-
-    del query  # current deliberation is signal-based; query text already folded into signals
+    lowered = str(query or "").lower()
 
     prior_names = {item.name for item in skill_priors}
     workspace_prior_hits = len(
@@ -999,26 +1313,38 @@ def deliberate_channels(
         "risk": round(min(risk_score, 1.0), 4),
     }
 
-    selected: list[str] = []
+    selected: list[str] = ["discovery"]
     rationale: list[str] = []
-    if scores["discovery"] >= 0.35:
-        selected.append("discovery")
-        rationale.append("open-ended task warrants capability discovery before committing to a path")
-    if scores["workspace"] >= 0.56 or (scores["workspace"] >= 0.44 and scores["workspace"] >= scores["web"]):
+    rationale.append("open-ended tasks stay discovery-first so the agent can inspect skills and tools before committing")
+
+    mixed_intent = execution_intent == "mixed" or (
+        any(marker in lowered for marker in ["compare", "versus", "vs", "tradeoff", "方案", "对比"])
+        and workspace_signal > 0
+        and external_signal > 0
+    )
+    if scores["workspace"] >= 0.5 or (mixed_intent and scores["workspace"] >= 0.4):
         selected.append("workspace")
         rationale.append("workspace selected because local artifacts appear decision-relevant")
-    if scores["web"] >= 0.56 or (scores["web"] >= 0.44 and scores["web"] > scores["workspace"]):
+    if scores["web"] >= 0.5 or (mixed_intent and scores["web"] >= 0.4):
         selected.append("web")
         rationale.append("web selected because external evidence is likely needed")
+    if not any(item in selected for item in {"workspace", "web"}):
+        if scores["workspace"] >= 0.44 and scores["workspace"] >= scores["web"]:
+            selected.append("workspace")
+            rationale.append("workspace selected as the strongest grounded channel under uncertainty")
+        elif scores["web"] >= 0.44:
+            selected.append("web")
+            rationale.append("web selected as the strongest external evidence channel under uncertainty")
     if scores["risk"] >= 0.5:
         selected.append("risk")
         rationale.append("risk channel selected to constrain execution and validate governance")
 
-    if not selected:
-        selected = ["discovery"]
-        rationale.append("no strong evidence channel won; defaulting to discovery-first planning")
+    deduped_selected: list[str] = []
+    for item in selected:
+        if item not in deduped_selected:
+            deduped_selected.append(item)
 
-    return ChannelDeliberation(scores=scores, selected=selected, rationale=rationale)
+    return ChannelDeliberation(scores=scores, selected=deduped_selected, rationale=rationale)
 
 
 def build_dynamic_task_graph(
@@ -1045,6 +1371,13 @@ def build_dynamic_task_graph(
         "runbook": "Operational Runbook",
         "benchmark": "Benchmark Study",
         "report": "Research Report",
+        "webpage": "Website Blueprint",
+        "slides": "Slide Deck Plan",
+        "chart": "Chart Pack Brief",
+        "podcast": "Podcast Episode Plan",
+        "video": "Video Storyboard",
+        "image": "Image Prompt Pack",
+        "data": "Data Analysis Pack",
         "artifact": "Executable Task Artifact",
     }.get(resolved.output_mode, "Executable Task Artifact")
     report_path = f"reports/{slug}-{resolved.output_mode}-report.md"
@@ -1069,6 +1402,8 @@ def build_dynamic_task_graph(
                 "channel_rationale": list(resolved.deliberation.rationale),
                 "artifact_targets": list(resolved.artifact_targets),
                 "workspace_summary": dict(resolved.workspace_summary),
+                "task_spec": dict(resolved.task_spec),
+                "capability_plan": dict(resolved.capability_plan),
                 "graph_expansion": dict(resolved.graph_expansion),
             },
         )
@@ -1313,29 +1648,68 @@ def build_dynamic_task_graph(
         synthesis_sources.append("execution")
 
     expansion_action_ids: list[str] = []
-    for action in resolved.graph_expansion.get("actions", []) if isinstance(resolved.graph_expansion.get("actions", []), list) else []:
-        if not isinstance(action, dict):
+    expansion_specs = _normalize_graph_expansion_nodes(resolved.graph_expansion)
+    for spec in expansion_specs:
+        node_type = str(spec.get("node_type", "workspace_action")).strip() or "workspace_action"
+        if node_type == "workspace_action" and str(spec.get("kind", "")).strip() == "validation_execution":
             continue
-        kind = str(action.get("kind", "")).strip()
-        if kind == "validation_execution":
-            continue
-        action_id = f"action_{kind}"
-        depends_on = [str(item) for item in action.get("depends_on", ["analysis"]) if str(item)]
+        depends_on = [str(item) for item in spec.get("depends_on", ["analysis"]) if str(item)]
         if "validation" in node_ids_from_nodes(nodes) and "validation" not in depends_on:
             depends_on.append("validation")
+        depends_on = list(dict.fromkeys(depends_on))
+        existing_ids = node_ids_from_nodes(nodes)
+        action_id = _expansion_node_id(spec, existing_ids)
+        if node_type == "workspace_action":
+            metrics = {
+                "action_kind": str(spec.get("kind", "")).strip(),
+                "prompt": query,
+                "source_node_ids": list(
+                    dict.fromkeys(
+                        [str(item) for item in spec.get("source_node_ids", depends_on) if str(item)]
+                    )
+                )
+                or depends_on,
+                "workspace_summary": dict(resolved.workspace_summary),
+            }
+            if str(spec.get("relative_path", "")).strip():
+                metrics["relative_path"] = str(spec.get("relative_path", "")).strip()
+            if str(spec.get("content_type", "")).strip():
+                metrics["content_type"] = str(spec.get("content_type", "")).strip()
+            if str(spec.get("format_hint", "")).strip():
+                metrics["format_hint"] = str(spec.get("format_hint", "")).strip()
+            if isinstance(spec.get("artifact_contract", {}), dict):
+                metrics["artifact_contract"] = dict(spec.get("artifact_contract", {}))
+        elif node_type == "tool_call":
+            metrics = {
+                "tool_name": str(spec.get("tool_name", "tool_search")).strip(),
+                "tool_args": dict(spec.get("tool_args", {})) if isinstance(spec.get("tool_args", {}), dict) else {},
+            }
+        else:
+            metrics = {
+                "subagent_kind": str(spec.get("subagent_kind", "general_probe")).strip(),
+                "objective": str(spec.get("objective", query)).strip() or query,
+                "prompt": query,
+                "source_node_ids": list(
+                    dict.fromkeys(
+                        [str(item) for item in spec.get("source_node_ids", depends_on) if str(item)]
+                    )
+                )
+                or depends_on,
+                "workspace_summary": dict(resolved.workspace_summary),
+            }
         nodes.append(
             TaskGraphNode(
                 node_id=action_id,
-                title=str(action.get("title", kind.replace("_", " ").title())).strip(),
-                node_type="workspace_action",
+                title=str(
+                    spec.get(
+                        "title",
+                        spec.get("kind", spec.get("tool_name", spec.get("subagent_kind", "Expansion Node"))),
+                    )
+                ).strip(),
+                node_type=node_type,
                 status="ready",
-                depends_on=list(dict.fromkeys(depends_on)),
-                metrics={
-                    "action_kind": kind,
-                    "prompt": query,
-                    "source_node_ids": list(dict.fromkeys(depends_on)),
-                    "workspace_summary": dict(resolved.workspace_summary),
-                },
+                depends_on=depends_on,
+                metrics=metrics,
             )
         )
         expansion_action_ids.append(action_id)
@@ -1355,17 +1729,41 @@ def build_dynamic_task_graph(
                     "source_node_ids": replan_depends,
                     "replan_focus": list(resolved.graph_expansion.get("replan_focus", [])),
                     "workspace_summary": dict(resolved.workspace_summary),
+                    "task_spec": dict(resolved.task_spec),
+                    "capability_plan": dict(resolved.capability_plan),
                     "graph_expansion_source": str(resolved.graph_expansion.get("source", "local")),
                 },
             )
         )
-        synthesis_sources = ["replan"]
+        synthesis_sources = list(dict.fromkeys(replan_depends + ["replan"]))
+
+    contracts = resolved.task_spec.get("artifact_contracts", []) if isinstance(resolved.task_spec.get("artifact_contracts", []), list) else []
+    custom_contract_count = sum(1 for item in contracts if isinstance(item, dict) and str(item.get("kind", "")).startswith("custom:"))
+    requested_surface_count = len(requested_output_modes(query=query, output_mode=resolved.output_mode))
 
     synthesis_skill = "artifact_synthesis"
     if resolved.output_mode == "runbook" or resolved.execution_intent == "ops":
         synthesis_skill = "ops_runbook"
     elif resolved.output_mode == "benchmark" or resolved.execution_intent == "benchmark":
         synthesis_skill = "benchmark_ablation"
+    elif custom_contract_count > 0 or requested_surface_count > 1 or len(contracts) > 2:
+        synthesis_skill = "artifact_synthesis"
+    elif resolved.output_mode == "report" and "web" in selected:
+        synthesis_skill = "research_brief"
+    elif resolved.output_mode == "webpage":
+        synthesis_skill = "webpage_blueprint"
+    elif resolved.output_mode == "slides":
+        synthesis_skill = "slide_deck_designer"
+    elif resolved.output_mode == "chart":
+        synthesis_skill = "chart_storyboard"
+    elif resolved.output_mode == "podcast":
+        synthesis_skill = "podcast_episode_plan"
+    elif resolved.output_mode == "video":
+        synthesis_skill = "video_storyboard"
+    elif resolved.output_mode == "image":
+        synthesis_skill = "image_prompt_pack"
+    elif resolved.output_mode == "data":
+        synthesis_skill = "data_analysis_plan"
 
     nodes.append(
         TaskGraphNode(
@@ -1445,6 +1843,138 @@ def _safe_float(value: Any, fallback: float) -> float:
         return float(value)
     except Exception:
         return float(fallback)
+
+
+def _normalize_graph_expansion_nodes(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    allowed_workspace_actions = allowed_workspace_action_kinds(include_internal=True)
+    allowed_tool_names = {
+        "tool_search",
+        "workspace_file_search",
+        "workspace_file_read",
+        "external_resource_hub",
+        "evidence_dossier_builder",
+        "code_experiment_design",
+        "policy_risk_matrix",
+    }
+    allowed_subagent_kinds = {"repair_probe", "research_probe", "benchmark_probe", "general_probe"}
+
+    raw_nodes: list[dict[str, Any]] = []
+    nodes_payload = payload.get("nodes", [])
+    if isinstance(nodes_payload, list):
+        raw_nodes.extend(item for item in nodes_payload if isinstance(item, dict))
+    actions_payload = payload.get("actions", [])
+    if isinstance(actions_payload, list):
+        for item in actions_payload:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("node_type", "")).strip():
+                raw_nodes.append(item)
+            else:
+                raw_nodes.append({**item, "node_type": "workspace_action"})
+
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in raw_nodes:
+        node_type = str(item.get("node_type", "workspace_action")).strip() or "workspace_action"
+        depends_on = [str(dep).strip() for dep in item.get("depends_on", ["analysis"]) if str(dep).strip()] if isinstance(item.get("depends_on", []), list) else ["analysis"]
+        reason = str(item.get("reason", "graph expansion")).strip() or "graph expansion"
+        title = str(item.get("title", "")).strip()
+
+        if node_type == "workspace_action":
+            kind = str(item.get("kind", "")).strip()
+            is_custom = kind.startswith("custom:")
+            if kind not in allowed_workspace_actions and not is_custom:
+                continue
+            if is_custom and not (
+                str(item.get("relative_path", "")).strip()
+                or isinstance(item.get("artifact_contract", {}), dict)
+            ):
+                continue
+            key = (node_type, kind)
+            if key in seen:
+                continue
+            seen.add(key)
+            node_spec = {
+                "node_type": node_type,
+                "kind": kind,
+                "title": title or kind.replace("_", " ").title(),
+                "depends_on": depends_on,
+                "reason": reason,
+                "source_node_ids": list(
+                    item.get("source_node_ids", depends_on)
+                    if isinstance(item.get("source_node_ids", depends_on), list)
+                    else depends_on
+                ),
+            }
+            if is_custom:
+                node_spec["relative_path"] = str(item.get("relative_path", "")).strip()
+                node_spec["content_type"] = str(item.get("content_type", "")).strip()
+                node_spec["format_hint"] = str(item.get("format_hint", "")).strip()
+                if isinstance(item.get("artifact_contract", {}), dict):
+                    node_spec["artifact_contract"] = dict(item.get("artifact_contract", {}))
+            normalized.append(node_spec)
+            continue
+
+        if node_type == "tool_call":
+            tool_name = str(item.get("tool_name", "")).strip()
+            if tool_name not in allowed_tool_names:
+                continue
+            key = (node_type, tool_name)
+            if key in seen:
+                continue
+            seen.add(key)
+            tool_args = dict(item.get("tool_args", {})) if isinstance(item.get("tool_args", {}), dict) else {}
+            normalized.append(
+                {
+                    "node_type": node_type,
+                    "tool_name": tool_name,
+                    "tool_args": tool_args,
+                    "title": title or tool_name.replace("_", " ").title(),
+                    "depends_on": depends_on,
+                    "reason": reason,
+                }
+            )
+            continue
+
+        if node_type == "subagent":
+            subagent_kind = str(item.get("subagent_kind", "")).strip() or "general_probe"
+            if subagent_kind not in allowed_subagent_kinds:
+                continue
+            key = (node_type, subagent_kind)
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(
+                {
+                    "node_type": node_type,
+                    "subagent_kind": subagent_kind,
+                    "objective": str(item.get("objective", "")).strip(),
+                    "title": title or subagent_kind.replace("_", " ").title(),
+                    "depends_on": depends_on,
+                    "reason": reason,
+                    "source_node_ids": list(
+                        item.get("source_node_ids", depends_on)
+                        if isinstance(item.get("source_node_ids", depends_on), list)
+                        else depends_on
+                    ),
+                }
+            )
+    return normalized
+
+
+def _expansion_node_id(spec: dict[str, Any], existing_ids: set[str]) -> str:
+    node_type = str(spec.get("node_type", "workspace_action")).strip() or "workspace_action"
+    key = str(
+        spec.get("kind", spec.get("tool_name", spec.get("subagent_kind", spec.get("title", "node"))))
+    ).strip()
+    prefix = {"workspace_action": "action", "tool_call": "tool", "subagent": "subagent"}.get(node_type, "node")
+    base = f"{prefix}_{_slugify([key], fallback='node')}"
+    candidate = base
+    suffix = 2
+    while candidate in existing_ids:
+        candidate = f"{base}_{suffix}"
+        suffix += 1
+    return candidate
 
 
 def node_ids_from_nodes(nodes: list[TaskGraphNode]) -> set[str]:
