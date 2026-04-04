@@ -352,13 +352,21 @@ def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Pa
     assert any(item["relative_path"].endswith("patch-scaffold.md") for item in persisted["artifacts"])
     assert any(item["relative_path"].endswith("patch-draft.diff") for item in persisted["artifacts"])
     assert any(item["relative_path"].endswith("completion-packet.json") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("delivery-bundle.json") for item in persisted["artifacts"])
 
     packet_path = Path(thread["workspace"]["workspace"]) / "packets" / "completion-packet.json"
+    bundle_path = Path(thread["workspace"]["workspace"]) / "bundles" / "delivery-bundle.json"
     packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     assert packet["schema"] == "agent-harness-completion-packet/v1"
     assert packet["summary"]["artifact_count"] >= 3
     assert any("patch-draft.diff" in str(item.get("path", "")) for item in packet["delivered_artifacts"])
     assert any(item.get("kind") == "completion_packet" for item in packet["task_spec"]["artifact_contracts"])
+    assert "delivery_bundle" not in packet["state_gap"]["missing_artifacts"]
+    assert bundle["schema"] == "agent-harness-delivery-bundle/v1"
+    assert bundle["artifact_manifest"]
+    assert bundle["deliverable_index"]
+    assert any("patch-draft.diff" in str(item.get("path", "")) for item in bundle["artifact_manifest"])
     assert stream["completion_packet"]["schema"] == "agent-harness-completion-packet/v1"
     assert stream["showcase"]["primary_artifact"]["kind"] == "completion_packet"
     assert "completion packet" in stream["showcase"]["summary"].lower()
@@ -735,6 +743,23 @@ def test_evidence_failure_policy_uses_record_count_not_legacy_count() -> None:
     )
 
     assert policy["policy"] == "none"
+
+
+def test_completion_packet_can_drive_gap_repair_policy() -> None:
+    policy = TaskGraphActionMapper._classify_failure_policy(
+        context={},
+        completion_packet={
+            "state_gap": {
+                "missing_channels": [],
+                "missing_artifacts": ["patch_draft"],
+                "missing_validation": True,
+                "failure_types": [],
+            }
+        },
+    )
+
+    assert policy["policy"] == "validation_gap"
+    assert policy["source"] == "completion_packet"
 
 
 def test_thread_event_contract_exposes_node_timeline_and_frontend_snapshot(tmp_path: Path) -> None:

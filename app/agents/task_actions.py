@@ -419,6 +419,12 @@ class TaskGraphActionMapper:
                 context=kwargs["context"],
                 workspace_summary=kwargs["workspace_summary"],
             ),
+            "delivery_bundle": lambda **kwargs: self._build_delivery_bundle(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                context=kwargs["context"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
             "benchmark_run_config": lambda **kwargs: self._build_benchmark_run_config(
                 prompt=kwargs["prompt"],
                 source_text=kwargs["source_text"],
@@ -1082,7 +1088,6 @@ class TaskGraphActionMapper:
         context: dict[str, Any],
     ) -> dict[str, Any]:
         metrics = node.get("metrics", {}) if isinstance(node.get("metrics", {}), dict) else {}
-        failure_policy = self._classify_failure_policy(context=context)
         task_spec = self._coerce_task_spec(
             metrics=metrics,
             graph=graph,
@@ -1090,6 +1095,16 @@ class TaskGraphActionMapper:
         )
         world_state = build_world_state(graph=graph, context=context)
         state_gap = compute_state_gap(task_spec=task_spec, world_state=world_state)
+        completion_packet_preview = self._compile_completion_packet_payload(
+            prompt=str(metrics.get("prompt", context.get("query", graph.get("query", "")))),
+            source_text=self._collect_source_text(metrics=metrics, context=context),
+            context=context,
+            workspace_summary=dict(metrics.get("workspace_summary", {})) if isinstance(metrics.get("workspace_summary", {}), dict) else {},
+            task_spec=task_spec,
+            world_state=world_state,
+            state_gap=state_gap,
+        )
+        failure_policy = self._classify_failure_policy(context=context, completion_packet=completion_packet_preview)
         capability_replan = plan_capability_path(
             task_spec=task_spec,
             registry=default_capability_registry(),
@@ -1108,6 +1123,7 @@ class TaskGraphActionMapper:
             context=context,
             metrics=metrics,
             failure_policy=failure_policy,
+            completion_packet=completion_packet_preview,
             )
         added_node_ids: list[str] = []
         if additions:
@@ -1126,6 +1142,9 @@ class TaskGraphActionMapper:
                     if addition["node_id"] not in deps:
                         deps.append(addition["node_id"])
                     completion_packet["depends_on"] = deps
+                    completion_packet["status"] = "ready"
+                    completion_packet["artifacts"] = []
+                    context.get("node_results", {}).pop("completion_packet", None)
         body = {
             "node_id": node.get("node_id", ""),
             "title": node.get("title", ""),
@@ -1134,6 +1153,7 @@ class TaskGraphActionMapper:
             "task_spec": task_spec.to_dict(),
             "world_state": world_state.to_dict(),
             "state_gap": state_gap.to_dict(),
+            "completion_packet_preview": completion_packet_preview,
             "capability_replan": capability_replan,
             "added_node_ids": added_node_ids,
             "added_nodes": additions,
@@ -1468,6 +1488,7 @@ class TaskGraphActionMapper:
         context: dict[str, Any],
         metrics: dict[str, Any],
         failure_policy: dict[str, Any],
+        completion_packet: dict[str, Any],
     ) -> list[dict[str, Any]]:
         existing_ids = {
             str(item.get("node_id", ""))
@@ -1480,9 +1501,10 @@ class TaskGraphActionMapper:
             context=context,
             metrics=metrics,
             failure_policy=failure_policy,
+            completion_packet=completion_packet,
         )
         if not proposed:
-            proposed = self._local_replan_suggestions(context=context, failure_policy=failure_policy)
+            proposed = self._local_replan_suggestions(context=context, failure_policy=failure_policy, completion_packet=completion_packet)
 
         additions: list[dict[str, Any]] = []
         for item in proposed:
@@ -1506,11 +1528,103 @@ class TaskGraphActionMapper:
         return additions
 
     @staticmethod
-    def _local_replan_suggestions(*, context: dict[str, Any], failure_policy: dict[str, Any]) -> list[dict[str, Any]]:
+    def _local_replan_suggestions(*, context: dict[str, Any], failure_policy: dict[str, Any], completion_packet: dict[str, Any]) -> list[dict[str, Any]]:
         policy = str(failure_policy.get("policy", "none"))
         summary = str(failure_policy.get("summary", ""))
+        state_gap = completion_packet.get("state_gap", {}) if isinstance(completion_packet.get("state_gap", {}), dict) else {}
+        missing_artifacts = [str(item) for item in state_gap.get("missing_artifacts", []) if str(item).strip()] if isinstance(state_gap.get("missing_artifacts", []), list) else []
+        missing_channels = [str(item) for item in state_gap.get("missing_channels", []) if str(item).strip()] if isinstance(state_gap.get("missing_channels", []), list) else []
         if policy == "none":
             return []
+        if policy == "validation_gap":
+            return [
+                {
+                    "node_type": "tool_call",
+                    "tool_name": "workspace_file_search",
+                    "tool_args": {"query": "test validation regression", "glob": "*", "limit": 6},
+                    "title": "Inspect Validation Targets",
+                    "reason": summary or "completion packet shows validation is still open",
+                },
+                {
+                    "node_type": "subagent",
+                    "subagent_kind": "repair_probe",
+                    "objective": "Investigate open validation gaps and propose a bounded repair path",
+                    "title": "Run Validation Repair Probe",
+                    "reason": summary or "completion packet indicates unresolved validation gap",
+                    "source_node_ids": ["analysis", "completion_packet"],
+                },
+            ]
+        if policy == "workspace_gap":
+            return [
+                {
+                    "node_type": "tool_call",
+                    "tool_name": "workspace_file_search",
+                    "tool_args": {"query": "repo workspace relevant files", "glob": "*", "limit": 8},
+                    "title": "Inspect Missing Workspace Context",
+                    "reason": summary or "completion packet shows missing workspace grounding",
+                }
+            ]
+        if policy == "web_gap":
+            return [
+                {
+                    "node_type": "tool_call",
+                    "tool_name": "external_resource_hub",
+                    "tool_args": {"query": "collect external evidence for unresolved task", "limit": 6},
+                    "title": "Collect Missing Web Evidence",
+                    "reason": summary or "completion packet shows missing external evidence",
+                },
+                {
+                    "node_type": "subagent",
+                    "subagent_kind": "research_probe",
+                    "objective": "Close the missing external evidence gap with targeted research actions",
+                    "title": "Run Web Evidence Probe",
+                    "reason": summary or "delegate evidence gap closure",
+                    "source_node_ids": ["analysis", "completion_packet"],
+                },
+            ]
+        if policy == "artifact_gap":
+            actions: list[dict[str, Any]] = []
+            if any(item in {"patch_plan", "patch_draft"} for item in missing_artifacts):
+                actions.append(
+                    {
+                        "node_type": "workspace_action",
+                        "kind": "patch_draft",
+                        "title": "Generate Missing Patch Draft",
+                        "reason": summary or "completion packet shows patch artifact gap",
+                        "source_node_ids": ["analysis", "completion_packet"],
+                    }
+                )
+            if any(item in {"benchmark_manifest", "benchmark_run_config"} for item in missing_artifacts):
+                actions.append(
+                    {
+                        "node_type": "workspace_action",
+                        "kind": "benchmark_manifest",
+                        "title": "Generate Missing Benchmark Manifest",
+                        "reason": summary or "completion packet shows benchmark artifact gap",
+                        "source_node_ids": ["analysis", "completion_packet"],
+                    }
+                )
+            if "evidence_bundle" in missing_artifacts or "web" in missing_channels:
+                actions.append(
+                    {
+                        "node_type": "tool_call",
+                        "tool_name": "external_resource_hub",
+                        "tool_args": {"query": "collect evidence for missing deliverables", "limit": 5},
+                        "title": "Collect Evidence For Missing Artifacts",
+                        "reason": summary or "artifact gap requires stronger evidence inputs",
+                    }
+                )
+            actions.append(
+                {
+                    "node_type": "subagent",
+                    "subagent_kind": "repair_probe",
+                    "objective": "Resolve the remaining artifact gaps reported in the completion packet",
+                    "title": "Run Artifact Gap Repair Probe",
+                    "reason": summary or "completion packet lists unresolved artifact gaps",
+                    "source_node_ids": ["analysis", "completion_packet"],
+                }
+            )
+            return actions
         if policy == "missing_dependency":
             return [
                 {
@@ -1669,6 +1783,7 @@ class TaskGraphActionMapper:
         context: dict[str, Any],
         metrics: dict[str, Any],
         failure_policy: dict[str, Any],
+        completion_packet: dict[str, Any],
     ) -> list[dict[str, Any]]:
         try:
             from app.harness.live_agent import CallBudget, LiveModelConfig, LiveModelGateway
@@ -1682,6 +1797,7 @@ class TaskGraphActionMapper:
                 "graph_id": graph.get("graph_id", ""),
                 "replan_focus": metrics.get("replan_focus", []),
                 "failure_policy": failure_policy,
+                "completion_packet": completion_packet,
                 "node_results": context.get("node_results", {}),
             }
             messages = [
@@ -1691,6 +1807,7 @@ class TaskGraphActionMapper:
                         "You are replanning a general agent task graph after execution feedback. "
                         "Return strict JSON with key actions. "
                         "Each action must include node_type from workspace_action, tool_call, subagent. "
+                        "Use the completion_packet gaps to choose the smallest closure repair. "
                         f"Allowed workspace_action kinds: {', '.join(sorted(allowed_workspace_action_kinds(include_internal=False)))}. "
                         "You may also emit kind starting with custom: when you include relative_path plus content_type or artifact_contract. "
                         "Allowed tool_call names: tool_search, workspace_file_search, external_resource_hub, code_experiment_design. "
@@ -1794,6 +1911,28 @@ class TaskGraphActionMapper:
         task_spec = self._coerce_task_spec(metrics=metrics, graph=graph, context=context)
         world_state = build_world_state(graph=graph, context=context)
         state_gap = compute_state_gap(task_spec=task_spec, world_state=world_state)
+        return self._compile_completion_packet_payload(
+            prompt=prompt,
+            source_text=source_text,
+            context=context,
+            workspace_summary=workspace_summary,
+            task_spec=task_spec,
+            world_state=world_state,
+            state_gap=state_gap,
+        )
+
+    def _compile_completion_packet_payload(
+        self,
+        *,
+        prompt: str,
+        source_text: str,
+        context: dict[str, Any],
+        workspace_summary: dict[str, Any],
+        task_spec: Any,
+        world_state: Any,
+        state_gap: Any,
+    ) -> dict[str, Any]:
+        packet_state_gap = self._filter_packet_state_gap(state_gap)
         node_results = context.get("node_results", {}) if isinstance(context.get("node_results", {}), dict) else {}
 
         delivered_artifacts: list[dict[str, Any]] = []
@@ -1864,19 +2003,19 @@ class TaskGraphActionMapper:
         }
 
         open_gaps = (
-            len(state_gap.missing_channels)
-            + len(state_gap.missing_artifacts)
-            + len(state_gap.failure_types)
-            + (1 if state_gap.missing_validation else 0)
+            len(packet_state_gap["missing_channels"])
+            + len(packet_state_gap["missing_artifacts"])
+            + len(packet_state_gap["failure_types"])
+            + (1 if packet_state_gap["missing_validation"] else 0)
         )
         next_steps: list[str] = []
-        for channel in state_gap.missing_channels:
+        for channel in packet_state_gap["missing_channels"]:
             next_steps.append(f"Add or rerun a node that satisfies the {channel} channel.")
-        for artifact in state_gap.missing_artifacts:
+        for artifact in packet_state_gap["missing_artifacts"]:
             next_steps.append(f"Materialize the missing artifact: {artifact}.")
-        if state_gap.missing_validation:
+        if packet_state_gap["missing_validation"]:
             next_steps.append("Run or repair validation before treating the task as closed.")
-        for failure in state_gap.failure_types:
+        for failure in packet_state_gap["failure_types"]:
             next_steps.append(f"Repair execution failure classified as {failure}.")
         if not next_steps:
             next_steps.append("No blocking gaps detected; review the packet and promote the delivered artifacts.")
@@ -1899,13 +2038,98 @@ class TaskGraphActionMapper:
                 "sample_files": list(workspace_summary.get("sample_files", []))[:8],
             },
             "world_state": world_state.to_dict(),
-            "state_gap": state_gap.to_dict(),
+            "state_gap": packet_state_gap,
             "delivered_artifacts": delivered_artifacts,
             "evidence": evidence_summary,
             "validation": validation_summary,
             "risk": risk_summary,
             "source_digest": self._single_line(source_text)[:300],
             "next_steps": next_steps,
+        }
+
+    def _build_delivery_bundle(
+        self,
+        *,
+        prompt: str,
+        source_text: str,
+        context: dict[str, Any],
+        workspace_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        del source_text
+        node_results = context.get("node_results", {}) if isinstance(context.get("node_results", {}), dict) else {}
+        completion_result = node_results.get("completion_packet", {}) if isinstance(node_results.get("completion_packet", {}), dict) else {}
+        completion_result_body = completion_result.get("result", {}) if isinstance(completion_result.get("result", {}), dict) else {}
+        completion_packet = completion_result_body.get("packet", {}) if isinstance(completion_result_body.get("packet", {}), dict) else {}
+        if not completion_packet:
+            completion_packet = self._node_output(node_results, "completion_packet")
+        task_spec = completion_packet.get("task_spec", {}) if isinstance(completion_packet.get("task_spec", {}), dict) else {}
+        delivered_artifacts = completion_packet.get("delivered_artifacts", []) if isinstance(completion_packet.get("delivered_artifacts", []), list) else []
+        if not delivered_artifacts:
+            delivered_artifacts = self._delivery_manifest_rows(node_results=node_results)
+        validation = completion_packet.get("validation", {}) if isinstance(completion_packet.get("validation", {}), dict) else {}
+        evidence = completion_packet.get("evidence", {}) if isinstance(completion_packet.get("evidence", {}), dict) else {}
+        risk = completion_packet.get("risk", {}) if isinstance(completion_packet.get("risk", {}), dict) else {}
+        summary = completion_packet.get("summary", {}) if isinstance(completion_packet.get("summary", {}), dict) else {}
+
+        manifest: list[dict[str, Any]] = []
+        for item in delivered_artifacts:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path", "")).replace("\\", "/")
+            family = self._artifact_family_from_path(path)
+            manifest.append(
+                {
+                    "node_id": str(item.get("node_id", "")),
+                    "label": str(item.get("label", "")),
+                    "kind": str(item.get("kind", "")),
+                    "family": family,
+                    "path": path,
+                    "content_type": str(item.get("content_type", "")),
+                    "summary": str(item.get("summary", "")),
+                }
+            )
+
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for item in manifest:
+            grouped.setdefault(str(item.get("family", "misc")), []).append(item)
+        deliverable_index = [
+            {
+                "family": family,
+                "count": len(items),
+                "paths": [str(item.get("path", "")) for item in items[:8]],
+                "labels": [str(item.get("label", "")) for item in items[:8]],
+            }
+            for family, items in sorted(grouped.items())
+        ]
+
+        reviewer_checklist = [
+            f"Review primary report and packet for task: {prompt}",
+            f"Validation status is {str(validation.get('status', 'unknown')).replace('_', ' ')}.",
+            f"Evidence records available: {int(evidence.get('record_count', 0))}.",
+            f"Risk items captured: {int(risk.get('count', 0))}.",
+        ]
+
+        return {
+            "schema": "agent-harness-delivery-bundle/v1",
+            "query": prompt,
+            "task_spec": task_spec,
+            "workspace_summary": {
+                "languages": list(workspace_summary.get("languages", [])),
+                "frameworks": list(workspace_summary.get("frameworks", [])),
+            },
+            "bundle_summary": {
+                "artifact_count": int(summary.get("artifact_count", len(manifest))),
+                "family_count": len(deliverable_index),
+                "validation_status": str(validation.get("status", "unknown")),
+                "evidence_count": int(evidence.get("record_count", 0)),
+                "risk_count": int(risk.get("count", 0)),
+            },
+            "deliverable_index": deliverable_index,
+            "artifact_manifest": manifest,
+            "completion_packet_ref": self._node_artifact_path(node_results, "completion_packet"),
+            "report_ref": self._node_artifact_path(node_results, "report"),
+            "reviewer_checklist": reviewer_checklist,
+            "handoff_order": [str(item.get("path", "")) for item in manifest[:12]],
         }
 
     @staticmethod
@@ -2056,7 +2280,7 @@ class TaskGraphActionMapper:
         }
 
     @staticmethod
-    def _classify_failure_policy(*, context: dict[str, Any]) -> dict[str, Any]:
+    def _classify_failure_policy(*, context: dict[str, Any], completion_packet: dict[str, Any] | None = None) -> dict[str, Any]:
         execution_json = TaskGraphActionMapper._extract_result_field("execution", "", context)
         if execution_json:
             try:
@@ -2101,6 +2325,26 @@ class TaskGraphActionMapper:
         ]
         if tool_failures:
             return {"policy": "tool_failure", "summary": f"{len(tool_failures)} tool node(s) failed"}
+        packet = dict(completion_packet or {})
+        state_gap = packet.get("state_gap", {}) if isinstance(packet.get("state_gap", {}), dict) else {}
+        missing_channels = [str(item) for item in state_gap.get("missing_channels", []) if str(item).strip()] if isinstance(state_gap.get("missing_channels", []), list) else []
+        missing_artifacts = [str(item) for item in state_gap.get("missing_artifacts", []) if str(item).strip()] if isinstance(state_gap.get("missing_artifacts", []), list) else []
+        failure_types = [str(item) for item in state_gap.get("failure_types", []) if str(item).strip()] if isinstance(state_gap.get("failure_types", []), list) else []
+        actionable_missing_artifacts = [
+            item
+            for item in missing_artifacts
+            if item not in {"completion_packet", "delivery_bundle", "deliverable_report"}
+        ]
+        if failure_types:
+            return {"policy": "artifact_gap", "summary": f"completion packet still reports execution failure types: {', '.join(failure_types[:3])}", "source": "completion_packet"}
+        if bool(state_gap.get("missing_validation", False)):
+            return {"policy": "validation_gap", "summary": "completion packet shows validation remains unresolved", "source": "completion_packet"}
+        if "workspace" in missing_channels:
+            return {"policy": "workspace_gap", "summary": "completion packet shows workspace grounding is still missing", "source": "completion_packet"}
+        if "web" in missing_channels:
+            return {"policy": "web_gap", "summary": "completion packet shows external evidence is still missing", "source": "completion_packet"}
+        if actionable_missing_artifacts:
+            return {"policy": "artifact_gap", "summary": f"completion packet shows missing artifacts: {', '.join(actionable_missing_artifacts[:3])}", "source": "completion_packet"}
         return {"policy": "none", "summary": "no repair policy triggered"}
 
     @staticmethod
@@ -2111,8 +2355,82 @@ class TaskGraphActionMapper:
             output = result.get("output", {})
             if isinstance(output, dict):
                 return output
+            for field in ("packet", "bundle", "manifest", "config", "spec"):
+                value = result.get(field, {})
+                if isinstance(value, dict):
+                    return value
             return result
         return {}
+
+    @staticmethod
+    def _node_artifact_path(node_results: dict[str, Any], node_id: str) -> str:
+        payload = node_results.get(node_id, {}) if isinstance(node_results, dict) else {}
+        artifact = payload.get("artifact", {}) if isinstance(payload, dict) else {}
+        return str(artifact.get("path", ""))
+
+    @staticmethod
+    def _artifact_family_from_path(path: str) -> str:
+        lowered = str(path or "").replace("\\", "/").lower()
+        mapping = [
+            ("report", ["/report", "report.md"]),
+            ("packet", ["packets/"]),
+            ("bundle", ["bundles/"]),
+            ("code", ["patches/", "plans/"]),
+            ("benchmark", ["benchmarks/"]),
+            ("dataset", ["datasets/"]),
+            ("web", ["web/"]),
+            ("slides", ["slides/"]),
+            ("charts", ["charts/"]),
+            ("podcast", ["podcast/"]),
+            ("video", ["video/"]),
+            ("images", ["images/"]),
+            ("analysis", ["analysis/"]),
+            ("execution", ["executions/", "execution-trace"]),
+            ("briefs", ["briefs/"]),
+            ("artifacts", ["artifacts/"]),
+        ]
+        for family, patterns in mapping:
+            if any(pattern in lowered for pattern in patterns):
+                return family
+        return "misc"
+
+    def _delivery_manifest_rows(self, *, node_results: dict[str, Any]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for node_id, payload in node_results.items():
+            if not isinstance(payload, dict):
+                continue
+            artifact = payload.get("artifact", {}) if isinstance(payload.get("artifact", {}), dict) else {}
+            path = str(artifact.get("path", "")).strip()
+            if not path or path.replace("\\", "/").lower().endswith("bundles/delivery-bundle.json"):
+                continue
+            rows.append(
+                {
+                    "node_id": str(node_id),
+                    "label": str(artifact.get("label", node_id)),
+                    "kind": str(artifact.get("kind", "")),
+                    "path": path,
+                    "summary": str(artifact.get("summary", "")),
+                    "content_type": str(artifact.get("content_type", "")),
+                }
+            )
+        rows.sort(key=lambda item: (str(item.get("path", "")), str(item.get("node_id", ""))))
+        return rows
+
+    @staticmethod
+    def _filter_packet_state_gap(state_gap: Any) -> dict[str, Any]:
+        missing_channels = list(getattr(state_gap, "missing_channels", []))
+        missing_artifacts = [
+            str(item)
+            for item in list(getattr(state_gap, "missing_artifacts", []))
+            if str(item) not in {"completion_packet", "deliverable_report", "delivery_bundle"}
+        ]
+        failure_types = list(getattr(state_gap, "failure_types", []))
+        return {
+            "missing_channels": missing_channels,
+            "missing_artifacts": missing_artifacts,
+            "missing_validation": bool(getattr(state_gap, "missing_validation", False)),
+            "failure_types": failure_types,
+        }
 
     @staticmethod
     def _resolve_live_model_overrides(context: dict[str, Any]) -> dict[str, Any] | None:

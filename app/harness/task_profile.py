@@ -937,7 +937,7 @@ def default_artifact_targets(
 ) -> list[str]:
     """Infer artifact targets that make the graph materially reviewable."""
 
-    targets = ["analysis_brief", "completion_packet", "deliverable_report"]
+    targets = ["analysis_brief", "completion_packet", "delivery_bundle", "deliverable_report"]
     if "workspace" in selected_channels:
         targets.append("workspace_findings")
     if "web" in selected_channels:
@@ -1858,8 +1858,26 @@ def build_dynamic_task_graph(
         expansion_action_ids.append(action_id)
         synthesis_sources.append(action_id)
 
+    completion_packet_depends = list(dict.fromkeys(synthesis_sources))
+    nodes.append(
+        TaskGraphNode(
+            node_id="completion_packet",
+            title="Generate Completion Packet",
+            node_type="workspace_action",
+            status="ready",
+            depends_on=completion_packet_depends,
+            metrics={
+                "action_kind": "completion_packet",
+                "prompt": query,
+                "source_node_ids": completion_packet_depends,
+                "workspace_summary": dict(resolved.workspace_summary),
+                "task_spec": dict(resolved.task_spec),
+            },
+        )
+    )
+
     if bool(resolved.graph_expansion.get("replan_enabled", False)):
-        replan_depends = list(dict.fromkeys(synthesis_sources))
+        replan_depends = ["completion_packet"]
         nodes.append(
             TaskGraphNode(
                 node_id="replan",
@@ -1878,26 +1896,9 @@ def build_dynamic_task_graph(
                 },
             )
         )
-        synthesis_sources = list(dict.fromkeys(replan_depends + ["replan"]))
-
-    completion_packet_depends = list(dict.fromkeys(synthesis_sources))
-    nodes.append(
-        TaskGraphNode(
-            node_id="completion_packet",
-            title="Generate Completion Packet",
-            node_type="workspace_action",
-            status="ready",
-            depends_on=completion_packet_depends,
-            metrics={
-                "action_kind": "completion_packet",
-                "prompt": query,
-                "source_node_ids": completion_packet_depends,
-                "workspace_summary": dict(resolved.workspace_summary),
-                "task_spec": dict(resolved.task_spec),
-            },
-        )
-    )
-    synthesis_sources = list(dict.fromkeys(completion_packet_depends + ["completion_packet"]))
+        synthesis_sources = ["completion_packet", "replan"]
+    else:
+        synthesis_sources = ["completion_packet"]
 
     contracts = resolved.task_spec.get("artifact_contracts", []) if isinstance(resolved.task_spec.get("artifact_contracts", []), list) else []
     custom_contract_count = sum(1 for item in contracts if isinstance(item, dict) and str(item.get("kind", "")).startswith("custom:"))
@@ -1973,6 +1974,26 @@ def build_dynamic_task_graph(
                 },
             )
         )
+
+    delivery_bundle_depends = ["completion_packet", "report"]
+    if resolved.requires_command_execution and resolved.workspace_summary.get("suggested_commands"):
+        delivery_bundle_depends.append("execution_trace")
+    nodes.append(
+        TaskGraphNode(
+            node_id="delivery_bundle",
+            title="Generate Delivery Bundle",
+            node_type="workspace_action",
+            status="ready",
+            depends_on=list(dict.fromkeys(delivery_bundle_depends)),
+            metrics={
+                "action_kind": "delivery_bundle",
+                "prompt": query,
+                "source_node_ids": list(dict.fromkeys(delivery_bundle_depends)),
+                "workspace_summary": dict(resolved.workspace_summary),
+                "task_spec": dict(resolved.task_spec),
+            },
+        )
+    )
 
     graph = ExecutableTaskGraph(
         graph_id=f"task-{slug}",

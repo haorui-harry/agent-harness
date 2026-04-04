@@ -160,8 +160,13 @@ def test_task_graph_builder_infers_workspace_grounded_repo_analysis(tmp_path) ->
     assert {"workspace_scan", "workspace_focus", "analysis", "validation", "report"}.issubset(node_ids)
     assert {"action_patch_scaffold", "replan"}.issubset(node_ids)
     assert "completion_packet" in node_ids
+    assert "delivery_bundle" in node_ids
+    replan = next(item for item in nodes if item["node_id"] == "replan")
     synthesis = next(item for item in nodes if item["node_id"] == "synthesis")
+    delivery_bundle = next(item for item in nodes if item["node_id"] == "delivery_bundle")
+    assert "completion_packet" in replan["depends_on"]
     assert "completion_packet" in synthesis["depends_on"]
+    assert {"completion_packet", "report"}.issubset(set(delivery_bundle["depends_on"]))
     assert "external_resources" not in node_ids
 
 

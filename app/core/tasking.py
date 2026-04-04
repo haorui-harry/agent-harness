@@ -305,6 +305,7 @@ def infer_task_spec(
     contracts.extend(_custom_document_contracts(lowered))
     contracts.extend(_explicit_artifact_contracts(lowered))
     contracts.append(ArtifactContract(kind="completion_packet", title="Completion Packet", format_hint="json"))
+    contracts.append(ArtifactContract(kind="delivery_bundle", title="Delivery Bundle", format_hint="json"))
     contracts = _dedupe_contracts(contracts)
 
     required_channels: list[str] = ["discovery"]
@@ -354,6 +355,7 @@ def default_workspace_action_specs() -> dict[str, WorkspaceActionSpec]:
         WorkspaceActionSpec("benchmark_run_config", "Generate Benchmark Run Config", "benchmarks/run-config.json", "application/json", "config", "json"),
         WorkspaceActionSpec("benchmark_manifest", "Generate Benchmark Manifest", "benchmarks/manifest.json", "application/json", "manifest", "json"),
         WorkspaceActionSpec("completion_packet", "Generate Completion Packet", "packets/completion-packet.json", "application/json", "packet", "json"),
+        WorkspaceActionSpec("delivery_bundle", "Generate Delivery Bundle", "bundles/delivery-bundle.json", "application/json", "bundle", "json"),
         WorkspaceActionSpec("dataset_pull_spec", "Generate Dataset Pull Spec", "datasets/pull-spec.json", "application/json", "spec", "json"),
         WorkspaceActionSpec("dataset_loader_template", "Generate Dataset Loader Template", "datasets/loader_template.py", "text/plain", "output", "python"),
         WorkspaceActionSpec("webpage_blueprint", "Generate Webpage Blueprint", "web/landing-page-blueprint.md", "text/markdown", "output", "markdown"),
@@ -484,6 +486,14 @@ def default_capability_registry() -> CapabilityRegistry:
             ref="completion_packet",
             phase="produce",
             produces_artifacts=["completion_packet"],
+        ),
+        Capability(
+            name="produce_delivery_bundle",
+            title="Generate Delivery Bundle",
+            node_type="workspace_action",
+            ref="delivery_bundle",
+            phase="produce",
+            produces_artifacts=["delivery_bundle"],
         ),
         Capability(
             name="produce_patch_scaffold",
@@ -635,6 +645,7 @@ def plan_capability_path(
 
     artifact_to_capability = {
         "completion_packet": "produce_completion_packet",
+        "delivery_bundle": "produce_delivery_bundle",
         "patch_plan": "produce_patch_scaffold",
         "patch_draft": "produce_patch_draft",
         "benchmark_manifest": "produce_benchmark_manifest",
@@ -693,6 +704,8 @@ def build_world_state(*, graph: dict[str, Any], context: dict[str, Any]) -> Task
             lowered = path.lower()
             if "packets/completion-packet" in lowered:
                 artifacts.append("completion_packet")
+            if "bundles/delivery-bundle" in lowered:
+                artifacts.append("delivery_bundle")
             if "web/" in lowered:
                 artifacts.append("webpage_blueprint")
             if "slides/" in lowered:
@@ -748,6 +761,8 @@ def build_world_state(*, graph: dict[str, Any], context: dict[str, Any]) -> Task
             artifacts.append("risk_register")
         if node_id == "completion_packet":
             artifacts.append("completion_packet")
+        if node_id == "delivery_bundle":
+            artifacts.append("delivery_bundle")
         if node_id == "synthesis":
             artifacts.append("deliverable_report")
 
