@@ -11,6 +11,7 @@ from typing import Any
 from app.core.tasking import allowed_workspace_action_kinds, default_capability_registry, infer_task_spec, plan_capability_path
 from app.core.state import SkillCategory
 from app.core.task_graph import ExecutableTaskGraph, TaskGraphNode
+from app.skills.packages import SkillPackageCatalog
 from app.skills.registry import list_all_skills
 
 
@@ -103,6 +104,7 @@ class TaskProfile:
     capability_plan: dict[str, Any] = field(default_factory=dict)
     graph_expansion: dict[str, Any] = field(default_factory=dict)
     skill_priors: list[SkillPrior] = field(default_factory=list)
+    package_priors: list[dict[str, Any]] = field(default_factory=list)
     deliberation: ChannelDeliberation = field(default_factory=ChannelDeliberation)
 
     def to_dict(self) -> dict[str, object]:
@@ -126,6 +128,7 @@ class TaskProfile:
             "capability_plan": dict(self.capability_plan),
             "graph_expansion": dict(self.graph_expansion),
             "skill_priors": [item.to_dict() for item in self.skill_priors],
+            "package_priors": [dict(item) for item in self.package_priors],
             "deliberation": self.deliberation.to_dict(),
             "selected_channels": list(self.deliberation.selected),
         }
@@ -218,6 +221,14 @@ def analyze_task_request(
     lowered = str(query or "").strip().lower()
     keywords = list(dict.fromkeys(_tokens(query)))[:8]
     target_hint = str(target or "general").strip().lower() or "general"
+    package_catalog = SkillPackageCatalog()
+    package_priors = []
+    for item in package_catalog.suggest(query, target=target_hint, limit=max(4, skill_limit)):
+        payload = item.to_dict()
+        payload["match_score"] = round(item.score_for_query(query, target=target_hint), 4)
+        package_priors.append(payload)
+    package_channels = _required_channels_from_packages(package_priors)
+    package_validation = any("validation" in [str(req).strip().lower() for req in item.get("runtime_requirements", [])] for item in package_priors)
 
     workspace_markers = [
         "repo",
@@ -484,15 +495,16 @@ def analyze_task_request(
         target=target_hint,
         domains=infer_domains(query),
         output_mode=output_mode,
-        workspace_required=workspace_signal > 0,
-        external_required=external_signal > 0,
-        needs_validation=provisional_validation,
+        workspace_required=workspace_signal > 0 or "workspace" in package_channels,
+        external_required=external_signal > 0 or "web" in package_channels,
+        needs_validation=provisional_validation or package_validation,
         needs_command_execution=provisional_command_execution,
     )
     skill_priors = select_skill_priors(
         query=query,
         execution_intent=execution_intent,
         output_mode=output_mode,
+        package_priors=package_priors,
         limit=skill_limit,
     )
     local_deliberation = deliberate_channels(
@@ -523,6 +535,7 @@ def analyze_task_request(
         registry=default_capability_registry(),
     )
     merged_selected = list(dict.fromkeys(list(deliberation.selected) + list(capability_plan.get("required_channels", []))))
+    merged_selected = list(dict.fromkeys(merged_selected + package_channels))
     if (
         workspace_signal <= 0
         and target_hint == "research"
@@ -536,7 +549,8 @@ def analyze_task_request(
         scores=dict(deliberation.scores),
         selected=merged_selected,
         rationale=list(deliberation.rationale)
-        + (["capability graph requested additional channels"] if merged_selected != deliberation.selected else []),
+        + (["capability graph requested additional channels"] if merged_selected != deliberation.selected else [])
+        + (["skill packages requested additional channels"] if any(channel not in deliberation.selected for channel in package_channels) else []),
     )
 
     selected = set(deliberation.selected)
@@ -564,6 +578,7 @@ def analyze_task_request(
         requires_command_execution=requires_command_execution,
         live_model_overrides=live_model_overrides,
         skill_priors=skill_priors,
+        package_priors=package_priors,
         task_spec=task_spec.to_dict(),
         capability_plan=capability_plan,
     )
@@ -594,6 +609,7 @@ def analyze_task_request(
         capability_plan=capability_plan,
         graph_expansion=graph_expansion,
         skill_priors=skill_priors,
+        package_priors=package_priors,
         deliberation=deliberation,
     )
 
@@ -603,6 +619,7 @@ def select_skill_priors(
     *,
     execution_intent: str = "general",
     output_mode: str = "artifact",
+    package_priors: list[dict[str, Any]] | None = None,
     limit: int = 4,
 ) -> list[SkillPrior]:
     """Select best-fit skill priors without locking the runtime to one workflow."""
@@ -633,6 +650,19 @@ def select_skill_priors(
     }
 
     priors: list[SkillPrior] = []
+    package_skill_refs: dict[str, list[str]] = {}
+    for package in package_priors or []:
+        if not isinstance(package, dict):
+            continue
+        score = float(package.get("match_score", 0.0) or 0.0)
+        if score < 0.42:
+            continue
+        package_name = str(package.get("name", "")).strip() or "package"
+        for skill_name in package.get("skill_refs", []) if isinstance(package.get("skill_refs", []), list) else []:
+            skill_text = str(skill_name).strip()
+            if not skill_text:
+                continue
+            package_skill_refs.setdefault(skill_text, []).append(package_name)
     for meta in list_all_skills():
         score = 0.0
         rationale: list[str] = []
@@ -654,6 +684,10 @@ def select_skill_priors(
         if meta.name in output_boosts.get(output_mode, set()):
             score += 0.18
             rationale.append(f"aligned with output={output_mode}")
+        package_hits = package_skill_refs.get(meta.name, [])
+        if package_hits:
+            score += 0.38 + 0.06 * min(len(package_hits), 3)
+            rationale.append(f"recommended by packages: {', '.join(package_hits[:2])}")
         if meta.category in {SkillCategory.ANALYSIS, SkillCategory.REASONING}:
             score += 0.05
         if score <= 0.0:
@@ -773,6 +807,104 @@ def inspect_workspace_capabilities(workspace_root: str | Path | None) -> dict[st
     }
 
 
+def _required_channels_from_packages(package_priors: list[dict[str, Any]]) -> list[str]:
+    channels: list[str] = []
+    for item in package_priors:
+        if not isinstance(item, dict):
+            continue
+        score = float(item.get("match_score", 0.0) or 0.0)
+        if score < 0.52:
+            continue
+        requirements = [str(req).strip().lower() for req in item.get("runtime_requirements", []) if str(req).strip()] if isinstance(item.get("runtime_requirements", []), list) else []
+        tools = [str(tool).strip().lower() for tool in item.get("tool_refs", []) if str(tool).strip()] if isinstance(item.get("tool_refs", []), list) else []
+        if "workspace" in requirements or any(tool.startswith("workspace_") for tool in tools):
+            channels.append("workspace")
+        if any(req in {"web", "evidence", "external"} for req in requirements) or any(tool in {"external_resource_hub", "evidence_dossier_builder"} for tool in tools):
+            channels.append("web")
+        if "risk" in requirements or any(tool == "policy_risk_matrix" for tool in tools):
+            channels.append("risk")
+        if item.get("skill_refs") or item.get("tool_refs"):
+            channels.append("discovery")
+    deduped: list[str] = []
+    for channel in channels:
+        if channel not in deduped:
+            deduped.append(channel)
+    return deduped
+
+
+def _package_graph_expansion_actions(*, package_priors: list[dict[str, Any]], selected_channels: list[str]) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    selected = set(selected_channels)
+    artifact_map = {
+        "patch": "patch_draft",
+        "execution_trace": "validation_execution",
+        "validation_report": "validation_execution",
+        "evidence_pack": "dataset_pull_spec",
+        "evidence_bundle": "dataset_pull_spec",
+        "benchmark_manifest": "benchmark_manifest",
+        "benchmark_config": "benchmark_run_config",
+        "chart_pack": "chart_pack_spec",
+        "chart": "chart_pack_spec",
+        "data_pack": "data_analysis_spec",
+        "data": "data_analysis_spec",
+        "deck": "slide_deck_plan",
+        "slides": "slide_deck_plan",
+        "presentation": "slide_deck_plan",
+        "webpage": "webpage_blueprint",
+        "website": "webpage_blueprint",
+    }
+    for package in package_priors:
+        if not isinstance(package, dict):
+            continue
+        score = float(package.get("match_score", 0.0) or 0.0)
+        if score < 0.58:
+            continue
+        package_name = str(package.get("name", "package")).strip() or "package"
+        artifacts = [str(item).strip().lower() for item in package.get("artifact_kinds", []) if str(item).strip()] if isinstance(package.get("artifact_kinds", []), list) else []
+        for artifact in artifacts:
+            kind = artifact_map.get(artifact)
+            if not kind:
+                continue
+            if kind in {"dataset_pull_spec"} and "web" not in selected:
+                continue
+            if kind in {"patch_draft", "validation_execution"} and "workspace" not in selected:
+                continue
+            actions.append(
+                {
+                    "kind": kind,
+                    "title": kind.replace("_", " ").title(),
+                    "depends_on": ["analysis"],
+                    "reason": f"skill package {package_name} recommends {artifact} artifacts",
+                }
+            )
+        tools = [str(item).strip() for item in package.get("tool_refs", []) if str(item).strip()] if isinstance(package.get("tool_refs", []), list) else []
+        for tool_name in tools:
+            lowered = tool_name.lower()
+            if lowered in {"external_resource_hub", "evidence_dossier_builder"} and "web" in selected:
+                actions.append(
+                    {
+                        "node_type": "tool_call",
+                        "tool_name": tool_name,
+                        "tool_args": {"query": f"package-guided collection for {package_name}", "limit": 5},
+                        "title": f"Package Probe {tool_name.replace('_', ' ').title()}",
+                        "depends_on": ["analysis"],
+                        "reason": f"skill package {package_name} recommends {tool_name}",
+                    }
+                )
+            if lowered == "policy_risk_matrix" and "risk" in selected:
+                actions.append(
+                    {
+                        "node_type": "tool_call",
+                        "tool_name": tool_name,
+                        "tool_args": {"query": f"package-guided risk scan for {package_name}", "evidence_limit": 4},
+                        "title": "Package Risk Matrix",
+                        "depends_on": ["analysis"],
+                        "reason": f"skill package {package_name} recommends explicit risk evaluation",
+                    }
+                )
+    return actions
+
+
 def requested_output_modes(*, query: str, output_mode: str) -> list[str]:
     """Infer one or more artifact surfaces requested by the user."""
 
@@ -888,6 +1020,7 @@ def plan_graph_expansion(
     requires_command_execution: bool,
     live_model_overrides: dict[str, Any] | None,
     skill_priors: list[SkillPrior],
+    package_priors: list[dict[str, Any]] | None = None,
     task_spec: dict[str, Any] | None = None,
     capability_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -900,6 +1033,7 @@ def plan_graph_expansion(
         selected_channels=selected_channels,
         workspace_summary=workspace_summary,
         requires_command_execution=requires_command_execution,
+        package_priors=package_priors,
         task_spec=task_spec,
         capability_plan=capability_plan,
     )
@@ -922,6 +1056,7 @@ def _default_graph_expansion(
     selected_channels: list[str],
     workspace_summary: dict[str, Any],
     requires_command_execution: bool,
+    package_priors: list[dict[str, Any]] | None = None,
     task_spec: dict[str, Any] | None = None,
     capability_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -1049,6 +1184,7 @@ def _default_graph_expansion(
                 "reason": "workspace indicates concrete validation commands are available",
             }
         )
+    actions.extend(_package_graph_expansion_actions(package_priors=package_priors or [], selected_channels=selected_channels))
     actions.extend(custom_artifact_actions(task_spec=task_spec or {}))
     for step in (capability_plan or {}).get("steps", []) if isinstance((capability_plan or {}).get("steps", []), list) else []:
         if not isinstance(step, dict) or str(step.get("node_type", "")) != "workspace_action":
@@ -1066,12 +1202,19 @@ def _default_graph_expansion(
         )
 
     deduped_actions: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     for action in actions:
-        kind = str(action.get("kind", "")).strip()
-        if kind and kind not in seen:
-            seen.add(kind)
-            deduped_actions.append(action)
+        node_type = str(action.get("node_type", "workspace_action")).strip() or "workspace_action"
+        key = str(
+            action.get("kind", action.get("tool_name", action.get("subagent_kind", action.get("title", ""))))
+        ).strip()
+        if not key:
+            continue
+        dedupe_key = (node_type, key)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        deduped_actions.append(action)
 
     return {
         "actions": deduped_actions,

@@ -96,6 +96,33 @@ def test_task_spec_can_infer_risk_register_contract() -> None:
     assert "risk_register" in kinds
 
 
+def test_package_priors_can_expand_channels_and_graph_actions() -> None:
+    profile = analyze_task_request(
+        "Use deep-research to investigate autonomous browsing systems and prepare a brief.",
+        target="general",
+    )
+
+    package_names = [str(item.get("name", "")) for item in profile.package_priors]
+    graph_nodes = profile.graph_expansion.get("nodes", []) if isinstance(profile.graph_expansion.get("nodes", []), list) else []
+
+    assert "deep-research" in package_names
+    assert "web" in profile.deliberation.selected
+    assert any(str(item.get("tool_name", "")) == "external_resource_hub" for item in graph_nodes if isinstance(item, dict))
+
+
+def test_package_priors_can_raise_code_skill_priority() -> None:
+    profile = analyze_task_request(
+        "Use code-mission to inspect this task and prepare engineering artifacts.",
+        target="general",
+    )
+    priors = profile.skill_priors
+
+    names = [item.name for item in priors]
+    package_names = [str(item.get("name", "")) for item in profile.package_priors]
+    assert "code-mission" in package_names
+    assert any(name in {"codebase_triage", "validation_planner"} for name in names)
+
+
 def test_discovery_prioritizes_risk_tools_for_audit_queries() -> None:
     registry = ToolManifestRegistry()
     discovery = ToolDiscoveryEngine(registry)
