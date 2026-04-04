@@ -159,6 +159,9 @@ def test_task_graph_builder_infers_workspace_grounded_repo_analysis(tmp_path) ->
     node_ids = {item["node_id"] for item in nodes}
     assert {"workspace_scan", "workspace_focus", "analysis", "validation", "report"}.issubset(node_ids)
     assert {"action_patch_scaffold", "replan"}.issubset(node_ids)
+    assert "completion_packet" in node_ids
+    synthesis = next(item for item in nodes if item["node_id"] == "synthesis")
+    assert "completion_packet" in synthesis["depends_on"]
     assert "external_resources" not in node_ids
 
 

@@ -253,11 +253,14 @@ class TaskGraphActionMapper:
         descriptor = self._resolve_workspace_action_descriptor(action_kind=action_kind, metrics=metrics)
         if descriptor is None or str(descriptor.get("kind", "")).strip() == "validation_execution":
             raise ValueError(f"unsupported workspace_action: {action_kind}")
+        render_context = dict(context)
+        render_context["_graph"] = graph
+        render_context["_action_metrics"] = metrics
         local = self._render_workspace_action_local(
             action_kind=action_kind,
             prompt=prompt,
             source_text=source_text,
-            context=context,
+            context=render_context,
             workspace_summary=workspace_summary,
             descriptor=descriptor,
         )
@@ -408,6 +411,12 @@ class TaskGraphActionMapper:
             "patch_draft": lambda **kwargs: self._build_patch_draft(
                 prompt=kwargs["prompt"],
                 source_text=kwargs["source_text"],
+                workspace_summary=kwargs["workspace_summary"],
+            ),
+            "completion_packet": lambda **kwargs: self._build_completion_packet(
+                prompt=kwargs["prompt"],
+                source_text=kwargs["source_text"],
+                context=kwargs["context"],
                 workspace_summary=kwargs["workspace_summary"],
             ),
             "benchmark_run_config": lambda **kwargs: self._build_benchmark_run_config(
@@ -1103,6 +1112,7 @@ class TaskGraphActionMapper:
         added_node_ids: list[str] = []
         if additions:
             synthesis = next((item for item in graph.get("nodes", []) if str(item.get("node_id", "")) == "synthesis"), None)
+            completion_packet = next((item for item in graph.get("nodes", []) if str(item.get("node_id", "")) == "completion_packet"), None)
             for addition in additions:
                 graph.setdefault("nodes", []).append(addition)
                 added_node_ids.append(str(addition.get("node_id", "")))
@@ -1111,6 +1121,11 @@ class TaskGraphActionMapper:
                     if addition["node_id"] not in deps:
                         deps.append(addition["node_id"])
                     synthesis["depends_on"] = deps
+                if isinstance(completion_packet, dict):
+                    deps = list(completion_packet.get("depends_on", [])) if isinstance(completion_packet.get("depends_on", []), list) else []
+                    if addition["node_id"] not in deps:
+                        deps.append(addition["node_id"])
+                    completion_packet["depends_on"] = deps
         body = {
             "node_id": node.get("node_id", ""),
             "title": node.get("title", ""),
@@ -1185,6 +1200,27 @@ class TaskGraphActionMapper:
             for item in graph.get("nodes", [])
             if isinstance(item, dict)
         }
+        existing_workspace_actions = {
+            str(item.get("metrics", {}).get("action_kind", "")).strip()
+            for item in graph.get("nodes", [])
+            if isinstance(item, dict)
+            and str(item.get("node_type", "")).strip() == "workspace_action"
+            and isinstance(item.get("metrics", {}), dict)
+        }
+        existing_tool_names = {
+            str(item.get("metrics", {}).get("tool_name", "")).strip()
+            for item in graph.get("nodes", [])
+            if isinstance(item, dict)
+            and str(item.get("node_type", "")).strip() == "tool_call"
+            and isinstance(item.get("metrics", {}), dict)
+        }
+        existing_subagent_kinds = {
+            str(item.get("metrics", {}).get("subagent_kind", "")).strip()
+            for item in graph.get("nodes", [])
+            if isinstance(item, dict)
+            and str(item.get("node_type", "")).strip() == "subagent"
+            and isinstance(item.get("metrics", {}), dict)
+        }
         additions: list[dict[str, Any]] = []
         prompt = str(metrics.get("prompt", graph.get("query", "")))
         workspace_summary = dict(metrics.get("workspace_summary", {})) if isinstance(metrics.get("workspace_summary", {}), dict) else {}
@@ -1203,6 +1239,8 @@ class TaskGraphActionMapper:
                     "reason": str(step.get("reason", "")),
                 }
                 key = spec["tool_name"]
+                if key in existing_tool_names:
+                    continue
             elif node_type == "workspace_action":
                 spec = {
                     "node_type": node_type,
@@ -1212,6 +1250,8 @@ class TaskGraphActionMapper:
                     "source_node_ids": ["analysis", "execution"],
                 }
                 key = spec["kind"]
+                if key in existing_workspace_actions:
+                    continue
             else:
                 spec = {
                     "node_type": node_type,
@@ -1222,6 +1262,8 @@ class TaskGraphActionMapper:
                     "source_node_ids": ["analysis", "execution"],
                 }
                 key = spec["subagent_kind"]
+                if key in existing_subagent_kinds:
+                    continue
             node_id = self._replan_node_id(node_type=node_type, key=key)
             if not key or node_id in existing_ids:
                 continue
@@ -1235,6 +1277,12 @@ class TaskGraphActionMapper:
                 )
             )
             existing_ids.add(node_id)
+            if node_type == "workspace_action":
+                existing_workspace_actions.add(key)
+            elif node_type == "tool_call":
+                existing_tool_names.add(key)
+            else:
+                existing_subagent_kinds.add(key)
         if additions or not state_gap:
             return additions
         return []
@@ -1733,6 +1781,133 @@ class TaskGraphActionMapper:
             "notes": TaskGraphActionMapper._single_line(source_text)[:240],
         }
 
+    def _build_completion_packet(
+        self,
+        *,
+        prompt: str,
+        source_text: str,
+        context: dict[str, Any],
+        workspace_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        graph = dict(context.get("_graph", {})) if isinstance(context.get("_graph", {}), dict) else {}
+        metrics = dict(context.get("_action_metrics", {})) if isinstance(context.get("_action_metrics", {}), dict) else {}
+        task_spec = self._coerce_task_spec(metrics=metrics, graph=graph, context=context)
+        world_state = build_world_state(graph=graph, context=context)
+        state_gap = compute_state_gap(task_spec=task_spec, world_state=world_state)
+        node_results = context.get("node_results", {}) if isinstance(context.get("node_results", {}), dict) else {}
+
+        delivered_artifacts: list[dict[str, Any]] = []
+        for node_id, payload in node_results.items():
+            if not isinstance(payload, dict):
+                continue
+            artifact = payload.get("artifact", {}) if isinstance(payload.get("artifact", {}), dict) else {}
+            path = str(artifact.get("path", "")).strip()
+            if not path:
+                continue
+            delivered_artifacts.append(
+                {
+                    "node_id": str(node_id),
+                    "label": str(artifact.get("label", node_id)),
+                    "kind": str(artifact.get("kind", "")),
+                    "path": path,
+                    "summary": str(artifact.get("summary", "")),
+                    "content_type": str(artifact.get("content_type", "")),
+                }
+            )
+        delivered_artifacts.sort(key=lambda item: (str(item.get("path", "")), str(item.get("node_id", ""))))
+
+        evidence_output = self._node_output(node_results, "evidence")
+        evidence_records = evidence_output.get("records", []) if isinstance(evidence_output.get("records", []), list) else []
+        evidence_citations = evidence_output.get("citations", []) if isinstance(evidence_output.get("citations", []), list) else []
+        evidence_summary = {
+            "record_count": int(evidence_output.get("record_count", len(evidence_records)) or len(evidence_records)),
+            "citation_count": len(evidence_citations),
+            "citations": [str(item) for item in evidence_citations[:6] if str(item).strip()],
+            "highlights": [str(item.get("title", item.get("summary", ""))) for item in evidence_records[:4] if isinstance(item, dict)],
+        }
+
+        risk_output = self._node_output(node_results, "risk")
+        risk_items = risk_output.get("risks", []) if isinstance(risk_output.get("risks", []), list) else []
+        risk_summary = {
+            "count": len(risk_items),
+            "top_risks": [
+                {
+                    "title": str(item.get("title", item.get("risk", ""))),
+                    "severity": str(item.get("severity", "")),
+                    "mitigation": str(item.get("mitigation", "")),
+                }
+                for item in risk_items[:5]
+                if isinstance(item, dict)
+            ],
+        }
+
+        validation_output = self._node_output(node_results, "validation")
+        execution_output = self._node_output(node_results, "execution")
+        execution_results = execution_output.get("results", []) if isinstance(execution_output.get("results", []), list) else []
+        validation_status = "not_requested"
+        if execution_results:
+            validation_status = "passed" if world_state.validation_ok else "failed"
+        elif validation_output:
+            validation_status = "planned"
+        validation_summary = {
+            "status": validation_status,
+            "validation_plan_present": bool(validation_output),
+            "execution_count": len(execution_results),
+            "commands": [
+                {
+                    "command": str(item.get("command", "")),
+                    "exit_code": int(item.get("exit_code", 0)),
+                }
+                for item in execution_results[:6]
+                if isinstance(item, dict)
+            ],
+        }
+
+        open_gaps = (
+            len(state_gap.missing_channels)
+            + len(state_gap.missing_artifacts)
+            + len(state_gap.failure_types)
+            + (1 if state_gap.missing_validation else 0)
+        )
+        next_steps: list[str] = []
+        for channel in state_gap.missing_channels:
+            next_steps.append(f"Add or rerun a node that satisfies the {channel} channel.")
+        for artifact in state_gap.missing_artifacts:
+            next_steps.append(f"Materialize the missing artifact: {artifact}.")
+        if state_gap.missing_validation:
+            next_steps.append("Run or repair validation before treating the task as closed.")
+        for failure in state_gap.failure_types:
+            next_steps.append(f"Repair execution failure classified as {failure}.")
+        if not next_steps:
+            next_steps.append("No blocking gaps detected; review the packet and promote the delivered artifacts.")
+
+        return {
+            "schema": "agent-harness-completion-packet/v1",
+            "query": prompt,
+            "goal": task_spec.goal,
+            "task_spec": task_spec.to_dict(),
+            "summary": {
+                "artifact_count": len(delivered_artifacts),
+                "channel_count": len(world_state.channels),
+                "completed_capability_count": len(world_state.completed_capabilities),
+                "open_gap_count": open_gaps,
+                "validation_ok": bool(world_state.validation_ok),
+            },
+            "workspace_summary": {
+                "languages": list(workspace_summary.get("languages", [])),
+                "frameworks": list(workspace_summary.get("frameworks", [])),
+                "sample_files": list(workspace_summary.get("sample_files", []))[:8],
+            },
+            "world_state": world_state.to_dict(),
+            "state_gap": state_gap.to_dict(),
+            "delivered_artifacts": delivered_artifacts,
+            "evidence": evidence_summary,
+            "validation": validation_summary,
+            "risk": risk_summary,
+            "source_digest": self._single_line(source_text)[:300],
+            "next_steps": next_steps,
+        }
+
     @staticmethod
     def _build_dataset_loader_template(*, prompt: str, source_text: str, context: dict[str, Any]) -> str:
         del context
@@ -1927,6 +2102,17 @@ class TaskGraphActionMapper:
         if tool_failures:
             return {"policy": "tool_failure", "summary": f"{len(tool_failures)} tool node(s) failed"}
         return {"policy": "none", "summary": "no repair policy triggered"}
+
+    @staticmethod
+    def _node_output(node_results: dict[str, Any], node_id: str) -> dict[str, Any]:
+        payload = node_results.get(node_id, {}) if isinstance(node_results, dict) else {}
+        result = payload.get("result", {}) if isinstance(payload, dict) else {}
+        if isinstance(result, dict):
+            output = result.get("output", {})
+            if isinstance(output, dict):
+                return output
+            return result
+        return {}
 
     @staticmethod
     def _resolve_live_model_overrides(context: dict[str, Any]) -> dict[str, Any] | None:

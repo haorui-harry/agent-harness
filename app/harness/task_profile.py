@@ -937,7 +937,7 @@ def default_artifact_targets(
 ) -> list[str]:
     """Infer artifact targets that make the graph materially reviewable."""
 
-    targets = ["analysis_brief", "deliverable_report"]
+    targets = ["analysis_brief", "completion_packet", "deliverable_report"]
     if "workspace" in selected_channels:
         targets.append("workspace_findings")
     if "web" in selected_channels:
@@ -1879,6 +1879,25 @@ def build_dynamic_task_graph(
             )
         )
         synthesis_sources = list(dict.fromkeys(replan_depends + ["replan"]))
+
+    completion_packet_depends = list(dict.fromkeys(synthesis_sources))
+    nodes.append(
+        TaskGraphNode(
+            node_id="completion_packet",
+            title="Generate Completion Packet",
+            node_type="workspace_action",
+            status="ready",
+            depends_on=completion_packet_depends,
+            metrics={
+                "action_kind": "completion_packet",
+                "prompt": query,
+                "source_node_ids": completion_packet_depends,
+                "workspace_summary": dict(resolved.workspace_summary),
+                "task_spec": dict(resolved.task_spec),
+            },
+        )
+    )
+    synthesis_sources = list(dict.fromkeys(completion_packet_depends + ["completion_packet"]))
 
     contracts = resolved.task_spec.get("artifact_contracts", []) if isinstance(resolved.task_spec.get("artifact_contracts", []), list) else []
     custom_contract_count = sum(1 for item in contracts if isinstance(item, dict) and str(item.get("kind", "")).startswith("custom:"))

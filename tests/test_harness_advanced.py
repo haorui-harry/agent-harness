@@ -81,6 +81,7 @@ def test_task_spec_can_infer_custom_document_contracts() -> None:
     assert "custom:one_pager" in kinds
     assert "custom:brief" in kinds
     assert "custom:faq" in kinds
+    assert "completion_packet" in kinds
 
 
 def test_task_spec_can_infer_risk_register_contract() -> None:

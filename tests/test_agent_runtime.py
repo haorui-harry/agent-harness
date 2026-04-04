@@ -350,6 +350,14 @@ def test_engine_executes_generic_task_graph_inside_thread_workspace(tmp_path: Pa
     assert any(item["relative_path"].endswith("execution-trace.json") for item in persisted["artifacts"])
     assert any(item["relative_path"].endswith("patch-scaffold.md") for item in persisted["artifacts"])
     assert any(item["relative_path"].endswith("patch-draft.diff") for item in persisted["artifacts"])
+    assert any(item["relative_path"].endswith("completion-packet.json") for item in persisted["artifacts"])
+
+    packet_path = Path(thread["workspace"]["workspace"]) / "packets" / "completion-packet.json"
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert packet["schema"] == "agent-harness-completion-packet/v1"
+    assert packet["summary"]["artifact_count"] >= 3
+    assert any("patch-draft.diff" in str(item.get("path", "")) for item in packet["delivered_artifacts"])
+    assert any(item.get("kind") == "completion_packet" for item in packet["task_spec"]["artifact_contracts"])
 
 
 def test_engine_executes_benchmark_actions_and_dataset_spec(tmp_path: Path) -> None:
