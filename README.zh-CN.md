@@ -64,6 +64,18 @@ Agent Harness 就围绕这几个东西收敛。
 - 还缺哪些证据或工件
 - workspace 里有什么真实上下文
 
+## Agent 主循环
+
+整个 runtime 围绕一个很短的循环：
+
+1. 打开或恢复一个 thread
+2. 从任务里推断主交付物以及还缺哪些 channel
+3. 只在任务真正需要时再看 skill、tool、web 信息或 workspace
+4. 在 thread workspace 里执行一个小型 task graph
+5. 产出一个主交付物，再附上可审查的证据和后续工件
+
+这部分最值得保护。只要这条循环变得过于复杂，系统就会从“通用 agent”重新退化成“一堆工作流拼装”。
+
 ## 这个项目和常见框架的差别
 
 ### 1. 主交付物优先
@@ -96,6 +108,12 @@ Agent Harness 就围绕这几个东西收敛。
 ### 4. Skill 有用，但不绑死产品
 
 skill 是能力模块，不是整个产品本身。运行时还可以把能力导出成互操作目录，方便外部生态消费。
+
+### 5. 按主交付物闭环
+
+现在 runtime 在收尾时会先看“主交付物到底是什么”，再决定用哪个 synthesis surface 去完成它。
+
+这和把所有任务都按一个“任务类别 ending”去收口不一样。patch draft、research brief、slide deck plan、ops runbook，本来就不该用同一种方式闭环。
 
 ---
 
@@ -224,6 +242,10 @@ Agent Harness 现在最强的地方是：
 - evidence-aware synthesis
 - inspectable output
 
-它还没有完成。
+接下来最重要的不是继续加层，而是：
 
-接下来的主线不是继续堆复杂层，而是继续减少任务模板依赖，让 generic runtime 更多依赖 capability planning 和高质量主交付物本身。
+- 让更多产品形态复用同一套 generic runtime，而不是继续加包装层
+- 继续削减 query 分类捷径，更多依赖 task spec 和 artifact contract
+- 强化长时 thread 执行，但不把核心循环做重
+
+它还没有完成，但方向已经更接近真正的通用 agent runtime，而不是一个 showcase workflow。

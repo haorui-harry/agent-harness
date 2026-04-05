@@ -59,6 +59,18 @@ This is deliberately simpler than a task-specific workflow catalog.
 
 The runtime should decide how to use skills, tools, and workspace actions based on the task, not because the task was shoved into a hard-coded funnel.
 
+## Agent Loop
+
+The runtime is built around one short loop:
+
+1. open or resume one thread
+2. infer the main deliverable and missing channels from the task
+3. inspect skills, tools, web context, or workspace only when the task calls for them
+4. execute a small task graph inside the thread workspace
+5. publish one primary deliverable plus reviewable evidence and follow-up artifacts
+
+This is the part most worth protecting. If the loop becomes too complicated, the system stops feeling like a general agent and starts feeling like a pile of workflows.
+
 ## What Makes It Different
 
 ### 1. Deliverable-first
@@ -89,6 +101,12 @@ Each task runs inside a persistent thread with:
 ### 4. Skills Without Lock-In
 
 Skills are packaged capabilities, not the entire product. The runtime can also export an interoperability catalog so external OpenAI/Anthropic-style ecosystems can consume the project’s capabilities.
+
+### 5. Artifact-first Closure
+
+The runtime now closes tasks by looking at the primary artifact it needs to ship, then selecting the synthesis surface that best fits that artifact.
+
+That is different from routing everything through a generic “task type” ending. A patch draft, a research brief, a slide deck plan, and an ops runbook should not all close the same way.
 
 ---
 
@@ -217,6 +235,12 @@ Agent Harness is strongest today when a task benefits from:
 - evidence-aware synthesis
 - inspectable outputs
 
-It is not finished.
+What still matters next:
+
+- push more product surfaces onto the same generic runtime instead of special packaging layers
+- keep reducing query-classification shortcuts in favor of task spec + artifact contracts
+- strengthen long-horizon thread execution without making the core loop heavier
+
+It is not finished, but the direction is now much closer to a real general agent runtime than to a showcase workflow.
 
 The main direction is to keep simplifying the generic runtime so it relies less on task-family templates and more on reusable capability planning plus strong deliverables.
