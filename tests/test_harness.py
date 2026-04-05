@@ -105,3 +105,16 @@ def test_harness_eval_suite() -> None:
     result = engine.eval_suite(["Summarize this report", "Compare options safely"])
     assert result["count"] == 2
     assert "tool_success_rate" in result["avg"]
+
+
+def test_optimizer_generates_profile_driven_candidates() -> None:
+    engine = HarnessEngine()
+    payload = engine.optimize_query(
+        query="Create a practical execution plan with risks and measurable checkpoints.",
+        constraints=HarnessConstraints(max_steps=2, max_tool_calls=2),
+    )
+
+    candidates = payload.get("candidates", [])
+    assert any(item.get("auto_recipe") is False and item.get("recipe") == "" for item in candidates)
+    assert any(item.get("mode") == "safety_critical" and item.get("auto_recipe") is True for item in candidates)
+    assert "leaderboard" in payload

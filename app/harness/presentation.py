@@ -11,6 +11,8 @@ class PresentationBlueprintBuilder:
     def build_first_screen(self, payload: dict[str, Any]) -> dict[str, Any]:
         kpis = payload.get("kpis", {})
         value_index = float(kpis.get("value_index", 0.0))
+        completion = float(kpis.get("completion_score", 0.0))
+        evidence_records = float(kpis.get("evidence_records", 0.0))
         reliability = float(kpis.get("reliability", 0.0))
         safety = float(kpis.get("safety", 0.0))
         innovation = float(kpis.get("innovation", 0.0))
@@ -18,15 +20,17 @@ class PresentationBlueprintBuilder:
         live_success = float(kpis.get("live_agent_success", 0.0))
 
         status_badges = []
-        if value_index >= 85:
-            status_badges.append({"label": "PLATINUM VALUE", "tone": "success"})
-        elif value_index >= 72:
-            status_badges.append({"label": "GOLD VALUE", "tone": "accent"})
+        if completion >= 0.95:
+            status_badges.append({"label": "DELIVERY CLOSED", "tone": "success"})
+        elif completion >= 0.75:
+            status_badges.append({"label": "DELIVERY PARTIAL", "tone": "accent"})
         else:
-            status_badges.append({"label": "VALUE IMPROVABLE", "tone": "warning"})
+            status_badges.append({"label": "DELIVERY IMPROVABLE", "tone": "warning"})
 
         if safety >= 0.80:
             status_badges.append({"label": "SAFETY STRONG", "tone": "success"})
+        if evidence_records >= 4:
+            status_badges.append({"label": "EVIDENCE ATTACHED", "tone": "accent"})
         if innovation >= 0.75:
             status_badges.append({"label": "INNOVATION HIGH", "tone": "accent"})
         if reliability < 0.65:
@@ -72,15 +76,16 @@ class PresentationBlueprintBuilder:
                 "surface": "#F7F8FA",
             },
             "hero": {
-                "title": "Harness Value Lens",
+                "title": "Harness Delivery Lens",
                 "subtitle": payload.get("narrative", ""),
                 "badges": status_badges,
                 "kpi_cards": [
-                    {"title": "Value Index", "value": round(value_index, 2), "ref": "kpis.value_index"},
+                    {"title": "Completion", "value": round(completion * 100, 1), "unit": "%", "ref": "kpis.completion_score"},
+                    {"title": "Evidence", "value": round(evidence_records, 1), "ref": "kpis.evidence_records"},
                     {"title": "Reliability", "value": round(reliability * 100, 1), "unit": "%", "ref": "kpis.reliability"},
                     {"title": "Safety", "value": round(safety * 100, 1), "unit": "%", "ref": "kpis.safety"},
-                    {"title": "Innovation", "value": round(innovation * 100, 1), "unit": "%", "ref": "kpis.innovation"},
-                    {"title": "Live Calls", "value": round(live_calls, 1), "ref": "kpis.live_agent_calls"},
+                    {"title": "Adaptation", "value": round(float(kpis.get("adaptability", 0.0)) * 100, 1), "unit": "%", "ref": "kpis.adaptability"},
+                    {"title": "Value", "value": round(value_index, 2), "ref": "kpis.value_index"},
                 ],
             },
             "panels": panels,

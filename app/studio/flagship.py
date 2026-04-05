@@ -575,12 +575,12 @@ class StudioShowcaseBuilder:
             "selected_skills": selected_skills,
             "evidence_bundle": [
                 f"Release decision: {release.get('decision', 'block')} ({release.get('reason', '-')})",
-                f"Internal frontier estimate: {_safe_float(frontier.get('score', 0.0)):.3f}; bottleneck axis: {bottleneck.get('axis', '-')}",
-                f"Routing signal (heuristic): {routing_confidence:.3f}",
-                f"Internal value index: {_safe_float(value_card.get('value_index', 0.0)):.2f} ({value_card.get('band', '-')})",
-                f"Internal safety/reliability signals: {_safe_float(dims.get('safety', 0.0)):.2f} / {_safe_float(dims.get('reliability', 0.0)):.2f}",
                 f"Evidence packet: {int(evidence.get('record_count', 0))} records / {int(evidence.get('citation_count', 0))} citations",
                 f"Interop export: {int(interop_summary.get('framework_count', 0))} frameworks / {int(interop_summary.get('total_skill_entries', 0))} skill entries",
+                f"Routing confidence (internal): {routing_confidence:.3f}",
+                f"Safety / reliability signals (internal): {_safe_float(dims.get('safety', 0.0)):.2f} / {_safe_float(dims.get('reliability', 0.0)):.2f}",
+                f"Frontier estimate (internal): {_safe_float(frontier.get('score', 0.0)):.3f}; bottleneck axis: {bottleneck.get('axis', '-')}",
+                f"Value heuristic (internal): {_safe_float(value_card.get('value_index', 0.0)):.2f} ({value_card.get('band', '-')})",
             ],
             "audience_takeaway": scenario.audience_takeaway,
             "mode": mode,
@@ -786,9 +786,9 @@ class StudioShowcaseBuilder:
         if rows:
             return rows
         fallback_values = [
-            f"value index {_safe_float(value_card.get('value_index', 0.0)):.1f} and band {value_card.get('band', '-')}",
             f"release decision {release.get('decision', 'block')} with reason {release.get('reason', '-')}",
             f"completion score {_safe_float(metrics.get('completion_score', 0.0)):.2f} and tool success {_safe_float(metrics.get('tool_success_rate', 0.0)):.2f}",
+            f"internal value heuristic {_safe_float(value_card.get('value_index', 0.0)):.1f} and band {value_card.get('band', '-')}",
             f"target users {', '.join(_sanitize_business_text(x) for x in target_users[:3])}" if target_users else "stakeholder packet ready for product, operations, and governance review",
         ]
         for label, value in zip(scenario.impact_labels, fallback_values):
@@ -880,7 +880,7 @@ class StudioShowcaseBuilder:
             f"Concentrated value axis: {top_text}.",
             f"Internal frontier estimate={frontier.get('score', 0.0):.3f} with bottleneck `{bottleneck.get('axis', '')}`.",
             str(comparison.get("positioning", {}).get("headline", "")),
-            "Method edge: robust_frontier routing optimizes expected value and downside case under uncertainty.",
+            "Method edge: routing balances deliverable fit, evidence need, and execution risk instead of forcing one fixed workflow.",
             "Same command emits narrative report, quantitative leaderboard, and OpenAI/Anthropic skill bundle.",
         ]
 

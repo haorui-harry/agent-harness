@@ -118,8 +118,12 @@ class HarnessValueScorer:
         discovery_norm = min(1.0, discovery_count / 8.0)
 
         metadata = run.metadata if isinstance(run.metadata, dict) else {}
+        mission = run.mission if isinstance(run.mission, dict) else {}
         has_security = 1.0 if metadata.get("security") else 0.0
-        has_recipe = 1.0 if metadata.get("recipe") else 0.0
+        primary_deliverable = 1.0 if mission.get("primary_deliverable") else 0.0
+        task_graph = mission.get("task_graph", {}) if isinstance(mission.get("task_graph", {}), dict) else {}
+        graph_summary = task_graph.get("summary", {}) if isinstance(task_graph.get("summary", {}), dict) else {}
+        graph_trace = min(1.0, float(graph_summary.get("node_count", 0.0)) / 10.0) if task_graph else 0.0
 
         traced_steps = 0
         for step in run.steps:
@@ -127,7 +131,13 @@ class HarnessValueScorer:
                 traced_steps += 1
         step_trace_ratio = traced_steps / max(len(run.steps), 1)
 
-        score = 0.35 * discovery_norm + 0.25 * has_security + 0.20 * has_recipe + 0.20 * step_trace_ratio
+        score = (
+            0.28 * discovery_norm
+            + 0.22 * has_security
+            + 0.22 * step_trace_ratio
+            + 0.16 * primary_deliverable
+            + 0.12 * graph_trace
+        )
         score = max(0.0, min(1.0, score))
 
         return ValueDimension(
@@ -138,6 +148,7 @@ class HarnessValueScorer:
                 f"discovery_count={discovery_count:.1f}",
                 f"step_trace_ratio={step_trace_ratio:.2f}",
                 f"security_trace={'yes' if has_security else 'no'}",
+                f"primary_deliverable={'yes' if primary_deliverable else 'no'}",
             ],
             visual_hint="timeline_with_annotations",
         )
@@ -145,7 +156,6 @@ class HarnessValueScorer:
     def _score_adaptability(self, run: HarnessRun) -> ValueDimension:
         metrics = run.eval_metrics
         discovery_utilization = float(metrics.get("discovery_utilization", 0.0))
-        recipe_completion = float(metrics.get("recipe_completion", 0.0))
 
         sources = {
             step.tool_call.source
@@ -161,7 +171,23 @@ class HarnessValueScorer:
         }
         type_norm = min(1.0, len(tool_types) / 3.0)
 
-        score = 0.35 * discovery_utilization + 0.25 * recipe_completion + 0.20 * source_norm + 0.20 * type_norm
+        mission = run.mission if isinstance(run.mission, dict) else {}
+        output_views = mission.get("output_views", []) if isinstance(mission.get("output_views", []), list) else []
+        deliverables = mission.get("deliverables", []) if isinstance(mission.get("deliverables", []), list) else []
+        delivery_surface_norm = min(1.0, max(len(output_views), len(deliverables)) / 4.0)
+
+        metadata = run.metadata if isinstance(run.metadata, dict) else {}
+        evidence = metadata.get("evidence", {}) if isinstance(metadata.get("evidence", {}), dict) else {}
+        evidence_count = float(evidence.get("record_count", 0.0)) if isinstance(evidence, dict) else 0.0
+        evidence_norm = min(1.0, evidence_count / 6.0)
+
+        score = (
+            0.30 * discovery_utilization
+            + 0.20 * source_norm
+            + 0.18 * type_norm
+            + 0.17 * delivery_surface_norm
+            + 0.15 * evidence_norm
+        )
         score = max(0.0, min(1.0, score))
 
         return ValueDimension(
@@ -170,8 +196,9 @@ class HarnessValueScorer:
             weight=self._WEIGHTS["adaptability"],
             evidence=[
                 f"discovery_utilization={discovery_utilization:.2f}",
-                f"recipe_completion={recipe_completion:.2f}",
                 f"source_variants={len(sources)}",
+                f"delivery_surfaces={max(len(output_views), len(deliverables))}",
+                f"evidence_records={int(evidence_count)}",
             ],
             visual_hint="strategy_heatmap",
         )
