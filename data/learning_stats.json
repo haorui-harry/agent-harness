@@ -1,124 +1,114 @@
 {
   "skills": {
     "identify_risks": {
-      "runs": 814,
-      "success": 814,
-      "avg_quality": 0.8845208845208851
+      "runs": 156,
+      "success": 156,
+      "avg_quality": 0.8666666666666667
     },
     "risk_heatmap": {
-      "runs": 584,
-      "success": 584,
+      "runs": 53,
+      "success": 53,
       "avg_quality": 1.0
     },
     "executive_summary": {
-      "runs": 194,
-      "success": 194,
-      "avg_quality": 0.8666666666666667
+      "runs": 18,
+      "success": 18,
+      "avg_quality": 0.8533333333333333
     },
-    "board_brief": {
-      "runs": 177,
-      "success": 177,
+    "research_brief": {
+      "runs": 58,
+      "success": 58,
+      "avg_quality": 0.76
+    },
+    "compare_options": {
+      "runs": 34,
+      "success": 34,
       "avg_quality": 1.0
     },
-    "sentiment_scanner": {
-      "runs": 49,
-      "success": 49,
+    "board_brief": {
+      "runs": 18,
+      "success": 18,
       "avg_quality": 1.0
     },
     "synthesize_perspectives": {
-      "runs": 197,
-      "success": 197,
+      "runs": 31,
+      "success": 31,
       "avg_quality": 0.8666666666666667
     },
-    "compare_options": {
-      "runs": 185,
-      "success": 185,
-      "avg_quality": 1.0
-    },
-    "build_timeline": {
-      "runs": 450,
-      "success": 450,
-      "avg_quality": 1.0
-    },
     "extract_facts": {
-      "runs": 166,
-      "success": 166,
-      "avg_quality": 1.0
-    },
-    "generate_recommendations": {
-      "runs": 44,
-      "success": 44,
+      "runs": 27,
+      "success": 27,
       "avg_quality": 1.0
     },
     "evidence_matrix": {
-      "runs": 42,
-      "success": 42,
-      "avg_quality": 1.0
-    },
-    "validate_claims": {
-      "runs": 42,
-      "success": 42,
+      "runs": 8,
+      "success": 8,
       "avg_quality": 1.0
     },
     "validation_planner": {
-      "runs": 108,
-      "success": 108,
+      "runs": 28,
+      "success": 28,
       "avg_quality": 0.8666666666666667
+    },
+    "slide_deck_designer": {
+      "runs": 2,
+      "success": 2,
+      "avg_quality": 0.7466666666666666
+    },
+    "validate_claims": {
+      "runs": 9,
+      "success": 9,
+      "avg_quality": 1.0
     },
     "decompose_task": {
-      "runs": 514,
-      "success": 514,
+      "runs": 32,
+      "success": 32,
       "avg_quality": 0.8666666666666667
     },
-    "dependency_mapper": {
-      "runs": 181,
-      "success": 181,
+    "build_timeline": {
+      "runs": 28,
+      "success": 28,
       "avg_quality": 1.0
     },
-    "research_brief": {
-      "runs": 66,
-      "success": 66,
-      "avg_quality": 1.0
+    "artifact_synthesis": {
+      "runs": 11,
+      "success": 11,
+      "avg_quality": 0.730909090909091
     },
-    "prioritize_items": {
-      "runs": 47,
-      "success": 47,
+    "generate_recommendations": {
+      "runs": 1,
+      "success": 1,
       "avg_quality": 1.0
-    },
-    "benchmark_ablation": {
-      "runs": 191,
-      "success": 191,
-      "avg_quality": 0.8666666666666667
     }
   },
   "agents": {
     "AnalysisAgent": {
-      "runs": 885,
-      "success": 885
-    },
-    "ResearchAgent": {
-      "runs": 202,
-      "success": 202
-    },
-    "DebugAgent": {
-      "runs": 161,
-      "success": 161
-    },
-    "CreativeAgent": {
-      "runs": 28,
-      "success": 28
+      "runs": 112,
+      "success": 112
     },
     "SummaryAgent": {
-      "runs": 16,
-      "success": 16
+      "runs": 2,
+      "success": 2
+    },
+    "DebugAgent": {
+      "runs": 36,
+      "success": 36
     },
     "AdvisorAgent": {
-      "runs": 123,
-      "success": 123
+      "runs": 15,
+      "success": 15
+    },
+    "ResearchAgent": {
+      "runs": 29,
+      "success": 29
     },
     "PlannerAgent": {
-      "runs": 46,
-      "success": 46
+      "runs": 8,
+      "success": 8
+    },
+    "CreativeAgent": {
+      "runs": 3,
+      "success": 3
     }
   },
   "pairs": {
@@ -127,364 +117,296 @@
       "success": 2
     },
     "identify_risks|executive_summary": {
-      "runs": 76,
-      "success": 76
+      "runs": 11,
+      "success": 11
     },
     "risk_heatmap|executive_summary": {
-      "runs": 76,
-      "success": 76
-    },
-    "identify_risks|board_brief": {
-      "runs": 14,
-      "success": 14
-    },
-    "risk_heatmap|board_brief": {
-      "runs": 16,
-      "success": 16
-    },
-    "risk_heatmap|identify_risks": {
-      "runs": 576,
-      "success": 576
-    },
-    "risk_heatmap|sentiment_scanner": {
-      "runs": 49,
-      "success": 49
-    },
-    "identify_risks|sentiment_scanner": {
-      "runs": 49,
-      "success": 49
-    },
-    "risk_heatmap|synthesize_perspectives": {
-      "runs": 144,
-      "success": 144
-    },
-    "identify_risks|synthesize_perspectives": {
-      "runs": 142,
-      "success": 142
-    },
-    "identify_risks|compare_options": {
-      "runs": 31,
-      "success": 31
-    },
-    "synthesize_perspectives|identify_risks": {
-      "runs": 5,
-      "success": 5
-    },
-    "board_brief|identify_risks": {
-      "runs": 19,
-      "success": 19
-    },
-    "board_brief|synthesize_perspectives": {
-      "runs": 19,
-      "success": 19
-    },
-    "compare_options|build_timeline": {
-      "runs": 37,
-      "success": 36
-    },
-    "compare_options|executive_summary": {
-      "runs": 96,
-      "success": 96
-    },
-    "build_timeline|executive_summary": {
-      "runs": 82,
-      "success": 82
-    },
-    "executive_summary|build_timeline": {
-      "runs": 5,
-      "success": 5
-    },
-    "risk_heatmap|compare_options": {
-      "runs": 30,
-      "success": 30
-    },
-    "board_brief|executive_summary": {
-      "runs": 72,
-      "success": 72
-    },
-    "synthesize_perspectives|executive_summary": {
-      "runs": 15,
-      "success": 15
-    },
-    "build_timeline|synthesize_perspectives": {
-      "runs": 21,
-      "success": 21
-    },
-    "build_timeline|board_brief": {
-      "runs": 35,
-      "success": 35
-    },
-    "synthesize_perspectives|board_brief": {
-      "runs": 5,
-      "success": 5
-    },
-    "executive_summary|synthesize_perspectives": {
-      "runs": 3,
-      "success": 3
-    },
-    "compare_options|board_brief": {
-      "runs": 44,
-      "success": 44
-    },
-    "compare_options|risk_heatmap": {
       "runs": 1,
       "success": 1
     },
-    "compare_options|identify_risks": {
-      "runs": 25,
-      "success": 25
+    "identify_risks|research_brief": {
+      "runs": 20,
+      "success": 20
     },
     "executive_summary|identify_risks": {
-      "runs": 14,
-      "success": 14
+      "runs": 4,
+      "success": 4
     },
-    "executive_summary|compare_options": {
-      "runs": 2,
-      "success": 2
+    "executive_summary|research_brief": {
+      "runs": 1,
+      "success": 1
     },
-    "extract_facts|synthesize_perspectives": {
-      "runs": 5,
-      "success": 5
+    "identify_risks|compare_options": {
+      "runs": 18,
+      "success": 18
     },
-    "synthesize_perspectives|build_timeline": {
-      "runs": 24,
-      "success": 24
+    "compare_options|executive_summary": {
+      "runs": 11,
+      "success": 11
     },
-    "board_brief|build_timeline": {
-      "runs": 59,
-      "success": 59
+    "research_brief|identify_risks": {
+      "runs": 17,
+      "success": 17
     },
-    "board_brief|compare_options": {
-      "runs": 54,
-      "success": 54
+    "risk_heatmap|identify_risks": {
+      "runs": 51,
+      "success": 51
     },
-    "build_timeline|compare_options": {
-      "runs": 54,
-      "success": 54
-    },
-    "identify_risks|extract_facts": {
-      "runs": 82,
-      "success": 82
-    },
-    "generate_recommendations|identify_risks": {
-      "runs": 25,
-      "success": 25
-    },
-    "build_timeline|risk_heatmap": {
+    "risk_heatmap|research_brief": {
       "runs": 6,
       "success": 6
     },
-    "evidence_matrix|validate_claims": {
-      "runs": 42,
-      "success": 42
+    "board_brief|identify_risks": {
+      "runs": 8,
+      "success": 8
     },
-    "evidence_matrix|extract_facts": {
-      "runs": 41,
-      "success": 41
+    "board_brief|compare_options": {
+      "runs": 9,
+      "success": 9
     },
-    "extract_facts|validate_claims": {
-      "runs": 41,
-      "success": 41
+    "board_brief|executive_summary": {
+      "runs": 7,
+      "success": 7
     },
-    "generate_recommendations|synthesize_perspectives": {
+    "compare_options|identify_risks": {
+      "runs": 10,
+      "success": 7
+    },
+    "risk_heatmap|synthesize_perspectives": {
+      "runs": 19,
+      "success": 19
+    },
+    "identify_risks|synthesize_perspectives": {
+      "runs": 26,
+      "success": 26
+    },
+    "research_brief|extract_facts": {
+      "runs": 4,
+      "success": 4
+    },
+    "research_brief|evidence_matrix": {
+      "runs": 6,
+      "success": 6
+    },
+    "research_brief|executive_summary": {
       "runs": 2,
       "success": 2
     },
-    "generate_recommendations|board_brief": {
-      "runs": 21,
-      "success": 21
+    "evidence_matrix|executive_summary": {
+      "runs": 2,
+      "success": 2
     },
-    "compare_options|extract_facts": {
+    "identify_risks|extract_facts": {
+      "runs": 9,
+      "success": 9
+    },
+    "risk_heatmap|compare_options": {
+      "runs": 5,
+      "success": 5
+    },
+    "risk_heatmap|board_brief": {
+      "runs": 3,
+      "success": 3
+    },
+    "identify_risks|board_brief": {
+      "runs": 4,
+      "success": 4
+    },
+    "compare_options|board_brief": {
+      "runs": 4,
+      "success": 4
+    },
+    "identify_risks|validation_planner": {
+      "runs": 9,
+      "success": 9
+    },
+    "validation_planner|identify_risks": {
+      "runs": 14,
+      "success": 14
+    },
+    "executive_summary|extract_facts": {
+      "runs": 2,
+      "success": 2
+    },
+    "executive_summary|risk_heatmap": {
+      "runs": 1,
+      "success": 1
+    },
+    "extract_facts|risk_heatmap": {
+      "runs": 1,
+      "success": 1
+    },
+    "extract_facts|research_brief": {
+      "runs": 2,
+      "success": 2
+    },
+    "slide_deck_designer|identify_risks": {
+      "runs": 1,
+      "success": 1
+    },
+    "evidence_matrix|extract_facts": {
+      "runs": 2,
+      "success": 2
+    },
+    "evidence_matrix|validate_claims": {
+      "runs": 2,
+      "success": 2
+    },
+    "extract_facts|validate_claims": {
+      "runs": 7,
+      "success": 7
+    },
+    "extract_facts|synthesize_perspectives": {
       "runs": 3,
       "success": 3
     },
     "extract_facts|board_brief": {
-      "runs": 5,
-      "success": 5
-    },
-    "risk_heatmap|validation_planner": {
-      "runs": 11,
-      "success": 11
-    },
-    "identify_risks|validation_planner": {
-      "runs": 11,
-      "success": 11
-    },
-    "validation_planner|build_timeline": {
-      "runs": 43,
-      "success": 43
-    },
-    "build_timeline|extract_facts": {
       "runs": 2,
       "success": 2
     },
-    "build_timeline|validation_planner": {
-      "runs": 5,
-      "success": 5
-    },
-    "risk_heatmap|decompose_task": {
-      "runs": 347,
-      "success": 347
+    "synthesize_perspectives|board_brief": {
+      "runs": 2,
+      "success": 2
     },
     "identify_risks|decompose_task": {
-      "runs": 347,
-      "success": 347
-    },
-    "executive_summary|decompose_task": {
       "runs": 25,
       "success": 25
     },
-    "validation_planner|dependency_mapper": {
-      "runs": 47,
-      "success": 47
+    "risk_heatmap|decompose_task": {
+      "runs": 18,
+      "success": 18
+    },
+    "decompose_task|identify_risks": {
+      "runs": 4,
+      "success": 4
+    },
+    "build_timeline|artifact_synthesis": {
+      "runs": 7,
+      "success": 7
+    },
+    "build_timeline|compare_options": {
+      "runs": 4,
+      "success": 4
+    },
+    "artifact_synthesis|compare_options": {
+      "runs": 2,
+      "success": 2
+    },
+    "risk_heatmap|artifact_synthesis": {
+      "runs": 2,
+      "success": 2
+    },
+    "board_brief|synthesize_perspectives": {
+      "runs": 1,
+      "success": 1
+    },
+    "board_brief|artifact_synthesis": {
+      "runs": 3,
+      "success": 3
+    },
+    "identify_risks|artifact_synthesis": {
+      "runs": 2,
+      "success": 2
+    },
+    "synthesize_perspectives|artifact_synthesis": {
+      "runs": 1,
+      "success": 1
+    },
+    "extract_facts|build_timeline": {
+      "runs": 1,
+      "success": 1
+    },
+    "build_timeline|synthesize_perspectives": {
+      "runs": 3,
+      "success": 3
+    },
+    "build_timeline|board_brief": {
+      "runs": 1,
+      "success": 1
+    },
+    "research_brief|validation_planner": {
+      "runs": 1,
+      "success": 1
+    },
+    "research_brief|build_timeline": {
+      "runs": 9,
+      "success": 9
+    },
+    "validation_planner|build_timeline": {
+      "runs": 5,
+      "success": 5
+    },
+    "executive_summary|build_timeline": {
+      "runs": 1,
+      "success": 1
+    },
+    "executive_summary|synthesize_perspectives": {
+      "runs": 1,
+      "success": 1
+    },
+    "compare_options|build_timeline": {
+      "runs": 2,
+      "success": 2
+    },
+    "compare_options|artifact_synthesis": {
+      "runs": 5,
+      "success": 5
+    },
+    "build_timeline|decompose_task": {
+      "runs": 3,
+      "success": 3
+    },
+    "artifact_synthesis|decompose_task": {
+      "runs": 1,
+      "success": 1
+    },
+    "validation_planner|research_brief": {
+      "runs": 1,
+      "success": 1
+    },
+    "executive_summary|decompose_task": {
+      "runs": 1,
+      "success": 1
+    },
+    "extract_facts|decompose_task": {
+      "runs": 1,
+      "success": 1
+    },
+    "slide_deck_designer|build_timeline": {
+      "runs": 1,
+      "success": 1
+    },
+    "board_brief|build_timeline": {
+      "runs": 4,
+      "success": 4
+    },
+    "generate_recommendations|identify_risks": {
+      "runs": 1,
+      "success": 1
+    },
+    "board_brief|validate_claims": {
+      "runs": 2,
+      "success": 2
+    },
+    "build_timeline|validate_claims": {
+      "runs": 2,
+      "success": 2
     },
     "validation_planner|extract_facts": {
       "runs": 2,
       "success": 2
     },
-    "dependency_mapper|extract_facts": {
-      "runs": 12,
-      "success": 12
-    },
-    "extract_facts|validation_planner": {
+    "build_timeline|extract_facts": {
       "runs": 2,
       "success": 2
     },
-    "decompose_task|identify_risks": {
-      "runs": 49,
-      "success": 49
-    },
-    "validation_planner|identify_risks": {
-      "runs": 45,
-      "success": 45
-    },
-    "dependency_mapper|identify_risks": {
-      "runs": 45,
-      "success": 45
-    },
-    "decompose_task|executive_summary": {
-      "runs": 50,
-      "success": 50
-    },
-    "board_brief|dependency_mapper": {
-      "runs": 4,
-      "success": 4
-    },
-    "board_brief|decompose_task": {
-      "runs": 3,
-      "success": 3
-    },
-    "dependency_mapper|decompose_task": {
-      "runs": 17,
-      "success": 17
-    },
-    "dependency_mapper|executive_summary": {
-      "runs": 4,
-      "success": 4
-    },
-    "decompose_task|build_timeline": {
-      "runs": 90,
-      "success": 90
-    },
-    "extract_facts|decompose_task": {
-      "runs": 11,
-      "success": 11
-    },
-    "executive_summary|dependency_mapper": {
-      "runs": 13,
-      "success": 13
-    },
-    "compare_options|dependency_mapper": {
-      "runs": 35,
-      "success": 24
-    },
-    "dependency_mapper|board_brief": {
-      "runs": 43,
-      "success": 43
-    },
-    "build_timeline|research_brief": {
-      "runs": 10,
-      "success": 10
-    },
-    "dependency_mapper|synthesize_perspectives": {
+    "research_brief|artifact_synthesis": {
       "runs": 2,
       "success": 2
     },
-    "research_brief|dependency_mapper": {
-      "runs": 42,
-      "success": 42
-    },
-    "dependency_mapper|build_timeline": {
-      "runs": 10,
-      "success": 10
-    },
-    "dependency_mapper|prioritize_items": {
-      "runs": 10,
-      "success": 10
-    },
-    "extract_facts|build_timeline": {
-      "runs": 10,
-      "success": 10
-    },
-    "extract_facts|prioritize_items": {
-      "runs": 10,
-      "success": 10
-    },
-    "build_timeline|prioritize_items": {
-      "runs": 10,
-      "success": 10
-    },
-    "extract_facts|research_brief": {
-      "runs": 10,
-      "success": 10
-    },
-    "benchmark_ablation|build_timeline": {
-      "runs": 151,
-      "success": 151
-    },
-    "benchmark_ablation|board_brief": {
-      "runs": 26,
-      "success": 26
-    },
-    "research_brief|benchmark_ablation": {
-      "runs": 40,
-      "success": 40
-    },
-    "benchmark_ablation|dependency_mapper": {
-      "runs": 40,
-      "success": 40
-    },
-    "prioritize_items|generate_recommendations": {
-      "runs": 19,
-      "success": 19
-    },
-    "prioritize_items|dependency_mapper": {
-      "runs": 37,
-      "success": 28
-    },
-    "prioritize_items|board_brief": {
-      "runs": 19,
-      "success": 19
-    },
-    "generate_recommendations|dependency_mapper": {
-      "runs": 19,
-      "success": 19
-    },
-    "compare_options|prioritize_items": {
-      "runs": 9,
-      "success": 0
-    },
-    "benchmark_ablation|research_brief": {
-      "runs": 4,
-      "success": 4
-    },
-    "research_brief|build_timeline": {
-      "runs": 4,
-      "success": 4
-    },
-    "research_brief|board_brief": {
-      "runs": 4,
-      "success": 4
+    "evidence_matrix|artifact_synthesis": {
+      "runs": 2,
+      "success": 2
     }
   }
 }

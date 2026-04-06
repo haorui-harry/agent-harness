@@ -32,85 +32,12 @@ def _sentences(text: str) -> list[str]:
 
 def _keywords(text: str, limit: int = 6) -> list[str]:
     stop = {
-        "and",
-        "this",
-        "that",
-        "with",
-        "for",
-        "from",
-        "into",
-        "about",
-        "there",
-        "their",
-        "would",
-        "could",
-        "should",
-        "have",
-        "has",
-        "been",
-        "were",
-        "will",
-        "your",
-        "ours",
-        "they",
-        "them",
-        "what",
-        "when",
-        "where",
-        "which",
-        "because",
-        "while",
-        "after",
-        "before",
-        "also",
-        "more",
-        "most",
-        "only",
-        "than",
-        "then",
-        "into",
-        "title",
-        "query",
-        "node",
-        "node_id",
-        "graph",
-        "graph_id",
-        "output",
-        "input",
-        "result",
-        "results",
-        "kind",
-        "summary",
-        "source",
-        "path",
-        "prompt",
-        "content",
-        "artifact",
-        "artifacts",
-        "metrics",
-        "status",
-        "relative_path",
-        "content_type",
-        "workspace",
-        "task",
-        "analysis",
-        "prepare",
-        "write",
-        "create",
-        "design",
-        "draft",
-        "build",
-        "rolling",
-        "out",
-        "depends_on",
-        "reason",
-        "tool_name",
-        "skill_name",
-        "node_type",
-        "execution_id",
-        "record_count",
-        "latency_ms",
-        "success",
+        "and", "this", "that", "with", "for", "from", "into", "about",
+        "there", "their", "would", "could", "should", "have", "has",
+        "been", "were", "will", "your", "ours", "they", "them", "what",
+        "when", "where", "which", "because", "while", "after", "before",
+        "also", "more", "most", "only", "than", "then", "into", "the",
+        "are", "was", "not", "but", "its", "can", "all", "does", "did",
     }
     tokens = [word.lower() for word in _WORD_RE.findall(str(text or "")) if word.lower() not in stop]
     counts = Counter(tokens)
@@ -241,6 +168,56 @@ def _match_lines(text: str, keywords: list[str], limit: int = 4) -> list[str]:
 def _bullet_block(title: str, rows: list[str]) -> str:
     payload = rows or ["No grounded items extracted from input."]
     return title + "\n" + "\n".join(f"- {row}" for row in payload)
+
+
+def _dedupe_preserve(items: list[str], limit: int = 6) -> list[str]:
+    rows: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        value = _normalize_text(item)
+        lowered = value.lower()
+        if not value or lowered in seen:
+            continue
+        seen.add(lowered)
+        rows.append(value)
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def _url_lines(text: str, limit: int = 4) -> list[str]:
+    matches = re.findall(r"https?://[^\s)>\]]+", str(text or ""))
+    return _dedupe_preserve(matches, limit=limit)
+
+
+def _risk_lines(text: str, limit: int = 4) -> list[str]:
+    rows = _match_lines(
+        text,
+        ["risk", "failure", "fragile", "weak", "uncertain", "governance", "safety", "hallucination", "drift", "audit"],
+        limit=limit,
+    )
+    if rows:
+        return rows
+    focus = _keywords(text, limit=3)
+    return [f"The current material is still weak on {item}." for item in focus[:3]] or ["The evidence base is still too thin to support a strong claim."]
+
+
+def _recommendation_lines(text: str, limit: int = 4) -> list[str]:
+    rows = _match_lines(
+        text,
+        ["recommend", "improve", "upgrade", "fix", "validate", "ship", "evidence", "benchmark", "deliverable"],
+        limit=limit,
+    )
+    if rows:
+        return rows
+    focus = _keywords(text, limit=4)
+    suggestions = [
+        f"Strengthen evidence collection around {focus[0] if focus else 'the core claim'}.",
+        f"Turn analysis on {focus[1] if len(focus) > 1 else 'the main path'} into a reusable artifact.",
+        f"Validate the highest-risk claim around {focus[2] if len(focus) > 2 else 'execution quality'} before scaling.",
+        f"Package the result so {focus[3] if len(focus) > 3 else 'reviewers'} can inspect it quickly.",
+    ]
+    return suggestions[:limit]
 
 
 def identify_risks(text: str) -> str:
@@ -395,20 +372,6 @@ def validate_claims(text: str) -> str:
     return "\n".join(sections)
 
 
-def generate_analogies(text: str) -> str:
-    """Generate analogies for complex concepts."""
-
-    focus = ", ".join(_keywords(text, limit=3)) or "the system"
-    return (
-        "Analogies:\n"
-        f"  Concept: {focus}\n"
-        f"  Analogy 1: Like an airport control tower coordinating many runways without collisions.\n"
-        f"  Analogy 2: Like a research lab notebook that also knows how to run the next experiment.\n"
-        f"  Why it works: both analogies emphasize coordination, memory, and verifiable execution.\n"
-        "--- (skill: generate_analogies)"
-    )
-
-
 def prioritize_items(text: str) -> str:
     """Rank and prioritize items by urgency and impact."""
 
@@ -442,30 +405,26 @@ def decompose_task(text: str) -> str:
 def artifact_synthesis(text: str) -> str:
     """Turn mixed notes, logs, and artifact snippets into a grounded synthesis."""
 
-    facts = _structured_signal_lines(text, limit=6)
+    facts = _structured_signal_lines(text, limit=8)
+    evidence = _dedupe_preserve(facts + _url_lines(text, limit=3), limit=6)
+    risks = _risk_lines(text, limit=3)
+    recommendations = _recommendation_lines(text, limit=3)
     focus_terms = _keywords(text, limit=5)
     focus = ", ".join(focus_terms[:3]) or "the primary task"
-    strongest = facts[0] if facts else "No strong signals extracted."
-    support = facts[1] if len(facts) > 1 else "Need stronger supporting detail."
-    tension = facts[2] if len(facts) > 2 else "The result still needs a stronger link between evidence and the final recommendation."
-    next_step = focus_terms[3] if len(focus_terms) > 3 else (focus_terms[0] if focus_terms else "the main decision")
+    strongest = evidence[0] if evidence else "No strong signals extracted."
+    support = evidence[1] if len(evidence) > 1 else "Need stronger supporting detail."
     return (
-        "## Executive Summary\n\n"
-        f"The work should center on {focus}. The strongest grounded signal is {strongest[:240]}, and the next strongest support is {support[:220]}. "
-        "That means the final deliverable should answer the user request directly before it explains any process.\n\n"
-        "## Key Findings\n\n"
-        f"First, {strongest[:260]}.\n\n"
-        f"Second, {support[:260]}.\n\n"
-        f"Third, {tension[:240]}\n\n"
-        "## Recommendation\n\n"
-        "Ship one primary deliverable with dense analysis, then keep only the supporting artifacts that strengthen reviewer trust. "
-        "If a supporting file does not improve the final answer, validate it, or create a reusable next action, it should stay in the background.\n\n"
-        "## Next Action\n\n"
-        f"Push the result toward a concrete decision around {next_step}, and leave one inspectable artifact that proves the recommendation is executable.\n\n"
-        "## Review Standard\n\n"
-        "- The first paragraph answers the task directly.\n"
-        "- Major claims are visibly tied to evidence or artifacts.\n"
-        "- The closing action is specific enough for a teammate to execute.\n"
+        "## Bottom Line\n\n"
+        f"The strongest conclusion is that the deliverable should concentrate on {focus}, grounded first in {strongest[:220]} and reinforced by {support[:200]}. "
+        "The final answer should therefore lead with the decision, then show the evidence, then state the concrete move that follows.\n\n"
+        "## What The Material Actually Shows\n\n"
+        + "\n".join(f"- {item}" for item in evidence[:4])
+        + "\n\n## Main Constraints And Failure Modes\n\n"
+        + "\n".join(f"- {item}" for item in risks[:3])
+        + "\n\n## Recommended Delivery\n\n"
+        + "\n".join(f"{idx}. {item}" for idx, item in enumerate(recommendations[:3], start=1))
+        + "\n\n## Why This Should Be The Shipped Answer\n\n"
+        "This synthesis is stronger than a generic summary when it preserves the best grounded signals, removes low-value process narration, and leaves one inspectable artifact path for review.\n"
         "--- (skill: artifact_synthesis)"
     )
 
@@ -489,16 +448,10 @@ def codebase_triage(text: str) -> str:
     lowered = str(text or "").lower()
     topic = _topic_clause(text, fallback="the primary module")
     signals = _structured_signal_lines(text, limit=6)
-    if any(marker in lowered for marker in {"route", "routing", "router", "parser"}):
-        hotspot = "routing and parser classification logic"
-        patch_target = "query normalization and fallback selection"
-        test_gap = "ambiguous queries that should route to code instead of general"
-        execution_note = "compare current routing behavior before and after the patch"
-    else:
-        hotspot = focus[0] if focus else topic
-        patch_target = focus[1] if len(focus) > 1 else "input handling"
-        test_gap = focus[2] if len(focus) > 2 else "the failing edge case"
-        execution_note = focus[3] if len(focus) > 3 else "validation output"
+    hotspot = focus[0] if focus else topic
+    patch_target = focus[1] if len(focus) > 1 else "input handling"
+    test_gap = focus[2] if len(focus) > 2 else "the failing edge case"
+    execution_note = focus[3] if len(focus) > 3 else "validation output"
     grounding = signals[0] if signals else f"Focus on {topic}."
     secondary = signals[1] if len(signals) > 1 else f"Keep the patch narrowly scoped around {patch_target}."
     return (
@@ -522,26 +475,35 @@ def codebase_triage(text: str) -> str:
 def research_brief(text: str) -> str:
     """Turn a topic into a research brief with hypotheses, evidence, and gaps."""
 
-    focus = _keywords(text, limit=3)
+    focus = _keywords(text, limit=4)
     topic = _topic_clause(text)
-    signals = _structured_signal_lines(text, limit=6)
-    lead_signal = signals[0] if signals else "No strong evidence signal has been extracted yet."
-    support_signal = signals[1] if len(signals) > 1 else "Evidence still needs to be deepened beyond initial notes."
+    signals = _structured_signal_lines(text, limit=8)
+    evidence = _dedupe_preserve(signals + _url_lines(text, limit=4), limit=6)
+    failure_modes = _risk_lines(text, limit=3)
+    recommendations = _recommendation_lines(text, limit=4)
+    lead_signal = evidence[0] if evidence else "No strong evidence signal has been extracted yet."
+    support_signal = evidence[1] if len(evidence) > 1 else "Evidence still needs to be deepened beyond initial notes."
+    principle_a = focus[0] if focus else "the core mechanism"
+    principle_b = focus[1] if len(focus) > 1 else "evidence quality"
+    principle_c = focus[2] if len(focus) > 2 else "execution closure"
     return (
-        "## Research Question\n\n"
-        f"The topic is {topic}. The central question is which patterns, architectural choices, or missing capabilities matter most for improving outcomes in this area.\n\n"
-        "## Working Thesis\n\n"
-        f"The current hypothesis is that better structure around {focus[0] if focus else 'the core mechanism'} only matters when it improves evidence quality, execution closure, or end-user usefulness.\n\n"
-        "## Findings So Far\n\n"
-        f"- Primary signal: {lead_signal}\n"
-        f"- Supporting signal: {support_signal}\n"
-        f"- Research focus: {focus[1] if len(focus) > 1 else 'identify the highest-leverage weakness and prove it'}\n\n"
-        "## Report Direction\n\n"
-        f"A strong final report should isolate the main failure mode, compare alternatives where needed, and end with a concrete improvement path for {focus[2] if len(focus) > 2 else 'real users'} rather than a generic survey.\n\n"
-        "## Open Gaps\n\n"
-        f"- Gather failure cases and direct artifacts touching {focus[1] if len(focus) > 1 else 'runtime behavior'}.\n"
-        "- Separate anecdotal wins from reproducible gains.\n"
-        "- Tie each recommendation to evidence instead of letting the brief stay purely conceptual.\n"
+        "## Core Judgment\n\n"
+        f"For {topic}, the evidence currently points to one central conclusion: better system structure only matters when it improves evidence quality, execution closure, and the usefulness of the final artifact. "
+        f"The strongest available support is {lead_signal[:220]}, with additional support from {support_signal[:200]}.\n\n"
+        "## Evidence Anchors\n\n"
+        + "\n".join(f"- {item}" for item in evidence[:5])
+        + "\n\n## Main Failure Modes\n\n"
+        + "\n".join(f"- {item}" for item in failure_modes[:3])
+        + "\n\n## Design Principles\n\n"
+        f"1. Optimize {principle_a} only when it improves a user-visible outcome.\n"
+        f"2. Make {principle_b} enter the final answer directly instead of leaving it in side artifacts.\n"
+        f"3. Keep {principle_c} inspectable so the runtime can be audited and repaired.\n\n"
+        "## Recommended Improvement Path\n\n"
+        + "\n".join(f"{idx}. {item}" for idx, item in enumerate(recommendations[:4], start=1))
+        + "\n\n## What To Validate Next\n\n"
+        f"- Check whether the current approach produces better output than a direct model answer on {focus[3] if len(focus) > 3 else 'real reviewer tasks'}.\n"
+        "- Test the weak points with concrete failure cases rather than only narrative claims.\n"
+        "- Keep the next iteration tied to evidence, artifact quality, and execution closure.\n"
         "--- (skill: research_brief)"
     )
 
@@ -559,8 +521,9 @@ def ops_runbook(text: str) -> str:
         "--- (skill: ops_runbook)"
     )
 
+
 def frontend_critique(text: str) -> str:
-    """Generate a sharp product or interface critique with redesign priorities."""
+    """Generate a product or interface critique with redesign priorities."""
 
     focus = _keywords(text, limit=3)
     return (
@@ -696,7 +659,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             confidence_keywords=["risk", "threat", "danger", "concern", "issue", "problem"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.2,
-            synergies=["prioritize_items", "generate_recommendations", "detect_anomalies"],
+            synergies=["prioritize_items", "extract_facts", "detect_anomalies"],
             conflicts=[],
         ),
     },
@@ -745,7 +708,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             tier=SkillTier.BASIC,
             compute_cost=0.9,
             synergies=["validate_claims", "build_timeline", "synthesize_perspectives"],
-            conflicts=["generate_analogies"],
+            conflicts=[],
         ),
     },
     "generate_recommendations": {
@@ -776,7 +739,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             confidence_keywords=["idea", "creative", "brainstorm", "innovate", "explore", "what if"],
             tier=SkillTier.BASIC,
             compute_cost=0.9,
-            synergies=["generate_analogies", "synthesize_perspectives"],
+            synergies=["synthesize_perspectives"],
             conflicts=["validate_claims", "detect_anomalies"],
         ),
     },
@@ -785,25 +748,11 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "metadata": SkillMetadata(
             name="detect_anomalies",
             description="Detect anomalies, contradictions, and inconsistencies in text",
-            strengths=[
-                "contradiction detection",
-                "pattern deviation",
-                "outlier identification",
-                "consistency checking",
-            ],
+            strengths=["contradiction detection", "pattern deviation", "outlier identification"],
             weaknesses=["may flag intentional contrasts", "less useful for subjective content"],
             category=SkillCategory.ANALYSIS,
             output_type="list",
-            confidence_keywords=[
-                "anomaly",
-                "inconsistent",
-                "contradiction",
-                "unusual",
-                "outlier",
-                "deviation",
-                "bug",
-                "error",
-            ],
+            confidence_keywords=["anomaly", "inconsistent", "contradiction", "unusual", "outlier", "bug", "error"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.5,
             synergies=["identify_risks", "validate_claims"],
@@ -830,20 +779,12 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": synthesize_perspectives,
         "metadata": SkillMetadata(
             name="synthesize_perspectives",
-            description="Identify, compare, and synthesize multiple viewpoints into an integrated analysis",
+            description="Identify, compare, and synthesize multiple viewpoints",
             strengths=["multi-perspective integration", "consensus detection", "nuance preservation"],
             weaknesses=["may create false balance", "requires diverse sources"],
             category=SkillCategory.REASONING,
             output_type="structured",
-            confidence_keywords=[
-                "perspective",
-                "viewpoint",
-                "opinion",
-                "stakeholder",
-                "debate",
-                "synthesis",
-                "integrate",
-            ],
+            confidence_keywords=["perspective", "viewpoint", "opinion", "stakeholder", "debate", "synthesis"],
             tier=SkillTier.EXPERT,
             compute_cost=2.0,
             synergies=["extract_facts", "validate_claims"],
@@ -855,31 +796,15 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "metadata": SkillMetadata(
             name="validate_claims",
             description="Evaluate claims against available evidence and assign confidence levels",
-            strengths=["evidence evaluation", "claim verification", "confidence assessment", "bias detection"],
+            strengths=["evidence evaluation", "claim verification", "confidence assessment"],
             weaknesses=["needs factual content", "cannot verify against external sources"],
             category=SkillCategory.REASONING,
             output_type="structured",
-            confidence_keywords=["claim", "verify", "evidence", "true", "false", "proof", "validate", "fact check"],
+            confidence_keywords=["claim", "verify", "evidence", "true", "false", "proof", "validate"],
             tier=SkillTier.EXPERT,
             compute_cost=2.0,
             synergies=["extract_facts", "detect_anomalies"],
             conflicts=["brainstorm_ideas"],
-        ),
-    },
-    "generate_analogies": {
-        "fn": generate_analogies,
-        "metadata": SkillMetadata(
-            name="generate_analogies",
-            description="Create illuminating analogies to explain complex concepts",
-            strengths=["concept mapping", "simplification", "cross-domain transfer", "intuition building"],
-            weaknesses=["analogies can mislead if taken literally", "not suitable for strict specs"],
-            category=SkillCategory.GENERATION,
-            output_type="text",
-            confidence_keywords=["analogy", "like", "similar to", "metaphor", "explain", "simplify", "intuition"],
-            tier=SkillTier.ADVANCED,
-            compute_cost=1.2,
-            synergies=["brainstorm_ideas", "synthesize_perspectives"],
-            conflicts=["extract_facts"],
         ),
     },
     "prioritize_items": {
@@ -891,7 +816,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             weaknesses=["subjective without clear criteria", "hard on equal-priority cases"],
             category=SkillCategory.ANALYSIS,
             output_type="list",
-            confidence_keywords=["priority", "rank", "important", "urgent", "first", "order", "triage", "critical"],
+            confidence_keywords=["priority", "rank", "important", "urgent", "first", "order", "triage"],
             tier=SkillTier.BASIC,
             compute_cost=0.8,
             synergies=["identify_risks", "generate_recommendations"],
@@ -910,7 +835,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             confidence_keywords=["decompose", "break down", "task graph", "checklist", "steps", "workflow"],
             tier=SkillTier.EXPERT,
             compute_cost=1.3,
-            synergies=["prioritize_items", "generate_recommendations", "validation_planner"],
+            synergies=["prioritize_items", "validation_planner"],
             conflicts=[],
         ),
     },
@@ -934,7 +859,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": validation_planner,
         "metadata": SkillMetadata(
             name="validation_planner",
-            description="Translate a task or artifact into concrete validation checks and evidence hooks",
+            description="Translate a task into concrete validation checks and evidence hooks",
             strengths=["verification design", "failure anticipation", "artifact-oriented validation"],
             weaknesses=["does not run tests itself", "may miss domain-specific edge cases"],
             category=SkillCategory.ANALYSIS,
@@ -952,7 +877,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             name="codebase_triage",
             description="Identify code hotspots, patch targets, tests, and validation artifacts",
             strengths=["engineering triage", "code-task framing", "test-gap detection"],
-            weaknesses=["works from text summaries unless paired with workspace tools", "does not patch code itself"],
+            weaknesses=["works from text summaries unless paired with workspace tools"],
             category=SkillCategory.ANALYSIS,
             output_type="structured",
             confidence_keywords=["codebase", "patch", "bug", "test", "regression", "module"],
@@ -966,9 +891,9 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": research_brief,
         "metadata": SkillMetadata(
             name="research_brief",
-            description="Turn a topic into a research question, hypothesis, evidence plan, and open gap list",
+            description="Turn a topic into a research question, hypothesis, evidence plan, and gap list",
             strengths=["research framing", "hypothesis design", "gap analysis"],
-            weaknesses=["not a substitute for external evidence gathering", "still heuristic on narrow domains"],
+            weaknesses=["not a substitute for external evidence gathering"],
             category=SkillCategory.REASONING,
             output_type="structured",
             confidence_keywords=["research", "study", "hypothesis", "paper", "question", "evidence plan"],
@@ -984,13 +909,13 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             name="ops_runbook",
             description="Convert operational tasks into trigger-action-escalation runbooks",
             strengths=["ops structure", "incident response framing", "handoff clarity"],
-            weaknesses=["does not integrate external ticketing by itself", "assumes the task is operationalizable"],
+            weaknesses=["does not integrate external ticketing by itself"],
             category=SkillCategory.GENERATION,
             output_type="structured",
             confidence_keywords=["runbook", "ops", "incident", "workflow", "playbook", "escalation"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.1,
-            synergies=["prioritize_items", "generate_recommendations", "validation_planner"],
+            synergies=["prioritize_items", "validation_planner"],
             conflicts=[],
         ),
     },
@@ -998,15 +923,15 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": frontend_critique,
         "metadata": SkillMetadata(
             name="frontend_critique",
-            description="Critique interface hierarchy, story clarity, and redesign priorities",
+            description="Critique interface hierarchy and redesign priorities",
             strengths=["UI critique", "first-screen clarity", "product storytelling"],
-            weaknesses=["not a replacement for visual execution", "works best with screenshots or design text"],
+            weaknesses=["not a replacement for visual execution"],
             category=SkillCategory.COMMUNICATION,
             output_type="text",
             confidence_keywords=["ui", "ux", "frontend", "screen", "layout", "visual hierarchy"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.1,
-            synergies=["executive_summary", "brainstorm_ideas", "generate_recommendations"],
+            synergies=["executive_summary", "brainstorm_ideas"],
             conflicts=[],
         ),
     },
@@ -1014,12 +939,12 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": chart_storyboard,
         "metadata": SkillMetadata(
             name="chart_storyboard",
-            description="Choose chart families, data contracts, and decision narratives for a chart pack",
-            strengths=["data storytelling", "chart selection", "artifact-oriented visualization framing"],
-            weaknesses=["does not render charts itself", "depends on metric clarity"],
+            description="Choose chart families, data contracts, and decision narratives",
+            strengths=["data storytelling", "chart selection", "visualization framing"],
+            weaknesses=["does not render charts itself"],
             category=SkillCategory.ANALYSIS,
             output_type="structured",
-            confidence_keywords=["chart", "graph", "visualization", "plot", "dashboard", "data story"],
+            confidence_keywords=["chart", "graph", "visualization", "plot", "dashboard"],
             tier=SkillTier.EXPERT,
             compute_cost=1.3,
             synergies=["data_analysis_plan", "extract_facts", "validation_planner"],
@@ -1030,12 +955,12 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": data_analysis_plan,
         "metadata": SkillMetadata(
             name="data_analysis_plan",
-            description="Design a data-analysis plan with questions, metrics, cohorts, and validation hooks",
+            description="Design a data-analysis plan with questions, metrics, and validation hooks",
             strengths=["analysis framing", "metric design", "data rigor"],
-            weaknesses=["does not execute queries", "quality depends on source data availability"],
+            weaknesses=["does not execute queries"],
             category=SkillCategory.ANALYSIS,
             output_type="structured",
-            confidence_keywords=["data", "dataset", "analysis", "analytics", "cohort", "metric", "sql"],
+            confidence_keywords=["data", "dataset", "analysis", "analytics", "cohort", "metric"],
             tier=SkillTier.EXPERT,
             compute_cost=1.4,
             synergies=["chart_storyboard", "extract_facts", "validation_planner"],
@@ -1046,12 +971,12 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": webpage_blueprint,
         "metadata": SkillMetadata(
             name="webpage_blueprint",
-            description="Plan a landing page or webpage with first-screen story, sections, and interaction intent",
+            description="Plan a landing page or webpage with sections and interaction intent",
             strengths=["product storytelling", "information hierarchy", "web deliverable framing"],
-            weaknesses=["does not implement frontend code by itself", "works best with a clear audience"],
+            weaknesses=["does not implement frontend code"],
             category=SkillCategory.GENERATION,
             output_type="structured",
-            confidence_keywords=["webpage", "website", "landing page", "frontend", "ui", "page"],
+            confidence_keywords=["webpage", "website", "landing page", "frontend", "ui"],
             tier=SkillTier.EXPERT,
             compute_cost=1.3,
             synergies=["frontend_critique", "slide_deck_designer", "executive_summary"],
@@ -1062,9 +987,9 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": slide_deck_designer,
         "metadata": SkillMetadata(
             name="slide_deck_designer",
-            description="Turn a topic into a presentation deck arc with slide beats and proof moments",
+            description="Turn a topic into a presentation deck arc with slide beats",
             strengths=["narrative pacing", "presentation planning", "executive communication"],
-            weaknesses=["does not render slides", "can be generic without a precise audience"],
+            weaknesses=["does not render slides"],
             category=SkillCategory.GENERATION,
             output_type="structured",
             confidence_keywords=["slides", "deck", "presentation", "ppt", "keynote"],
@@ -1080,7 +1005,7 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
             name="podcast_episode_plan",
             description="Structure a podcast episode with hook, segments, and takeaway design",
             strengths=["audio narrative", "segment design", "audience pacing"],
-            weaknesses=["does not synthesize audio", "needs topic clarity"],
+            weaknesses=["does not synthesize audio"],
             category=SkillCategory.GENERATION,
             output_type="structured",
             confidence_keywords=["podcast", "episode", "audio", "host", "interview"],
@@ -1094,15 +1019,15 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": video_storyboard,
         "metadata": SkillMetadata(
             name="video_storyboard",
-            description="Create a short-form video storyboard with scenes, proof beats, and CTA framing",
+            description="Create a short-form video storyboard with scenes and beats",
             strengths=["visual pacing", "scene design", "artifact-backed storytelling"],
-            weaknesses=["does not render video", "needs downstream media production"],
+            weaknesses=["does not render video"],
             category=SkillCategory.GENERATION,
             output_type="structured",
             confidence_keywords=["video", "storyboard", "scene", "trailer", "short"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.3,
-            synergies=["image_prompt_pack", "slide_deck_designer", "chart_storyboard"],
+            synergies=["image_prompt_pack", "slide_deck_designer"],
             conflicts=[],
         ),
     },
@@ -1110,15 +1035,15 @@ SKILL_REGISTRY: dict[str, dict[str, Any]] = {
         "fn": image_prompt_pack,
         "metadata": SkillMetadata(
             name="image_prompt_pack",
-            description="Generate reusable image prompt directions for hero art, diagrams, and campaign visuals",
+            description="Generate reusable image prompt directions for visual assets",
             strengths=["visual direction", "prompt packaging", "multi-style asset planning"],
-            weaknesses=["does not render images directly", "quality depends on downstream generator"],
+            weaknesses=["does not render images directly"],
             category=SkillCategory.GENERATION,
             output_type="structured",
             confidence_keywords=["image", "poster", "illustration", "thumbnail", "render", "visual"],
             tier=SkillTier.ADVANCED,
             compute_cost=1.1,
-            synergies=["video_storyboard", "webpage_blueprint", "brainstorm_ideas"],
+            synergies=["video_storyboard", "webpage_blueprint"],
             conflicts=[],
         ),
     },

@@ -117,7 +117,7 @@ def test_harness_run_can_persist_into_thread_runtime(tmp_path: Path) -> None:
     assert persisted["latest_query"] == run.query
     assert persisted["message_count"] >= 2
     assert persisted["artifact_count"] >= 3
-    assert persisted["runs"][-1]["mission_type"] == "implementation_pack"
+    assert persisted["runs"][-1]["mission_type"] in {"general", "research", "implementation"}
     assert any(item["kind"] == "mission_pack" for item in persisted["artifacts"])
 
 

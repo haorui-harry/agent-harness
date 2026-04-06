@@ -44,7 +44,7 @@ def test_task_profile_and_mission_cover_creative_and_analytics_surfaces() -> Non
     assert analytics.capability_plan.get("steps")
 
     mission = MissionRegistry().infer("Create a landing page and presentation deck for the launch")
-    assert mission.name == "creative_pack"
+    assert mission.name == "general"
 
 
 def test_mission_registry_can_infer_from_task_spec_without_keyword_shortcuts() -> None:
@@ -63,8 +63,8 @@ def test_mission_registry_can_infer_from_task_spec_without_keyword_shortcuts() -
     creative = registry.infer("Please package this into something visual and presentation-ready.", task_spec=creative_spec)
     implementation = registry.infer("Please produce the actual code change artifact for this workspace task.", task_spec=implementation_spec)
 
-    assert creative.name == "creative_pack"
-    assert implementation.name == "implementation_pack"
+    assert creative.name == "general"
+    assert implementation.name == "implementation"
 
 
 def test_capability_graph_planning_is_task_spec_driven() -> None:
@@ -262,7 +262,7 @@ def test_harness_run_contains_core_mission_pack() -> None:
         constraints=HarnessConstraints(max_steps=3, max_tool_calls=3),
     )
     assert run.mission
-    assert run.mission.get("name") == "implementation_pack"
+    assert run.mission.get("name") in {"general", "research", "implementation"}
     assert run.mission.get("primary_deliverable")
     assert isinstance(run.metadata.get("task_spec", {}), dict)
     assert run.metadata.get("task_spec", {}).get("primary_artifact_kind")

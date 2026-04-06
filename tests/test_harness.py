@@ -98,6 +98,21 @@ def test_harness_engine_run_outputs_eval() -> None:
     assert run.completed is True
     assert len(run.steps) <= 3
     assert "tool_success_rate" in run.eval_metrics
+    assert "## Direct Answer" in run.final_answer
+    assert "## Recommended Next Actions" in run.final_answer
+
+
+def test_research_run_avoids_half_baked_research_brief_sections() -> None:
+    engine = HarnessEngine()
+    run = engine.run(
+        query="Generate a deep research memo on how a general agent runtime should beat direct model answers on real tasks, including failure modes, design principles, and concrete runtime improvements.",
+        constraints=HarnessConstraints(max_steps=4, max_tool_calls=4),
+    )
+    assert "## Improvement Path" in run.final_answer
+    assert "## Working Thesis" not in run.final_answer
+    assert "## Open Gaps" not in run.final_answer
+    assert "Ensemble Synthesis:" not in run.final_answer
+    assert "Evidence still needs to be deepened beyond initial notes." not in run.final_answer
 
 
 def test_harness_eval_suite() -> None:

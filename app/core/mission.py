@@ -1,4 +1,4 @@
-"""Shared mission-pack protocol for runtime and showcase outputs."""
+"""Mission-pack protocol for general-purpose agent task routing and delivery."""
 
 from __future__ import annotations
 
@@ -15,6 +15,32 @@ def _clean_text(value: object) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+def _humanize_action(value: object) -> str:
+    text = _clean_text(value)
+    if not text:
+        return ""
+    text = re.sub(r"\bbecause artifact gap detected for\b", "to close the missing", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bbecause\b", "-", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip(" -")
+    return text[:1].upper() + text[1:] if text else ""
+
+
+def _chunk_execution_tracks(execution_plan: list[str], limit: int = 3) -> list[list[str]]:
+    rows: list[str] = []
+    for item in execution_plan:
+        clean = _humanize_action(item)
+        if clean:
+            rows.append(clean)
+    if not rows:
+        return []
+    if len(rows) <= limit:
+        return [[item] for item in rows[:limit]]
+    chunks: list[list[str]] = [[] for _ in range(limit)]
+    for index, item in enumerate(rows):
+        chunks[index % limit].append(item)
+    return [chunk for chunk in chunks if chunk]
+
+
 def _dedupe(items: list[object], limit: int = 8) -> list[str]:
     seen: set[str] = set()
     rows: list[str] = []
@@ -27,6 +53,17 @@ def _dedupe(items: list[object], limit: int = 8) -> list[str]:
         if len(rows) >= limit:
             break
     return rows
+
+
+def _answer_signal(final_answer: str) -> str:
+    text = _clean_text(final_answer)
+    if not text:
+        return "runtime answer available"
+    text = re.sub(r"\[[^\]]+\]", "", text).strip()
+    text = re.sub(r"#+\s*", "", text).strip()
+    if not text:
+        return "runtime answer available"
+    return (text[:87] + "...") if len(text) > 90 else text
 
 
 @dataclass(frozen=True)
@@ -58,6 +95,8 @@ class MissionProfile:
     review_questions: list[str]
     deliverables: list[MissionDeliverableBlueprint] = field(default_factory=list)
     keyword_patterns: list[str] = field(default_factory=list)
+    artifact_kinds: set[str] = field(default_factory=set)
+    boundary_statement: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -70,6 +109,8 @@ class MissionProfile:
             "review_questions": list(self.review_questions),
             "deliverables": [item.to_dict() for item in self.deliverables],
             "keyword_patterns": list(self.keyword_patterns),
+            "artifact_kinds": sorted(self.artifact_kinds),
+            "boundary_statement": self.boundary_statement,
         }
 
 
@@ -106,38 +147,12 @@ class MissionRegistry:
     def _infer_from_task_spec(self, task_spec: dict[str, Any]) -> MissionProfile | None:
         if not isinstance(task_spec, dict) or not task_spec:
             return None
-        primary = _clean_text(task_spec.get("primary_artifact_kind", ""))
-        channels = {
-            _clean_text(item).lower()
-            for item in task_spec.get("required_channels", [])
-            if _clean_text(item)
-        }
-
-        creative = {"webpage_blueprint", "slide_deck_plan", "podcast_episode_plan", "video_storyboard", "image_prompt_pack"}
-        analytics = {"chart_pack_spec", "data_analysis_spec", "dataset_pull_spec", "dataset_loader_template"}
-        implementation = {"patch_plan", "patch_draft"}
-        operations = {"runbook", "custom:checklist"}
-        strategy_docs = {"custom:decision_memo", "custom:executive_memo", "custom:launch_memo", "custom:one_pager"}
-        research_docs = {"deliverable_report", "custom:brief", "custom:memo", "workspace_findings", "evidence_bundle"}
-
-        if primary in creative:
-            return self._profiles_by_name["creative_pack"]
-        if primary in analytics:
-            return self._profiles_by_name["analytics_pack"]
-        if primary in implementation:
-            return self._profiles_by_name["implementation_pack"]
-        if primary in operations or (primary == "risk_register" and "workspace" not in channels):
-            return self._profiles_by_name["operations_pack"]
-        if primary in strategy_docs:
-            return self._profiles_by_name["strategy_pack"]
-        if primary in research_docs and "risk" in channels and "workspace" not in channels:
-            return self._profiles_by_name["strategy_pack"]
-        if primary in research_docs and "web" in channels and "workspace" not in channels:
-            return self._profiles_by_name["research_pack"]
-        if primary in research_docs and "workspace" in channels:
-            return self._profiles_by_name["implementation_pack"]
-        if primary == "risk_register" and "risk" in channels and "web" in channels:
-            return self._profiles_by_name["strategy_pack"]
+        primary = _clean_text(task_spec.get("primary_artifact_kind", "")).lower()
+        if not primary:
+            return None
+        for profile in self._profiles:
+            if primary in profile.artifact_kinds:
+                return profile
         return None
 
     def list_cards(self) -> list[dict[str, Any]]:
@@ -271,10 +286,7 @@ class MissionRegistry:
             evidence=evidence,
             release=release,
         )
-        honest_boundary = (
-            "Current strength is evidence-backed planning, governance framing, and packaged delivery. "
-            "The main gap is still deeper long-horizon execution in real environments, especially when browser or repository action loops must stay stable for a long run."
-        )
+        honest_boundary = self._runtime_boundary(profile or self.infer(query, task_spec=task_spec))
         base.update(
             {
                 "target_users": target_users[:5],
@@ -328,7 +340,7 @@ class MissionRegistry:
             elif "validation" in lowered:
                 signal = "validation path attached"
             elif "decision" in lowered or "brief" in lowered or "spec" in lowered:
-                signal = final_answer[:120] or "runtime answer available"
+                signal = _answer_signal(final_answer)
             rows.append(
                 {
                     **item.to_dict(),
@@ -346,18 +358,13 @@ class MissionRegistry:
         evidence: dict[str, Any],
     ) -> list[dict[str, Any]]:
         tracks: list[dict[str, Any]] = []
-        buckets = [
-            ("Track 1", execution_plan[:2]),
-            ("Track 2", execution_plan[2:4]),
-            ("Track 3", execution_plan[4:6]),
-        ]
-        for name, rows in buckets:
+        for index, rows in enumerate(_chunk_execution_tracks(execution_plan), start=1):
             if not rows:
                 continue
             tracks.append(
                 {
-                    "name": name,
-                    "focus": ", ".join(rows[:2]),
+                    "name": f"Track {index}",
+                    "focus": " | ".join(rows[:2]),
                     "success": (
                         f"preflight={security.get('preflight_action', '')}; "
                         f"evidence={int(evidence.get('record_count', 0))} records"
@@ -368,19 +375,11 @@ class MissionRegistry:
 
     @staticmethod
     def _runtime_boundary(profile: MissionProfile) -> str:
-        if profile.name == "implementation_pack":
-            return (
-                "Current implementation missions can produce specs, migration plans, and validation checklists, "
-                "but they still need deeper workspace execution closure and stronger long-run repair stability."
-            )
-        if profile.name == "research_pack":
-            return (
-                "Current research missions are strong on packaging evidence and promotion logic, "
-                "but still need stronger execution closure when research output must turn into sustained operational action."
-            )
+        if profile.boundary_statement:
+            return profile.boundary_statement
         return (
             "Current strength is packaging execution, evidence, and review structure in one runtime artifact. "
-            "It is weaker on environments that require full browser or repository action loops."
+            "Weaker on tasks requiring sustained real-world environment interaction."
         )
 
     @staticmethod
@@ -406,24 +405,34 @@ class MissionRegistry:
 
     @staticmethod
     def _release_execution_tracks(proposal: dict[str, Any], execution_plan: list[str]) -> list[dict[str, Any]]:
-        phases = proposal.get("phases", []) if isinstance(proposal, dict) else []
         tracks: list[dict[str, Any]] = []
-        for phase in phases[:3]:
+        for index, rows in enumerate(_chunk_execution_tracks(execution_plan), start=1):
             tracks.append(
                 {
-                    "name": _clean_text(phase.get("phase", "Execution Track")),
-                    "focus": _clean_text(", ".join(phase.get("actions", [])[:2])),
-                    "success": _clean_text(", ".join(phase.get("success_metrics", [])[:3])),
+                    "name": f"Track {index}",
+                    "focus": " | ".join(rows[:2]),
+                    "success": "Produce reviewable artifacts with evidence and a clear delivery boundary.",
                 }
             )
         if tracks:
             return tracks
+        phases = proposal.get("phases", []) if isinstance(proposal, dict) else []
         for index, item in enumerate(execution_plan[:3], start=1):
             tracks.append(
                 {
                     "name": f"Track {index}",
-                    "focus": item,
+                    "focus": _humanize_action(item),
                     "success": "Completed with trace, evidence, and reviewable outputs.",
+                }
+            )
+        if tracks:
+            return tracks
+        for index, phase in enumerate(phases[:3], start=1):
+            tracks.append(
+                {
+                    "name": f"Track {index}",
+                    "focus": _clean_text(", ".join(phase.get("actions", [])[:2])),
+                    "success": _clean_text(", ".join(phase.get("success_metrics", [])[:3])),
                 }
             )
         return tracks
@@ -697,123 +706,87 @@ class MissionRegistry:
     def _defaults() -> list[MissionProfile]:
         return [
             MissionProfile(
-                name="creative_pack",
-                title="Creative Media Mission Pack",
-                summary="Multi-format package for landing pages, slide decks, visuals, audio, and launch storytelling.",
-                primary_deliverable="Experience pack with webpage blueprint, deck arc, media scripts, and visual directions.",
-                target_users=["product marketer", "designer", "creative lead", "founder"],
-                output_views=["landing page", "slide deck", "video storyboard", "image prompt pack"],
+                name="general",
+                title="General Task Pack",
+                summary="Universal task execution with planning, evidence collection, and deliverable packaging.",
+                primary_deliverable="Task result with execution trace, evidence, and reviewable artifacts.",
+                target_users=["requester", "reviewer", "operator"],
+                output_views=["result summary", "execution trace", "evidence packet", "deliverable bundle"],
                 review_questions=[
-                    "Does the first screen explain the audience, value, and output in one glance?",
-                    "Which media asset proves the story instead of repeating the slogan?",
-                    "What artifact can design or marketing execute next without reinterpretation?",
+                    "Does the result directly answer the original request?",
+                    "What evidence supports the conclusion?",
+                    "What remains unverified or incomplete?",
                 ],
                 deliverables=[
-                    MissionDeliverableBlueprint("Webpage Blueprint", "Hero structure, page sections, proof blocks, and CTA design.", "design and growth"),
-                    MissionDeliverableBlueprint("Slide Deck Plan", "Slide-by-slide arc for demos, launches, and executive reviews.", "founder and product marketing"),
-                    MissionDeliverableBlueprint("Media Storyboard", "Podcast or video segment structure with beats and proof moments.", "content team"),
-                    MissionDeliverableBlueprint("Visual Direction Pack", "Prompt-ready visual directions for hero art, posters, and diagrams.", "creative ops"),
+                    MissionDeliverableBlueprint("Task Result", "Primary output addressing the user request.", "requester"),
+                    MissionDeliverableBlueprint("Execution Trace", "Step-by-step record of actions taken and tools used.", "reviewer"),
+                    MissionDeliverableBlueprint("Evidence Packet", "Supporting data, citations, and runtime signals.", "auditor"),
+                    MissionDeliverableBlueprint("Delivery Bundle", "Packaged artifacts ready for downstream use.", "operator"),
                 ],
-                keyword_patterns=[r"(webpage|website|landing|frontend|ui|slide|deck|presentation|ppt|podcast|video|storyboard|image|poster|illustration)"],
+                keyword_patterns=[r".*"],
+                artifact_kinds={
+                    "webpage_blueprint", "slide_deck_plan", "podcast_episode_plan",
+                    "video_storyboard", "image_prompt_pack", "chart_pack_spec",
+                    "data_analysis_spec", "dataset_pull_spec", "dataset_loader_template",
+                    "custom:decision_memo", "custom:executive_memo", "custom:launch_memo",
+                    "custom:one_pager", "custom:checklist", "runbook", "risk_register",
+                },
+                boundary_statement=(
+                    "Capable of planning, analysis, evidence gathering, and artifact packaging. "
+                    "Weaker on sustained real-world environment interaction and long-running execution loops."
+                ),
             ),
             MissionProfile(
-                name="analytics_pack",
-                title="Analytics Mission Pack",
-                summary="Decision-oriented package for data analysis, charting, dashboard framing, and evidence-backed readouts.",
-                primary_deliverable="Analysis pack with data questions, chart portfolio, dashboard narrative, and validation notes.",
-                target_users=["analyst", "operator", "research lead", "executive reviewer"],
-                output_views=["analysis brief", "chart pack", "dashboard spec", "evidence notes"],
+                name="research",
+                title="Research Pack",
+                summary="Evidence-driven research with hypothesis framing, source collection, and synthesis.",
+                primary_deliverable="Research output with evidence anchors, analysis, and actionable findings.",
+                target_users=["researcher", "analyst", "decision-maker"],
+                output_views=["research brief", "evidence packet", "analysis summary", "recommendation"],
                 review_questions=[
-                    "Which metric actually drives the decision and which metric is only diagnostic?",
-                    "Where are the outliers or segments that would invalidate the headline?",
-                    "What chart pack or dashboard view is ready for stakeholder consumption today?",
+                    "Is the core finding supported by collected evidence?",
+                    "What evidence would invalidate the conclusion?",
+                    "What follow-up investigation is needed?",
                 ],
                 deliverables=[
-                    MissionDeliverableBlueprint("Analysis Question Set", "Decision questions, cohorts, metrics, and failure checks.", "analytics owner"),
-                    MissionDeliverableBlueprint("Chart Portfolio", "Reusable chart specs with data contracts and captions.", "analyst and product"),
-                    MissionDeliverableBlueprint("Dashboard Narrative", "How to sequence metrics, alerts, and annotations on the surface.", "ops and leadership"),
-                    MissionDeliverableBlueprint("Data Pull Spec", "Reproducible collection rules and quality checks for the dataset.", "data engineering"),
+                    MissionDeliverableBlueprint("Research Brief", "Core findings and supporting evidence.", "researcher"),
+                    MissionDeliverableBlueprint("Evidence Collection", "Sources, citations, and data points.", "reviewer"),
+                    MissionDeliverableBlueprint("Analysis Summary", "Structured interpretation of findings.", "decision-maker"),
+                    MissionDeliverableBlueprint("Recommendations", "Actionable next steps based on evidence.", "operator"),
                 ],
-                keyword_patterns=[r"(data|dataset|analytics|analysis|chart|graph|plot|dashboard|sql|csv|cohort|visualization)"],
+                keyword_patterns=[r"(research|study|paper|experiment|evidence|analysis|investigate|evaluate|compare|survey)"],
+                artifact_kinds={
+                    "deliverable_report", "custom:brief", "custom:memo",
+                    "workspace_findings", "evidence_bundle",
+                },
+                boundary_statement=(
+                    "Strong at evidence gathering, synthesis, and structured analysis. "
+                    "Weaker on tasks requiring real-time data access or experimental execution."
+                ),
             ),
             MissionProfile(
-                name="strategy_pack",
-                title="Strategy Mission Pack",
-                summary="Business-facing package for launch, rollout, and investment decisions.",
-                primary_deliverable="Launch strategy packet with execution, evidence, and release gate.",
-                target_users=["product lead", "operations lead", "risk owner", "executive sponsor"],
-                output_views=["proposal", "execution plan", "evidence packet", "delivery bundle"],
+                name="implementation",
+                title="Implementation Pack",
+                summary="Engineering-oriented execution with code analysis, planning, and validation.",
+                primary_deliverable="Implementation plan with architecture decisions, code changes, and validation steps.",
+                target_users=["engineer", "tech lead", "code reviewer"],
+                output_views=["architecture spec", "implementation plan", "validation checklist", "code artifacts"],
                 review_questions=[
-                    "Is the chosen wedge narrow enough to execute and large enough to matter?",
-                    "Which release gate blocks expansion first?",
-                    "What evidence is still missing for executive sign-off?",
+                    "Does the implementation address the root cause?",
+                    "What tests validate the change?",
+                    "What risks does the change introduce?",
                 ],
                 deliverables=[
-                    MissionDeliverableBlueprint("Decision Memo", "One-page business recommendation with tradeoffs and target wedge.", "executive sponsor"),
-                    MissionDeliverableBlueprint("Execution Playbook", "Phased rollout with operators, checkpoints, and fallback path.", "product and operations"),
-                    MissionDeliverableBlueprint("Evidence Packet", "Citations, policy references, and runtime signals behind the claim.", "risk and procurement"),
-                    MissionDeliverableBlueprint("Interop Export", "External skill-compatible bundle for downstream ecosystems.", "platform team"),
+                    MissionDeliverableBlueprint("Implementation Plan", "Step-by-step execution path with dependencies.", "engineer"),
+                    MissionDeliverableBlueprint("Code Artifacts", "Patches, specs, or scaffolding produced.", "code reviewer"),
+                    MissionDeliverableBlueprint("Validation Gates", "Tests and checks that confirm correctness.", "tech lead"),
+                    MissionDeliverableBlueprint("Risk Assessment", "Failure modes and mitigation strategies.", "operator"),
                 ],
-                keyword_patterns=[r"(launch|rollout|strategy|board|proposal|market|growth|copilot|enterprise|plan)"],
-            ),
-            MissionProfile(
-                name="research_pack",
-                title="Research Mission Pack",
-                summary="Research-facing package for study design, evidence review, and promotion decisions.",
-                primary_deliverable="Research promotion packet with experiment rationale, evidence, and release criteria.",
-                target_users=["research lead", "applied scientist", "review committee"],
-                output_views=["research brief", "evidence packet", "promotion packet", "risk register"],
-                review_questions=[
-                    "Is the operating thesis still coherent after evidence review?",
-                    "Which missing evidence would most likely change the promotion decision?",
-                    "What post-launch monitoring is required to validate the lab result?",
-                ],
-                deliverables=[
-                    MissionDeliverableBlueprint("Research Brief", "Hypothesis, operating thesis, and study implications.", "research committee"),
-                    MissionDeliverableBlueprint("Delivery Readout", "Decision summary, release posture, and execution implications.", "lab leadership"),
-                    MissionDeliverableBlueprint("Promotion Checklist", "What must pass before the result becomes default.", "release committee"),
-                    MissionDeliverableBlueprint("Evidence Packet", "External and internal citations linked to the claim.", "reviewers"),
-                ],
-                keyword_patterns=[r"(research|study|paper|experiment|lab|evaluation|hypothesis)"],
-            ),
-            MissionProfile(
-                name="operations_pack",
-                title="Operations Mission Pack",
-                summary="Operations-facing package for daily execution, dependency control, and governance checkpoints.",
-                primary_deliverable="Operational playbook with owners, checkpoints, and escalation paths.",
-                target_users=["ops manager", "program manager", "service owner"],
-                output_views=["playbook", "timeline", "dependency map", "risk register"],
-                review_questions=[
-                    "Which dependency can stall execution first?",
-                    "Where does human override enter the loop?",
-                    "What is the rollback path if live metrics degrade?",
-                ],
-                deliverables=[
-                    MissionDeliverableBlueprint("Operational Playbook", "Practical sequence of actions and handoffs.", "delivery owner"),
-                    MissionDeliverableBlueprint("Dependency Timeline", "Critical path and checkpoint plan.", "program manager"),
-                    MissionDeliverableBlueprint("Risk Register", "Failure modes, control points, and escalation logic.", "ops lead"),
-                    MissionDeliverableBlueprint("Evidence Packet", "Policy and runtime evidence for auditability.", "governance"),
-                ],
-                keyword_patterns=[r"(ops|operations|timeline|delivery|program|workflow|dependency|playbook|milestone)"],
-            ),
-            MissionProfile(
-                name="implementation_pack",
-                title="Implementation Mission Pack",
-                summary="Engineering-facing package for architecture, migration, and validation planning.",
-                primary_deliverable="Implementation spec with architecture target state, migration steps, and validation gates.",
-                target_users=["tech lead", "staff engineer", "platform owner"],
-                output_views=["architecture spec", "migration plan", "validation checklist", "risk register"],
-                review_questions=[
-                    "What execution trace proves the design is implementable?",
-                    "Which integration or operability gap is still unowned?",
-                    "Which validation gate would fail first if this design were executed today?",
-                ],
-                deliverables=[
-                    MissionDeliverableBlueprint("Architecture Spec", "Target state and integration blueprint.", "tech lead"),
-                    MissionDeliverableBlueprint("Migration Plan", "Phased delivery path with rollback boundary.", "platform team"),
-                    MissionDeliverableBlueprint("Validation Checklist", "Tests, evals, and release gates for implementation.", "engineering manager"),
-                    MissionDeliverableBlueprint("Execution Readiness", "Which actions, tests, and checkpoints are needed before rollout.", "research and engineering"),
-                ],
-                keyword_patterns=[r"(architecture|design|system|integration|refactor|migration|implementation|build|code)"],
+                keyword_patterns=[r"(code|implement|build|fix|refactor|migrate|deploy|architecture|design|engineer|develop|debug|patch)"],
+                artifact_kinds={"patch_plan", "patch_draft"},
+                boundary_statement=(
+                    "Strong at code analysis, architecture planning, and validation design. "
+                    "Weaker on executing long multi-file changes or maintaining live environment stability."
+                ),
             ),
         ]

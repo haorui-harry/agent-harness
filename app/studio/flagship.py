@@ -23,76 +23,19 @@ from app.tracing.analyzer import RoutingAnalyzer
 from app.tracing.visualizer import render_trace_views
 
 FLAGSHIP_ONE_LINER = (
-    "Agent Harness Studio turns one user request into an auditable, deliverable-first, "
-    "and ecosystem-portable agent product."
+    "General-purpose agent runtime that turns user requests into auditable, "
+    "deliverable-first task execution with evidence and validation."
 )
 FLAGSHIP_DIFF = (
-    "Single pipeline with runtime routing evidence, research-grade release gating, "
-    "and OpenAI/Anthropic skill export compatibility."
+    "Single pipeline with runtime routing, research-grade evaluation, "
+    "and extensible skill interoperability."
 )
-STUDIO_SCHEMA = "agent-harness-studio/v1"
-DEFAULT_STUDIO_SCENARIOS = [
-    "daily-001",
-    "research-001",
-    "creative-001",
-    "enterprise-001",
-    "safety-001",
-]
+STUDIO_SCHEMA = "agent-studio/v1"
+DEFAULT_STUDIO_SCENARIOS: list[str] = []
 
-FRAMEWORK_ARCHETYPES: list[dict[str, Any]] = [
-    {
-        "name": "data-flow",
-        "description": "Strong flow orchestration and deterministic pipelines; weaker portability.",
-        "vector": {
-            "orchestration_quality": 0.82,
-            "research_rigor": 0.58,
-            "ecosystem_leverage": 0.52,
-            "governance_safety": 0.62,
-            "product_readiness": 0.66,
-            "interoperability": 0.50,
-        },
-    },
-    {
-        "name": "deep-research",
-        "description": "Strong research loop and analysis depth; weaker productization and onboarding.",
-        "vector": {
-            "orchestration_quality": 0.72,
-            "research_rigor": 0.88,
-            "ecosystem_leverage": 0.40,
-            "governance_safety": 0.66,
-            "product_readiness": 0.48,
-            "interoperability": 0.55,
-        },
-    },
-    {
-        "name": "skill-hub",
-        "description": "Strong ecosystem integration; weaker rigorous evaluation gates.",
-        "vector": {
-            "orchestration_quality": 0.62,
-            "research_rigor": 0.50,
-            "ecosystem_leverage": 0.90,
-            "governance_safety": 0.45,
-            "product_readiness": 0.72,
-            "interoperability": 0.86,
-        },
-    },
-]
+FRAMEWORK_ARCHETYPES: list[dict[str, Any]] = []
 
-TOOL_DISPLAY_ALIASES: dict[str, str] = {
-    "api_skill_portfolio_optimizer": "portfolio optimizer",
-    "api_skill_dependency_graph": "dependency graph",
-    "policy_risk_matrix": "policy risk matrix",
-    "memory_context_digest": "memory context layer",
-    "code_experiment_design": "experiment design workbench",
-    "external_resource_hub": "external validation hub",
-    "code_router_blueprint": "architecture blueprint engine",
-    "identify_risks": "risk identification",
-    "risk_heatmap": "risk heatmap",
-    "synthesize_perspectives": "perspective synthesis",
-    "executive_summary": "executive summary",
-    "extract_facts": "fact extraction",
-    "build_timeline": "timeline planning",
-}
+TOOL_DISPLAY_ALIASES: dict[str, str] = {}
 
 
 def _clamp01(value: float) -> float:
@@ -131,6 +74,38 @@ def _safe_list(value: object) -> list[Any]:
     if value in ("", None):
         return []
     return [value]
+
+
+def _delivery_plan_line(text: object) -> str:
+    value = _sanitize_business_text(text)
+    if not value:
+        return ""
+    lowered = value.lower()
+    if lowered.startswith("recipe:"):
+        return ""
+    value = re.sub(r"\bbecause artifact gap detected for\b", "to close the missing", value, flags=re.IGNORECASE)
+    value = re.sub(r"\bbecause\b", "-", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+", " ", value).strip(" -")
+    if not value:
+        return ""
+    if not value.endswith("."):
+        value += "."
+    return value[0].upper() + value[1:]
+
+
+def _delivery_track_focus(text: object) -> str:
+    value = str(text or "").strip()
+    if not value:
+        return ""
+    parts = [part.strip() for part in re.split(r"\s*[|;]\s*", value) if part.strip()]
+    cleaned: list[str] = []
+    for part in parts:
+        line = _delivery_plan_line(part)
+        if line:
+            line = line.rstrip(".")
+            if line not in cleaned:
+                cleaned.append(line)
+    return " | ".join(cleaned[:3])
 
 
 class StudioShowcaseBuilder:
@@ -248,6 +223,7 @@ class StudioShowcaseBuilder:
             query=query,
             story=story,
             proposal=proposal,
+            mission=mission_pack,
             run_summary=run_summary,
         )
 
@@ -256,7 +232,7 @@ class StudioShowcaseBuilder:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "scenario": scenario.to_dict(),
             "identity": {
-                "name": "Agent Harness Studio",
+                "name": "Agent Studio",
                 "one_liner": FLAGSHIP_ONE_LINER,
                 "differentiator": FLAGSHIP_DIFF,
             },
@@ -447,37 +423,25 @@ class StudioShowcaseBuilder:
         trending: list[dict[str, Any]],
     ) -> dict[str, float]:
         quality = _safe_float(router_analysis.get("quality", {}).get("overall_score", 0.0))
-        robust_worst_case = _safe_float(router_analysis.get("quality", {}).get("robust_worst_case_utility", 0.0))
-        avg_uncertainty_metric = _safe_float(router_analysis.get("quality", {}).get("avg_uncertainty", 0.0))
         efficiency = {"fast": 1.0, "moderate": 0.75, "slow": 0.45}.get(
             str(router_analysis.get("efficiency", {}).get("rating", "moderate")),
             0.65,
         )
-        orchestration_quality = _clamp01(
-            0.55 * quality + 0.20 * efficiency + 0.20 * min(max(robust_worst_case, 0.0) / 1.2, 1.0) - 0.05 * avg_uncertainty_metric
-        )
+        orchestration_quality = _clamp01((quality + efficiency) / 2.0)
 
-        release = {"go": 1.0, "caution": 0.78, "block": 0.52}.get(
-            str(lab_payload.get("release_decision", {}).get("decision", "block")),
-            0.52,
-        )
         best = _safe_float(lab_payload.get("best", {}).get("composite_score", 0.0))
-        categories = {str(item.get("category", "")).strip().lower() for item in lab_payload.get("scenarios", []) if isinstance(item, dict)}
-        research_rigor = _clamp01(0.60 * best + 0.25 * release + 0.15 * _clamp01(len([x for x in categories if x]) / 5.0))
+        research_rigor = _clamp01(best)
 
-        avg_discovery = _clamp01(len(discovery) / 6.0)
-        avg_trending = _clamp01((sum(_safe_float(item.get("trending_score", 0.0)) for item in trending) / max(len(trending), 1)) / 0.35)
-        ecosystem_leverage = _clamp01(0.45 * avg_discovery + 0.25 * avg_trending + 0.30 * _safe_float(interop_summary.get("coverage_ratio", 0.0)))
+        ecosystem_leverage = _clamp01(
+            (_clamp01(len(discovery) / 6.0) + _safe_float(interop_summary.get("coverage_ratio", 0.0))) / 2.0
+        )
 
         dims = self._value_dims(value_card)
-        governance_safety = _clamp01(0.65 * dims.get("safety", 0.0) + 0.35 * _safe_float(lab_payload.get("best", {}).get("avg_security_alignment", 0.0)))
+        governance_safety = _clamp01(dims.get("safety", 0.0))
 
         metrics = run_summary.get("metrics", {}) if isinstance(run_summary, dict) else {}
         product_readiness = _clamp01(
-            0.33 * dims.get("reliability", 0.0)
-            + 0.27 * dims.get("observability", 0.0)
-            + 0.20 * dims.get("adaptability", 0.0)
-            + 0.20 * _safe_float(metrics.get("completion_score", 0.0))
+            (dims.get("reliability", 0.0) + dims.get("observability", 0.0) + _safe_float(metrics.get("completion_score", 0.0))) / 3.0
         )
 
         return {
@@ -494,15 +458,13 @@ class StudioShowcaseBuilder:
         values = [_clamp01(v) for v in vector.values()]
         mean_score = sum(values) / max(len(values), 1)
         min_score = min(values) if values else 0.0
-        geo = math.exp(sum(math.log(max(v, 1e-6)) for v in values) / max(len(values), 1)) if values else 0.0
-        score = _clamp01(0.35 * mean_score + 0.40 * min_score + 0.25 * geo)
+        score = _clamp01(mean_score)
         axis, axis_score = sorted(vector.items(), key=lambda item: item[1])[0] if vector else ("", 0.0)
         return {
             "score": round(score, 4),
             "mean": round(mean_score, 4),
             "minimum_axis": round(min_score, 4),
-            "geometric": round(geo, 4),
-            "kind": "internal_heuristic",
+            "kind": "empirical_mean",
             "externally_validated": False,
             "bottleneck": {"axis": axis, "score": round(axis_score, 4)},
         }
@@ -679,17 +641,27 @@ class StudioShowcaseBuilder:
             )
         if not phases:
             plan_chunks = StudioShowcaseBuilder._chunk_plan(run_summary.get("plan", []), max(len(scenario.phases), 1))
-            for index, blueprint in enumerate(scenario.phases):
-                fallback_actions = [_sanitize_business_text(x) for x in plan_chunks[index]] if index < len(plan_chunks) else []
+            for index, chunk in enumerate(plan_chunks[:4]):
                 merged_actions: list[str] = []
-                for action in list(blueprint.actions[:2]) + fallback_actions[:2]:
-                    clean = _sanitize_business_text(action)
+                for action in chunk[:3]:
+                    clean = _delivery_plan_line(action).rstrip(".")
                     if clean and clean not in merged_actions:
                         merged_actions.append(clean)
+                if not merged_actions:
+                    continue
                 phases.append(
                     {
-                        "phase": blueprint.phase,
-                        "actions": merged_actions[:3] or [_sanitize_business_text(x) for x in blueprint.actions[:3]],
+                        "phase": f"Execution Track {index + 1}",
+                        "actions": merged_actions[:3],
+                        "success_metrics": ["Reviewable artifact produced", "Trace captured", "Ready for validation"],
+                    }
+                )
+        if not phases:
+            for index, blueprint in enumerate(scenario.phases[:3]):
+                phases.append(
+                    {
+                        "phase": f"Execution Track {index + 1}",
+                        "actions": [_sanitize_business_text(x) for x in blueprint.actions[:2]],
                         "success_metrics": [_sanitize_business_text(x) for x in blueprint.success_metrics[:3]],
                     }
                 )
@@ -803,14 +775,18 @@ class StudioShowcaseBuilder:
         query: str,
         story: dict[str, Any],
         proposal: dict[str, Any],
+        mission: dict[str, Any],
         run_summary: dict[str, Any],
     ) -> str:
-        phases = proposal.get("phases", [])
+        tracks = mission.get("execution_tracks", []) if isinstance(mission, dict) else []
+        deliverables = mission.get("deliverables", []) if isinstance(mission, dict) else []
+        task_graph = mission.get("task_graph", {}) if isinstance(mission, dict) else {}
+        graph_summary = task_graph.get("summary", {}) if isinstance(task_graph, dict) else {}
         impact = proposal.get("expected_impact", [])
         risks = proposal.get("critical_risks", [])
         evidence = run_summary.get("evidence", {}) if isinstance(run_summary, dict) else {}
         lines = [
-            proposal.get("headline", "Launch Plan"),
+            mission.get("primary_deliverable", "") or proposal.get("headline", "Launch Plan"),
             "",
             f"Scenario: {story.get('theme', '')}",
             f"Decision: {proposal.get('decision', {}).get('status', 'block')} ({proposal.get('decision', {}).get('reason', '-')})",
@@ -824,9 +800,41 @@ class StudioShowcaseBuilder:
         for item in proposal.get("business_summary", [])[:4]:
             lines.append(f"- {item}")
         lines.append("")
-        lines.append("Phased Rollout:")
-        for phase in phases[:3]:
-            lines.append(f"- {phase.get('phase', 'Phase')}: {', '.join(str(x) for x in phase.get('actions', [])[:3])}")
+        lines.append("Deliverable Package:")
+        for row in deliverables[:4]:
+            title = str(row.get("title", "")).strip()
+            description = str(row.get("description", "")).strip()
+            hint = str(row.get("evidence_hint", "")).strip()
+            line = f"- {title}: {description}"
+            if hint:
+                line += f" [{hint}]"
+            lines.append(line)
+        lines.append("")
+        lines.append("Execution Flow:")
+        flow_rows: list[str] = []
+        for track in tracks[:4]:
+            name = str(track.get("name", "Track")).strip() or "Track"
+            focus = _delivery_track_focus(track.get("focus", ""))
+            success = _sanitize_business_text(track.get("success", "")).strip()
+            parts = [part for part in [focus, f"Success: {success}" if success else ""] if part]
+            if parts:
+                flow_rows.append(f"- {name}: {' | '.join(parts)}")
+        if flow_rows:
+            lines.extend(flow_rows)
+        else:
+            for item in run_summary.get("plan", [])[:4]:
+                clean = _delivery_plan_line(item)
+                if clean:
+                    lines.append(f"- {clean}")
+        if isinstance(graph_summary, dict) and int(graph_summary.get("node_count", 0)) > 0:
+            lines.append("")
+            lines.append("Execution Graph:")
+            lines.append(
+                f"- Nodes: {int(graph_summary.get('node_count', 0))}; completed: {int(graph_summary.get('completed_nodes', 0))}; runnable next: {', '.join(graph_summary.get('runnable_nodes', [])[:3]) or '-'}"
+            )
+            critical = ", ".join(str(item) for item in graph_summary.get("critical_path", [])[:5] if str(item).strip())
+            if critical:
+                lines.append(f"- Critical path: {critical}")
         lines.append("")
         lines.append("Expected Impact:")
         for row in impact[:4]:
@@ -840,10 +848,16 @@ class StudioShowcaseBuilder:
             lines.append("Evidence Citations:")
             for item in evidence.get("citations", [])[:4]:
                 lines.append(f"- {item}")
+        backbone = []
+        for item in run_summary.get("plan", [])[:8]:
+            clean = _delivery_plan_line(item)
+            if clean and clean not in backbone:
+                backbone.append(clean)
         lines.append("")
         lines.append("Execution Backbone:")
-        for item in run_summary.get("plan", [])[:6]:
-            lines.append(f"- {item}")
+        if backbone:
+            for item in backbone[:6]:
+                lines.append(f"- {item}")
         return "\n".join(str(item).rstrip() for item in lines if str(item).strip()).strip()
 
     @staticmethod
@@ -985,10 +999,12 @@ class StudioShowcaseBuilder:
     def _primary_output_text(payload: dict[str, Any]) -> str:
         delivery = payload.get("harness", {}) if isinstance(payload.get("harness", {}), dict) else {}
         proposal = payload.get("proposal", {}) if isinstance(payload.get("proposal", {}), dict) else {}
+        final_answer = str(delivery.get("final_answer", "")).strip()
+        if final_answer and (len(final_answer) >= 900 or final_answer.startswith(("#", "## "))):
+            return final_answer
         brief = str(delivery.get("delivery_brief_excerpt", "")).strip()
         if brief:
             return brief
-        final_answer = str(delivery.get("final_answer", "")).strip()
         if final_answer:
             return final_answer
         subheadline = str(proposal.get("subheadline", "")).strip()
@@ -1043,7 +1059,7 @@ class StudioShowcaseBuilder:
             lines = [
                 f"# {title}",
                 "",
-                f"_Generated by {identity.get('name', 'Agent Harness Studio')}_",
+                f"_Generated by {identity.get('name', 'Agent Studio')}_",
                 "",
                 "## Task",
                 "",
@@ -1105,7 +1121,7 @@ class StudioShowcaseBuilder:
 
         return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Agent Harness Studio</title>
+<title>Agent Studio</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap');
 :root{{--bg:#07111d;--bg2:#10263b;--ink:#122233;--muted:#587086;--card:rgba(248,251,255,.94);--line:rgba(10,30,48,.12);--accent:#0ea5a6;--accent2:#f59e0b;--accent3:#38bdf8;--shadow:0 18px 50px rgba(4,18,30,.24);}}
@@ -1205,7 +1221,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
         )}
       </div>
       <h3 style="margin-top:14px">Execution Plan</h3>
-      <ul>{"".join(f"<li>{html.escape(str(item))}</li>" for item in delivery.get("plan", []))}</ul>
+      <ul>{"".join(f"<li>{html.escape(_delivery_plan_line(item) or str(item))}</li>" for item in delivery.get("plan", []))}</ul>
     </article>
   </div>
 </section>
@@ -1310,7 +1326,7 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
         score_provenance = payload.get("score_provenance", {})
         return "\n".join(
             [
-                f"# {identity.get('name', 'Agent Harness Studio')}",
+                f"# {identity.get('name', 'Agent Studio')}",
                 "",
                 str(identity.get("one_liner", "")),
                 "",
@@ -1536,11 +1552,12 @@ details{{border:1px solid var(--line);border-radius:18px;background:rgba(255,255
             return ""
         parts: list[str] = []
         for row in rows[:4]:
+            focus = _delivery_track_focus(row.get("focus", "")) or _sanitize_business_text(row.get("focus", ""))
             parts.append(
                 "<article class='phase'>"
                 f"<div class='kicker'>{html.escape(str(row.get('name', 'Track')))}</div>"
                 f"<h3>{html.escape(str(row.get('name', 'Track')))}</h3>"
-                f"<p>{html.escape(str(row.get('focus', '')))}</p>"
+                f"<p>{html.escape(str(focus))}</p>"
                 f"<p><strong>Success:</strong> {html.escape(str(row.get('success', '-')))}</p>"
                 "</article>"
             )

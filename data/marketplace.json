@@ -10,8 +10,8 @@
         "governance"
       ],
       "installs": 120,
-      "uses": 666,
-      "success": 656,
+      "uses": 140,
+      "success": 130,
       "failures": 10,
       "avg_rating": 4.6,
       "rating_count": 29,
@@ -27,7 +27,7 @@
         "prioritize_items"
       ],
       "last_updated": "2026-01-15",
-      "trending_score": 1.0,
+      "trending_score": 0.7100000000000004,
       "metadata": {
         "name": "risk_heatmap",
         "description": "Score risks by likelihood and impact for prioritization.",
@@ -97,8 +97,8 @@
         "comparison"
       ],
       "installs": 95,
-      "uses": 113,
-      "success": 107,
+      "uses": 79,
+      "success": 73,
       "failures": 6,
       "avg_rating": 4.4,
       "rating_count": 22,
@@ -114,7 +114,7 @@
         "validate_claims"
       ],
       "last_updated": "2026-02-03",
-      "trending_score": 0.6300000000000003,
+      "trending_score": 0.29000000000000004,
       "metadata": {
         "name": "evidence_matrix",
         "description": "Build claim-evidence-confidence matrix from source text.",
@@ -186,8 +186,8 @@
         "brief"
       ],
       "installs": 180,
-      "uses": 326,
-      "success": 309,
+      "uses": 168,
+      "success": 151,
       "failures": 17,
       "avg_rating": 4.8,
       "rating_count": 55,
@@ -203,7 +203,7 @@
         "generate_recommendations"
       ],
       "last_updated": "2026-03-11",
-      "trending_score": 1.0,
+      "trending_score": 0.43000000000000016,
       "metadata": {
         "name": "board_brief",
         "description": "Produce board-level concise summary with recommendations.",
@@ -274,8 +274,8 @@
         "emotion"
       ],
       "installs": 95,
-      "uses": 131,
-      "success": 123,
+      "uses": 82,
+      "success": 74,
       "failures": 8,
       "avg_rating": 4.3,
       "rating_count": 31,
@@ -291,7 +291,7 @@
         "executive_summary"
       ],
       "last_updated": "2026-02-18",
-      "trending_score": 0.6500000000000004,
+      "trending_score": 0.16,
       "metadata": {
         "name": "sentiment_scanner",
         "description": "Analyze sentiment polarity and emotional tone across text segments.",
@@ -364,8 +364,8 @@
         "mapping"
       ],
       "installs": 68,
-      "uses": 226,
-      "success": 220,
+      "uses": 45,
+      "success": 39,
       "failures": 6,
       "avg_rating": 4.1,
       "rating_count": 15,
@@ -381,7 +381,7 @@
         "prioritize_items"
       ],
       "last_updated": "2026-01-30",
-      "trending_score": 1.0,
+      "trending_score": 0.1,
       "metadata": {
         "name": "dependency_mapper",
         "description": "Map dependencies, relationships, and causal chains in structured content.",
