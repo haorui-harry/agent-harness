@@ -589,38 +589,10 @@ class ToolRegistry:
     def _external_resource_hub(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).lower()
         limit = int(args.get("limit", 5))
-        resources = [
-            {
-                "title": "Model Context Protocol - Architecture",
-                "url": "https://modelcontextprotocol.io/specification/2025-06-18/architecture/index",
-                "tags": ["mcp", "tooling", "protocol", "security"],
-            },
-            {
-                "title": "LangGraph Overview",
-                "url": "https://docs.langchain.com/oss/python/langgraph/overview",
-                "tags": ["langgraph", "state", "durability", "agent"],
-            },
-            {
-                "title": "GitHub Trending Weekly",
-                "url": "https://github.com/trending?since=weekly",
-                "tags": ["github", "trending", "hotspot", "ecosystem"],
-            },
-            {
-                "title": "OpenAI Building Agents Guide",
-                "url": "https://developers.openai.com/resources/",
-                "tags": ["openai", "agents", "evals", "safety"],
-            },
-        ]
 
         evidence_bundle = self._evidence.collect(query=query, limit=max(limit, 6), domains=self._infer_domains(query))
         evidence_records = evidence_bundle.get("records", []) if isinstance(evidence_bundle, dict) else []
         scored: list[tuple[dict[str, Any], float]] = []
-        for item in resources:
-            score = 0.2
-            for tag in item["tags"]:
-                if tag in query:
-                    score += 0.25
-            scored.append((item, score))
         for item in evidence_records:
             if not isinstance(item, dict):
                 continue

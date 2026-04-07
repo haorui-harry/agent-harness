@@ -103,9 +103,8 @@ class LiveStrategyRegistry:
                 ),
                 synthesis_system=(
                     "Write a deep research deliverable between 900 and 1600 words. "
-                    "If the task asks for a memo, brief, or report, follow that requested surface instead of forcing a generic template. "
-                    "When no document shape is requested, default to sections such as Executive Summary, Current System Assessment, Comparative Analysis, "
-                    "Failure Modes, High-Leverage Improvements, Delivery Plan, and Open Questions. "
+                    "Adapt the document structure to match the user's request — if they ask for a memo, brief, comparison, or report, follow that format. "
+                    "When no format is specified, use sections like: Summary, Current State, Analysis, Gaps, Recommendations, Open Questions. "
                     "Be concrete, comparative, technically specific, and explicit about evidence limits."
                 ),
                 critique_system=(
@@ -121,14 +120,16 @@ class LiveStrategyRegistry:
                 title="Balanced Orchestrator",
                 summary="General-purpose strategy balancing depth, reliability, and execution speed.",
                 analysis_system=(
-                    "You are a reliability-first agent architect. "
+                    "You are a reliability-first analyst. "
                     "Return compact JSON only with keys: thesis, key_risks, missing_evidence, "
                     "best_moves, expected_value."
                 ),
                 synthesis_system=(
-                    "You are the final synthesis agent in Agent Harness. "
-                    "Produce a high-signal answer with sections: Executive Take, Decisions, Risks, "
-                    "Action Plan, Confidence & Limits."
+                    "You are a task completion agent. "
+                    "Produce a high-quality answer that directly addresses the user's request. "
+                    "Choose the output format that best fits the task (report, comparison table, action plan, analysis, etc.). "
+                    "Do NOT force a fixed template — adapt the structure to the question. "
+                    "Be concrete, cite evidence when available, and state limitations honestly."
                 ),
                 critique_system=(
                     "You are a strict reviewer. Return JSON with keys: confidence (0-1), "
@@ -145,8 +146,9 @@ class LiveStrategyRegistry:
                     "Return JSON only with keys: thesis, key_risks, missing_evidence, controls, expected_value."
                 ),
                 synthesis_system=(
-                    "Generate an executive memo with sections: Decision, Control Matrix, Residual Risk, "
-                    "Escalation Gates, 72h Action Plan, Confidence."
+                    "Generate a clear executive memo that directly answers the user's question. "
+                    "Include sections for: Decision, Key Risks, Controls, Action Plan, and Confidence Level. "
+                    "Adapt the depth and scope to the actual question asked."
                 ),
                 critique_system=(
                     "Audit the memo harshly. Return JSON: confidence, blind_spots, red_flags, improve, "
@@ -164,8 +166,9 @@ class LiveStrategyRegistry:
                     "target_architecture, migration_path, expected_value."
                 ),
                 synthesis_system=(
-                    "Produce a technical architecture blueprint with sections: Target State, Phased Migration, "
-                    "Dependency Map, Failure Modes, Guardrails, Next 2 Iterations."
+                    "Produce a technical architecture deliverable that addresses the user's request. "
+                    "Use sections appropriate to the task (e.g., Target State, Migration Path, Dependencies, Risk Mitigation). "
+                    "Be specific about implementation details, not generic phases."
                 ),
                 critique_system=(
                     "Act as architecture review board. Return JSON: confidence, blind_spots, red_flags, "
@@ -185,8 +188,10 @@ class LiveStrategyRegistry:
                     "launch_phases, proof_points, controls, expected_value."
                 ),
                 synthesis_system=(
-                    "Write a launch decision brief with sections: What Is Being Launched, Target Users, Phased Rollout, "
-                    "Why This Wedge, Control Surface, Metrics To Watch, Expansion Trigger."
+                    "Write a decision-oriented deliverable that helps the reader choose and act. "
+                    "Structure around: What's the decision, What are the options with tradeoffs, "
+                    "What evidence supports the recommendation, What should happen next. "
+                    "Adapt the format to the user's actual question."
                 ),
                 critique_system=(
                     "Return JSON only: confidence, blind_spots, red_flags, improve, bias_checks."

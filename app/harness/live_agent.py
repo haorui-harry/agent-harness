@@ -601,6 +601,10 @@ class LiveAgentOrchestrator:
                 "role": "system",
                 "content": (
                     f"{profile.analysis_system} "
+                    "Before producing your analysis, think step by step about: "
+                    "1) What exactly is the user asking for? "
+                    "2) What evidence from evidence_digest actually supports an answer? "
+                    "3) What is missing that you must explicitly flag as a gap? "
                     "Use the evidence_digest as the boundary of what is actually supported. "
                     "If the evidence_digest does not contain a quantitative claim, do not infer one. "
                     + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
@@ -635,9 +639,11 @@ class LiveAgentOrchestrator:
                 "role": "system",
                 "content": (
                     f"{profile.synthesis_system} "
+                    "IMPORTANT: The 'analysis' field contains structured findings from the first reasoning pass. "
+                    "You MUST use these findings as the backbone of your answer — do not ignore them and start from scratch. "
                     "Use the evidence_digest to ground concrete claims. "
-                    "Prefer specific benchmark names, architectural gaps, and implementation actions over generic phases. "
-                    "When evidence sources are present, end with a short 'Sources' section. "
+                    "Prefer specific details, names, and implementation actions over generic phases. "
+                    "When evidence sources are present, end with a short 'Sources' section listing them. "
                     "Do not invent numbers, benchmark scores, or study results unless they appear in evidence_digest or base_answer. "
                     "If the evidence is qualitative, write qualitative claims and explicitly state evidence limits. "
                     + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
@@ -681,6 +687,36 @@ class LiveAgentOrchestrator:
         profile: LiveStrategyProfile,
         surface_guidance: str = "",
     ) -> list[dict[str, str]]:
+        # Extract specific critique items to inject as mandatory fix targets
+        red_flags = critique.get("red_flags", [])
+        blind_spots = critique.get("blind_spots", [])
+        improve = critique.get("improve", [])
+        confidence = critique.get("confidence", 1.0)
+
+        critique_instructions = []
+        if red_flags:
+            critique_instructions.append(
+                "RED FLAGS (must fix): " + "; ".join(str(f) for f in red_flags[:5])
+            )
+        if blind_spots:
+            critique_instructions.append(
+                "BLIND SPOTS (must address): " + "; ".join(str(b) for b in blind_spots[:5])
+            )
+        if improve:
+            critique_instructions.append(
+                "IMPROVEMENTS (must apply): " + "; ".join(str(i) for i in improve[:5])
+            )
+        try:
+            conf_val = float(confidence)
+        except (TypeError, ValueError):
+            conf_val = 0.5  # non-numeric confidence = treat as uncertain
+        if conf_val < 0.7:
+            critique_instructions.append(
+                f"Critique confidence is LOW ({confidence}). Significantly strengthen evidence grounding."
+            )
+
+        critique_block = "\n".join(critique_instructions) if critique_instructions else "No specific critique issues found."
+
         payload = {
             "query": query,
             "candidate_answer": synthesized[:9000],
@@ -693,11 +729,14 @@ class LiveAgentOrchestrator:
                 "role": "system",
                 "content": (
                     f"{profile.synthesis_system} "
-                    "You are revising an existing answer after critique. "
-                    "Fix blind spots, remove generic filler, and make the output materially better than a one-shot answer. "
-                    "Preserve strong sections, but sharpen technical specificity and ground claims in the evidence_digest. "
+                    "You are revising an existing answer after peer review. "
+                    "The critique identified SPECIFIC issues that you MUST fix in this revision:\n\n"
+                    f"{critique_block}\n\n"
+                    "For each red flag and blind spot, either fix it or explicitly explain why it's not applicable. "
+                    "Do NOT just rephrase the original — make substantive improvements. "
+                    "Preserve strong sections, sharpen weak ones, and ground every claim in the evidence_digest. "
                     "If evidence_digest includes sources, include a concise 'Sources' section. "
-                    "Delete any unsupported metrics, counts, or benchmark claims that are not grounded in evidence_digest. "
+                    "Delete any unsupported metrics or benchmark claims not in evidence_digest. "
                     + (f"Surface guidance: {surface_guidance}" if surface_guidance else "")
                 ),
             },

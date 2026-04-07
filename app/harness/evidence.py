@@ -107,6 +107,24 @@ class EvidenceProviderRegistry:
         self.resolved_headers = dict(resolved_headers or {})
         self.sources = self._load_sources(config_path=config_path)
 
+    def enable_live_search(self, base_url: str, api_key: str, model_name: str = "gpt-4o") -> None:
+        """Dynamically add a live_search evidence source backed by an LLM API."""
+        if not base_url or not api_key:
+            return
+        already = any(s.source_type == "live_search" for s in self.sources)
+        if already:
+            return
+        self.resolved_headers["api_key"] = api_key
+        self.sources.insert(0, EvidenceSourceConfig(
+            source_id="live_model_search",
+            source_type="live_search",
+            enabled=True,
+            url=base_url,
+            root=model_name,
+            timeout_seconds=15,
+            domains=["general"],
+        ))
+
     def list_sources(self) -> list[dict[str, Any]]:
         return [
             {
@@ -192,6 +210,8 @@ class EvidenceProviderRegistry:
             return self._load_http_json(source=source, query=query)
         if source.source_type == "static_catalog":
             return self._load_static_catalog(source)
+        if source.source_type == "live_search":
+            return self._load_live_search(source=source, query=query)
         return []
 
     def _load_local_dossier(self, source: EvidenceSourceConfig) -> list[EvidenceRecord]:
@@ -388,6 +408,102 @@ class EvidenceProviderRegistry:
             )
             for row in records
         ]
+
+    def _load_live_search(self, source: EvidenceSourceConfig, query: str) -> list[EvidenceRecord]:
+        """Use the live model API to generate relevant evidence via function calling."""
+        import os
+
+        base_url = source.url or os.getenv("AGENT_HARNESS_MODEL_BASE_URL", "").strip()
+        api_key = self.resolved_headers.get("api_key", "") or os.getenv("AGENT_HARNESS_MODEL_API_KEY", "").strip()
+        model_name = source.root or os.getenv("AGENT_HARNESS_MODEL_NAME", "gpt-4o").strip()
+        if not base_url or not api_key:
+            return []
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a research assistant. Given a query, produce a JSON array of 5-8 relevant reference items. "
+                    "Each item must have: title (str), url (str - real URL if known, otherwise empty), "
+                    "summary (str - 1-2 sentence description of why this is relevant), "
+                    "tags (list of str). Focus on authoritative, specific, and diverse sources. "
+                    "Return ONLY the JSON array, no other text."
+                ),
+            },
+            {"role": "user", "content": f"Find relevant references for: {query}"},
+        ]
+
+        payload = json.dumps({
+            "model": model_name,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 1500,
+        }).encode("utf-8")
+
+        endpoint = base_url.rstrip("/")
+        if not endpoint.endswith("/chat/completions"):
+            endpoint += "/v1/chat/completions" if not endpoint.endswith("/v1") else "/chat/completions"
+
+        req = request.Request(
+            endpoint,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with request.urlopen(req, timeout=source.timeout_seconds or 15) as response:
+                result = json.loads(response.read().decode("utf-8", errors="replace"))
+        except Exception:
+            return []
+
+        content = ""
+        choices = result.get("choices", [])
+        if choices and isinstance(choices[0], dict):
+            content = choices[0].get("message", {}).get("content", "")
+
+        # Parse the JSON array from the response
+        content = content.strip()
+        if content.startswith("```"):
+            content = "\n".join(content.split("\n")[1:])
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+
+        try:
+            items = json.loads(content)
+        except Exception:
+            return []
+
+        if not isinstance(items, list):
+            return []
+
+        records: list[EvidenceRecord] = []
+        for idx, item in enumerate(items[:8]):
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title", "")).strip()
+            if not title:
+                continue
+            tags = item.get("tags", [])
+            records.append(
+                EvidenceRecord(
+                    record_id=f"live-search-{idx}",
+                    title=title,
+                    summary=str(item.get("summary", "")),
+                    source_id=source.source_id,
+                    source_type="live_search",
+                    evidence_type="live_reference",
+                    url=str(item.get("url", "")),
+                    tags=[str(t) for t in (tags if isinstance(tags, list) else [])],
+                    domains=list(source.domains),
+                    trust_score=0.75,
+                    freshness_hint="live",
+                )
+            )
+        return records
 
     @staticmethod
     def _score_record(

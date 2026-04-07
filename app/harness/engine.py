@@ -888,6 +888,12 @@ class HarnessEngine:
         live_overrides = dict(live_model or {})
         live_overrides.setdefault("timeout_seconds", constraints.live_agent_timeout_seconds)
         live_overrides.setdefault("temperature", constraints.live_agent_temperature)
+        if constraints.enable_live_agent and live_model:
+            self.tools._evidence.enable_live_search(
+                base_url=str(live_model.get("base_url", "")),
+                api_key=str(live_model.get("api_key", "")),
+                model_name=str(live_model.get("model_name", "gpt-4o")),
+            )
         live_result = self.live_agent.enhance(
             query=safe_query,
             mode=mode,
